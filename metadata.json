@@ -1,0 +1,8 @@
+{
+  "name": "bao-gia-hung-decor",
+  "description": "Bảng giá Hùng Decor",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
