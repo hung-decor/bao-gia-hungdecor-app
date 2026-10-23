@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { useAppData } from '../../context/AppDataContext';
 import { FrameSpecItem, InEpMikaPriceRow, DongKhungPriceRow, Anh4KPriceRow } from '../../types';
+import {
+  inEpMikaPricingData as defaultInEpMika,
+  goLuaDongKhungData as defaultGoLua,
+  mikaPhoThongData as defaultMikaPhoThong,
+  hdGuongSieuBongKhungData as defaultHdGuong,
+  anh4KPricingData as defaultAnh4K
+} from '../../data/tiemIn194Pricing2026';
 import { 
   Lock, 
   Unlock, 
@@ -22,14 +29,13 @@ import {
   Eye,
   EyeOff,
   LogOut,
-  X
+  X,
+  Copy
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   onClose: () => void;
 }
-
-const DEFAULT_ADMIN_PASSWORD = '123456';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const {
@@ -39,6 +45,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     saveFrames,
     shopInfo,
     saveShopInfo,
+    adminPassword,
+    changeAdminPassword,
     isSaving,
     dataSource,
     lastUpdated,
@@ -56,7 +64,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'pricing' | 'frames' | 'shop'>('pricing');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'frames' | 'shop' | 'security'>('pricing');
   const [activeMaterialTab, setActiveMaterialTab] = useState<number>(0);
 
   // Status Notification
@@ -67,6 +75,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setTimeout(() => {
       setToastMessage(null);
     }, 3500);
+  };
+
+  // Change Password State
+  const [oldPasswordInput, setOldPasswordInput] = useState<string>('');
+  const [newPasswordInput, setNewPasswordInput] = useState<string>('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState<string>('');
+  const [changePasswordError, setChangePasswordError] = useState<string>('');
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+
+  // Link copy state
+  const [copiedLinkType, setCopiedLinkType] = useState<'studio' | 'freelance' | null>(null);
+
+  const handleCopyLink = (type: 'studio' | 'freelance') => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = type === 'studio' ? `${origin}/` : `${origin}/?mode=freelance`;
+    navigator.clipboard.writeText(url);
+    setCopiedLinkType(type);
+    showToast(
+      type === 'studio' 
+        ? 'Đã sao chép: Link Bảng Giá Sỉ Studio (Gốc)' 
+        : 'Đã sao chép: Link Bảng Giá Freelance (+10%)'
+    );
+    setTimeout(() => {
+      setCopiedLinkType(null);
+    }, 2500);
   };
 
   // Local editable copies of pricing data
@@ -100,13 +133,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   // Handle Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === DEFAULT_ADMIN_PASSWORD) {
+    if (passwordInput === adminPassword) {
       setIsAuthenticated(true);
       sessionStorage.setItem('hung_decor_admin_auth', 'true');
       setPasswordError('');
       showToast('Đăng nhập quản trị Hùng Decor thành công!');
     } else {
-      setPasswordError('Mật khẩu không chính xác! (Mặc định: 123456)');
+      setPasswordError('Mật khẩu không chính xác!');
     }
   };
 
@@ -174,7 +207,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-2">
-                Mật khẩu Quản trị (Mặc định: 123456)
+                MẬT KHẨU QUẢN TRỊ
               </label>
               <div className="relative">
                 <input
@@ -303,6 +336,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        {/* Quick Link Sharing Box for Anh Hùng */}
+        <div className="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E7C184] animate-pulse"></span>
+                <h3 className="font-serif-display font-bold text-sm sm:text-base text-white">
+                  Chia Sẻ Bảng Giá Cho Khách Hàng / Đối Tác
+                </h3>
+              </div>
+              <p className="text-xs text-neutral-400 mt-1">
+                Gửi link riêng biệt cho thợ ảnh / studio ruột hoặc khách chụp tự do (Freelance).
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              {/* Studio wholesale link */}
+              <button
+                type="button"
+                onClick={() => handleCopyLink('studio')}
+                className={`inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-sm ${
+                  copiedLinkType === 'studio'
+                    ? 'bg-emerald-600 border-emerald-500 text-white'
+                    : 'bg-neutral-800 hover:bg-neutral-750 border-neutral-700 text-white hover:border-[#E7C184]'
+                }`}
+              >
+                {copiedLinkType === 'studio' ? (
+                  <>
+                    <Check className="w-4 h-4 text-white" />
+                    <span>Đã chép Link Sỉ Studio!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-[#E7C184]" />
+                    <span>Link Bảng Giá Sỉ Studio (Gốc)</span>
+                  </>
+                )}
+              </button>
+
+              {/* Freelance +10% link */}
+              <button
+                type="button"
+                onClick={() => handleCopyLink('freelance')}
+                className={`inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-sm ${
+                  copiedLinkType === 'freelance'
+                    ? 'bg-emerald-600 border-emerald-500 text-white'
+                    : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-200 hover:border-amber-400'
+                }`}
+              >
+                {copiedLinkType === 'freelance' ? (
+                  <>
+                    <Check className="w-4 h-4 text-white" />
+                    <span>Đã chép Link Freelance (+10%)!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-amber-400" />
+                    <span>Link Bảng Giá Freelance (+10%)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-neutral-800/80 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-neutral-400 gap-2">
+            <span className="flex items-center gap-1.5">
+              <span className="text-emerald-400 font-bold">● Link Studio:</span> Giá sỉ xưởng 100%, có hiển thị nút Admin cho anh Hùng.
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-amber-400 font-bold">● Link Freelance:</span> Tự động +10% toàn bộ đơn giá và ẩn hoàn toàn nút Admin.
+            </span>
+          </div>
+        </div>
         
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-neutral-800 pb-2 overflow-x-auto">
@@ -327,7 +434,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <Ruler className="w-4 h-4" />
-            <span>2. Quản Lý Mẫu Khung & Tải Ảnh (K0 - K11, Titan...)</span>
+            <span>2. Quản Lý Mẫu Khung & Tải Ảnh (Khung KX, HT10, K12, Bản 10cm, Titan...)</span>
           </button>
 
           <button
@@ -340,6 +447,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           >
             <Phone className="w-4 h-4" />
             <span>3. Thông Tin Xưởng & Hotline</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'security'
+                ? 'bg-[#E7C184] text-[#1C1917] shadow-md'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            <span>4. Đổi Mật Khẩu Quản Trị</span>
           </button>
         </div>
 
@@ -356,14 +475,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </p>
               </div>
 
-              <button
-                onClick={handleSaveAllPricing}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Đang lưu lên Firestore...' : 'Lưu Thay Đổi Bảng Giá'}</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm('Bạn có muốn đồng bộ lại bảng giá mới theo đúng chuẩn thực tế xưởng Hùng Decor lên Firestore?')) {
+                      const updatedPricing = {
+                        inEpMika: defaultInEpMika,
+                        goLua: defaultGoLua,
+                        mikaPhoThong: defaultMikaPhoThong,
+                        hdGuong: defaultHdGuong,
+                        anh4K: defaultAnh4K,
+                      };
+                      setLocalPricing(updatedPricing);
+                      await savePricing(updatedPricing);
+                      showToast('Đã nạp và lưu bảng giá mới của Hùng Decor lên Firestore thành công!');
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs sm:text-sm transition-all cursor-pointer disabled:opacity-50"
+                  title="Tải bảng giá chuẩn thực tế xưởng Hùng Decor và lưu lên Firestore"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Đồng Bộ Giá Gốc Hùng Decor</span>
+                </button>
+
+                <button
+                  onClick={handleSaveAllPricing}
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSaving ? 'Đang lưu lên Firestore...' : 'Lưu Thay Đổi Bảng Giá'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Material Selector Subtabs */}
@@ -515,7 +660,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
                     <div>
                       <h3 className="font-bold text-sm text-[#E7C184]">{title}</h3>
-                      <p className="text-xs text-neutral-400">Chỉnh sửa giá trực tiếp cho từng hệ khung: Bo viền, K0-K3, K4-K6, K7-K9, K10, K11, Titan 1, Titan 2</p>
+                      <p className="text-xs text-neutral-400">Chỉnh sửa giá trực tiếp cho từng hệ khung: Bo viền, Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M, Khung nhôm Titan C</p>
                     </div>
                     <button
                       onClick={() => {
@@ -524,7 +669,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           boVien: 0,
                           k0_k3: 0,
                           k4_k6: 0,
-                          k7_k9: 0,
+                          k7_k9: null,
                           k10: null,
                           k11: null,
                           titan1: 0,
@@ -548,13 +693,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <tr>
                           <th className="p-2.5 w-24">Cỡ Ảnh</th>
                           <th className="p-2.5">Bo Viền</th>
-                          <th className="p-2.5">K0 - K3</th>
-                          <th className="p-2.5">K4 - K6</th>
-                          <th className="p-2.5">K7 - K9</th>
-                          <th className="p-2.5">K10 (Bản 5)</th>
-                          <th className="p-2.5">K11 (Bản 8)</th>
-                          <th className="p-2.5">Titan 1</th>
-                          <th className="p-2.5">Titan 2</th>
+                          <th className="p-2.5">Khung KX</th>
+                          <th className="p-2.5">Khung HT10</th>
+                          <th className="p-2.5">Khung K12</th>
+                          <th className="p-2.5">Khung bản 10cm</th>
+                          <th className="p-2.5">Khung nhôm Titan M</th>
+                          <th className="p-2.5">Khung nhôm Titan C</th>
                           <th className="p-2.5 w-12 text-center">Xóa</th>
                         </tr>
                       </thead>
@@ -569,7 +713,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                 className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                               />
                             </td>
-                            {(['boVien', 'k0_k3', 'k4_k6', 'k7_k9', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
+                            {(['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
                               <td key={field} className="p-2">
                                 <input
                                   type="number"
@@ -609,7 +753,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-sm text-[#E7C184]">Bảng Giá Ảnh 4K Fomex Cao Cấp</h3>
-                    <p className="text-xs text-neutral-400">Áp dụng khung K4-K6 và Titan 2 (Xanh, Hồng)</p>
+                    <p className="text-xs text-neutral-400">Áp dụng Khung HT10 và Khung nhôm Titan C</p>
                   </div>
                   <button
                     onClick={() => {
@@ -635,8 +779,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <thead>
                       <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
                         <th className="p-3 w-32">Kích Thước</th>
-                        <th className="p-3">Khung Hộp K4, K5, K6 (đ)</th>
-                        <th className="p-3">Khung Titan T2 Vàng Hồng / Xanh Rêu (đ)</th>
+                        <th className="p-3">Khung HT10 (đ)</th>
+                        <th className="p-3">Khung nhôm Titan C (đ)</th>
                         <th className="p-3 w-14 text-center">Xóa</th>
                       </tr>
                     </thead>
@@ -1127,6 +1271,128 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB 4: CHANGE ADMIN PASSWORD & SECURITY */}
+        {activeTab === 'security' && (
+          <div className="max-w-xl bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#E7C184]/20 border border-[#E7C184]/30 flex items-center justify-center text-[#E7C184]">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <h2 className="text-base sm:text-lg font-bold text-white font-serif-display">
+                  Đổi Mật Khẩu Quản Trị Hệ Thống
+                </h2>
+              </div>
+              <p className="text-xs text-neutral-400 mt-1">
+                Thay đổi mật khẩu đăng nhập vào giao diện Admin. Mật khẩu mới sẽ được lưu bảo mật trên Firestore và có hiệu lực ngay lập tức.
+              </p>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setChangePasswordError('');
+
+                if (oldPasswordInput !== adminPassword) {
+                  setChangePasswordError('Mật khẩu hiện tại không chính xác!');
+                  return;
+                }
+                if (!newPasswordInput || newPasswordInput.length < 4) {
+                  setChangePasswordError('Mật khẩu mới phải có tối thiểu 4 ký tự!');
+                  return;
+                }
+                if (newPasswordInput !== confirmPasswordInput) {
+                  setChangePasswordError('Xác nhận mật khẩu mới không trùng khớp!');
+                  return;
+                }
+
+                try {
+                  setIsChangingPassword(true);
+                  await changeAdminPassword(newPasswordInput);
+                  setOldPasswordInput('');
+                  setNewPasswordInput('');
+                  setConfirmPasswordInput('');
+                  showToast('Đã đổi mật khẩu quản trị mới thành công!');
+                } catch (err) {
+                  setChangePasswordError('Lỗi cập nhật mật khẩu lên Firestore. Vui lòng thử lại!');
+                } finally {
+                  setIsChangingPassword(false);
+                }
+              }}
+              className="space-y-4 pt-2"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  Mật khẩu hiện tại
+                </label>
+                <input
+                  type="password"
+                  value={oldPasswordInput}
+                  onChange={(e) => {
+                    setOldPasswordInput(e.target.value);
+                    setChangePasswordError('');
+                  }}
+                  placeholder="Nhập mật khẩu đang dùng..."
+                  required
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  Mật khẩu mới (tối thiểu 4 ký tự)
+                </label>
+                <input
+                  type="password"
+                  value={newPasswordInput}
+                  onChange={(e) => {
+                    setNewPasswordInput(e.target.value);
+                    setChangePasswordError('');
+                  }}
+                  placeholder="Nhập mật khẩu mới..."
+                  required
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  Xác nhận lại mật khẩu mới
+                </label>
+                <input
+                  type="password"
+                  value={confirmPasswordInput}
+                  onChange={(e) => {
+                    setConfirmPasswordInput(e.target.value);
+                    setChangePasswordError('');
+                  }}
+                  placeholder="Nhập lại mật khẩu mới..."
+                  required
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                />
+              </div>
+
+              {changePasswordError && (
+                <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-xl text-xs text-red-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{changePasswordError}</span>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isChangingPassword ? 'Đang lưu...' : 'Cập Nhật Mật Khẩu Mới'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         )}
 

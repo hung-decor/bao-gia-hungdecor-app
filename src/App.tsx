@@ -14,14 +14,21 @@ import { B2BGuidelinesSection } from './components/B2BGuidelinesSection';
 import { B2BFooter } from './components/B2BFooter';
 import { B2BStickyMobileBar } from './components/B2BStickyMobileBar';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { useIsFreelanceMode } from './hooks/usePriceMultiplier';
 
 function MainAppContent() {
   const { shopInfo, isLoading, dataSource } = useAppData();
+  const isFreelance = useIsFreelanceMode();
+
   const [isAdminView, setIsAdminView] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const params = new URLSearchParams(window.location.search);
+      // If freelance mode is active, prevent opening admin via query
+      if (params.get('mode')?.toLowerCase() === 'freelance') {
+        return path === '/admin' || hash === '#admin';
+      }
       return path === '/admin' || hash === '#admin' || params.has('admin');
     }
     return false;
@@ -76,8 +83,8 @@ function MainAppContent() {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FAF9F5] text-[#1C1917] antialiased selection:bg-[#E2D4C0] selection:text-[#1C1917]">
-      {/* 1. Header (Sticky Top Bar with Admin access) */}
-      <B2BHeader onOpenAdmin={handleOpenAdmin} />
+      {/* 1. Header (Sticky Top Bar with Admin access - hidden in freelance mode) */}
+      <B2BHeader onOpenAdmin={isFreelance ? undefined : handleOpenAdmin} />
 
       {/* 2. BỘ TÍNH GIÁ NHANH TRÊN MOBILE (ĐẶT TRÊN CÙNG) */}
       <MobileQuickQuoter zaloTho={shopInfo.zaloTho} />
@@ -96,8 +103,8 @@ function MainAppContent() {
         <B2BGuidelinesSection shopInfo={shopInfo} />
       </main>
 
-      {/* 7. Footer with Admin Access & Brand */}
-      <B2BFooter shopInfo={shopInfo} onOpenAdmin={handleOpenAdmin} />
+      {/* 7. Footer with Admin Access & Brand - hidden in freelance mode */}
+      <B2BFooter shopInfo={shopInfo} onOpenAdmin={isFreelance ? undefined : handleOpenAdmin} />
 
       {/* 8. Sticky Mobile Thumb Bar */}
       <B2BStickyMobileBar

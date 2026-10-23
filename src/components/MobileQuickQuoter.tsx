@@ -22,7 +22,9 @@ const allAvailableSizes = [
   { size: '70x110', label: '70x110' },
   { size: '80x120', label: '80x120' },
   { size: '90x130', label: '90x130' },
+  { size: '90x140', label: '90x140' },
   { size: '100x150', label: '100x150' },
+  { size: '100x180', label: '100x180' },
   { size: '110x180', label: '110x180' }
 ];
 
@@ -62,21 +64,20 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
 
     if (selectedMaterial === 'anh-4k') {
       return [
-        { id: 'k4_k6', label: 'Khung Hộp K4, K5, K6' },
-        { id: 'titan2', label: 'Khung Titan T2 (Xanh, Hồng)' }
+        { id: 'k4_k6', label: 'Khung HT10' },
+        { id: 'titan2', label: 'Khung nhôm Titan C' }
       ];
     }
 
     // Default for Gỗ Lụa, Mika Phổ Thông, HD Gương Siêu Bóng (Chỉ Bo Viền đặt lên đầu làm mặc định)
     return [
       { id: 'boVien', label: 'Chỉ Bo Viền (Không Khung)' },
-      { id: 'k4_k6', label: 'Khung Hộp K4, K5, K6 (Cao 3.5cm)' },
-      { id: 'k0_k3', label: 'Khung K0, K1, K2, K3 (Bản 2-3cm)' },
-      { id: 'k7_k9', label: 'Khung Nổi K7, K8, K9 (Bản mặt 1.5cm)' },
-      { id: 'k10', label: 'Khung K10 (Bản Rộng 5.5cm)' },
-      { id: 'k11', label: 'Khung K11 (Bản Đại 8cm)' },
-      { id: 'titan1', label: 'Khung Titan T1 (Đen, Bạc)' },
-      { id: 'titan2', label: 'Khung Titan T2 (Xanh, Hồng)' }
+      { id: 'k0_k3', label: 'Khung KX' },
+      { id: 'k4_k6', label: 'Khung HT10' },
+      { id: 'k10', label: 'Khung K12' },
+      { id: 'k11', label: 'Khung bản 10cm' },
+      { id: 'titan1', label: 'Khung nhôm Titan M' },
+      { id: 'titan2', label: 'Khung nhôm Titan C' }
     ];
   }, [selectedMaterial]);
 

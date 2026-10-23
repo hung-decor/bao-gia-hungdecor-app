@@ -1,6 +1,7 @@
 import React from 'react';
 import { Phone, MessageCircle, Calculator, Ruler, Settings } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useIsFreelanceMode } from '../hooks/usePriceMultiplier';
 
 interface B2BHeaderProps {
   onOpenAdmin?: () => void;
@@ -8,6 +9,7 @@ interface B2BHeaderProps {
 
 export const B2BHeader: React.FC<B2BHeaderProps> = ({ onOpenAdmin }) => {
   const { shopInfo, dataSource } = useAppData();
+  const isFreelance = useIsFreelanceMode();
 
   return (
     <header className="sticky top-0 z-40 bg-[#1C1917]/95 backdrop-blur-md border-b border-white/10 text-white w-full max-w-full overflow-hidden">
@@ -44,7 +46,7 @@ export const B2BHeader: React.FC<B2BHeaderProps> = ({ onOpenAdmin }) => {
             </a>
           </nav>
 
-          {/* Zone 3: Primary Actions + Admin Access */}
+          {/* Zone 3: Primary Actions + Admin Access (hidden if freelance mode) */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <a
               href={`tel:${shopInfo.hotlineTech.replace(/\D/g, '')}`}
@@ -64,8 +66,8 @@ export const B2BHeader: React.FC<B2BHeaderProps> = ({ onOpenAdmin }) => {
               <span>Gửi File Zalo Thợ</span>
             </a>
 
-            {/* Admin shortcut button */}
-            {onOpenAdmin && (
+            {/* Admin shortcut button - Completely hidden in freelance mode */}
+            {onOpenAdmin && !isFreelance && (
               <button
                 onClick={onOpenAdmin}
                 title="Quản trị bảng giá & khung (Hùng Decor Admin)"

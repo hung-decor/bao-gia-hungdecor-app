@@ -171,13 +171,12 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       Cỡ Ảnh
                     </th>
                     <th className="py-3 px-3 text-right whitespace-nowrap">Bo Viền</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K0, K1, K2, K3</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K4, K5, K6</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K7, K8, K9</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">K10 (5.5cm)</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">K11 (8cm)</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Titan 1</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Titan 2</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung KX</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung K12</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung bản 10cm</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan M</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan C</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
@@ -189,7 +188,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.boVien)}</td>
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k0_k3)}</td>
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k7_k9)}</td>
                       <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k10)}</td>
                       <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k11)}</td>
                       <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(row.titan1)}</td>
@@ -209,13 +207,12 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       Cỡ Ảnh
                     </th>
                     <th className="py-3 px-3 text-right whitespace-nowrap">Bo Viền</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K0, K1, K2, K3</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K4, K5, K6</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K7, K8, K9</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">K10</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">K11</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Titan 1</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Titan 2</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung KX</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung K12</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung bản 10cm</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan M</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan C</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
@@ -227,7 +224,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.boVien)}</td>
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k0_k3)}</td>
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k7_k9)}</td>
                       <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k10)}</td>
                       <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k11)}</td>
                       <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(row.titan1)}</td>
@@ -247,13 +243,12 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       Cỡ Ảnh
                     </th>
                     <th className="py-3 px-3 text-right whitespace-nowrap">Bo Viền</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K0, K1, K2, K3</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K4, K5, K6</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K7, K8, K9</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">K10</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">K11</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Titan 1</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Titan 2</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung KX</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung K12</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung bản 10cm</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan M</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan C</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
@@ -265,7 +260,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.boVien)}</td>
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k0_k3)}</td>
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k7_k9)}</td>
                       <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k10)}</td>
                       <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k11)}</td>
                       <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(row.titan1)}</td>
@@ -331,8 +325,8 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
                       Cỡ Ảnh
                     </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">K4, K5, K6</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap text-emerald-800">Titan 2</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap text-emerald-800">Khung nhôm Titan C</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">

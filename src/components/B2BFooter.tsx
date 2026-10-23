@@ -1,6 +1,7 @@
 import React from 'react';
 import { B2BShopInfo } from '../types';
 import { Phone, MessageCircle, MapPin, Clock, Lock } from 'lucide-react';
+import { useIsFreelanceMode } from '../hooks/usePriceMultiplier';
 
 interface B2BFooterProps {
   shopInfo: B2BShopInfo;
@@ -8,6 +9,7 @@ interface B2BFooterProps {
 }
 
 export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) => {
+  const isFreelance = useIsFreelanceMode();
   return (
     <footer className="bg-[#121110] text-neutral-400 py-12 pb-24 md:pb-12 border-t border-neutral-800 text-xs w-full max-w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full max-w-full">
@@ -73,7 +75,7 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) =
               Hệ màu sRGB / Adobe RGB · 300 DPI 1:1
             </span>
 
-            {onOpenAdmin && (
+            {onOpenAdmin && !isFreelance && (
               <button
                 onClick={onOpenAdmin}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-[#E7C184] transition-colors border border-neutral-800 cursor-pointer text-[11px]"

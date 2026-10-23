@@ -279,7 +279,21 @@ export const EXACT_FRAME_PATHS: Record<string, string> = {
   'titan 2': '/images/frames/khung-titan2-hong.jpg',
   'Titan 2 Hồng': '/images/frames/khung-titan2-hong.jpg',
   'Titan 2 Xanh': '/images/frames/khung-titan2-xanh.JPG',
-  'TITAN2': '/images/frames/khung-titan2-hong.jpg'
+  'TITAN2': '/images/frames/khung-titan2-hong.jpg',
+  'Khung KX - K0': '/images/frames/khung-k0.jpg',
+  'Khung KX - K1': '/images/frames/khung-k1.jpg',
+  'Khung KX - K2': '/images/frames/khung-k2.jpg',
+  'Khung KX - K3': '/images/frames/khung-k3.jpg',
+  'Khung HT10 - K4': '/images/frames/khung-k4.JPG',
+  'Khung HT10 - K5': '/images/frames/khung-k5.JPG',
+  'Khung HT10 - K6': '/images/frames/khung-k6-caffe.JPG',
+  'Khung K12': '/images/frames/khung-k10.JPG',
+  'Bản 10cm': '/images/frames/khung-k11.jpg',
+  'Khung Bản 10cm': '/images/frames/khung-k11.jpg',
+  'Titan M': '/images/frames/khung-titan1-den.JPG',
+  'Titan C': '/images/frames/khung-titan2-hong.jpg',
+  'Khung nhôm Titan M': '/images/frames/khung-titan1-den.JPG',
+  'Khung nhôm Titan C': '/images/frames/khung-titan2-hong.jpg'
 };
 
 // Helper function to safely get encoded image URL to avoid 404s on Vercel

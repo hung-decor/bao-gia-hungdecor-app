@@ -30,6 +30,41 @@ export const FIRESTORE_COLLECTION = 'hung_decor';
 export const PRICING_DOC = 'pricing';
 export const FRAMES_DOC = 'frames';
 export const SHOP_INFO_DOC = 'shop_info';
+export const SECURITY_DOC = 'security';
+
+// 0. Fetch & Save Admin Password
+export async function fetchAdminPasswordFromFirestore(): Promise<string> {
+  try {
+    const docRef = doc(db, FIRESTORE_COLLECTION, SECURITY_DOC);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.adminPassword) {
+        return String(data.adminPassword);
+      }
+    }
+    return '123456';
+  } catch (error) {
+    console.warn('Could not fetch security config from Firestore:', error);
+    return '123456';
+  }
+}
+
+export async function saveAdminPasswordToFirestore(newPassword: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, FIRESTORE_COLLECTION, SECURITY_DOC);
+    await setDoc(docRef, {
+      adminPassword: newPassword,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Error saving new admin password to Firestore:', error);
+    throw error;
+  }
+}
+
+export const PRICING_VERSION = '2026_HUNG_DECOR_EXCEL_V3';
 
 // 1. Fetch Pricing from Firestore
 export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingState; updatedAt?: string } | null> {
@@ -38,7 +73,8 @@ export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingSt
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      if (d.inEpMika && d.goLua) {
+      // Enforce the new Excel pricing version: disregard older cached versions
+      if (d.version === PRICING_VERSION && d.inEpMika && d.goLua && d.hdGuong) {
         return {
           data: {
             inEpMika: d.inEpMika,
@@ -64,6 +100,7 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
     const docRef = doc(db, FIRESTORE_COLLECTION, PRICING_DOC);
     await setDoc(docRef, {
       ...pricing,
+      version: PRICING_VERSION,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
     return true;
@@ -73,6 +110,8 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
   }
 }
 
+export const FRAMES_VERSION = '2026_FRAMES_HUNG_DECOR_V3';
+
 // 3. Fetch Frames from Firestore
 export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecItem[]; updatedAt?: string } | null> {
   try {
@@ -80,7 +119,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      if (Array.isArray(d.framesList)) {
+      if (d.version === FRAMES_VERSION && Array.isArray(d.framesList)) {
         return {
           frames: d.framesList,
           updatedAt: d.updatedAt || undefined,
@@ -100,6 +139,7 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
     const docRef = doc(db, FIRESTORE_COLLECTION, FRAMES_DOC);
     await setDoc(docRef, {
       framesList,
+      version: FRAMES_VERSION,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
     return true;

@@ -24,7 +24,9 @@ import {
   fetchShopInfoFromFirestore,
   saveShopInfoToFirestore,
   seedAllDataToFirestore,
-  uploadFrameImageToStorage
+  uploadFrameImageToStorage,
+  fetchAdminPasswordFromFirestore,
+  saveAdminPasswordToFirestore
 } from '../firebase/dataService';
 
 export interface AppDataContextType {
@@ -46,6 +48,10 @@ export interface AppDataContextType {
   shopInfo: B2BShopInfo;
   setShopInfo: React.Dispatch<React.SetStateAction<B2BShopInfo>>;
   saveShopInfo: (newShopInfo?: B2BShopInfo) => Promise<boolean>;
+
+  // Security / Admin Password
+  adminPassword: string;
+  changeAdminPassword: (newPassword: string) => Promise<boolean>;
 
   // Meta status
   isLoading: boolean;
@@ -76,6 +82,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [pricing, setPricing] = useState<FullPricingState>(initialPricing);
   const [frames, setFrames] = useState<FrameSpecItem[]>(defaultFrames);
   const [shopInfo, setShopInfo] = useState<B2BShopInfo>(initialShopInfo);
+  const [adminPassword, setAdminPassword] = useState<string>('123456');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [dataSource, setDataSource] = useState<'firestore' | 'default'>('default');
@@ -84,11 +91,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [pricingResult, framesResult, shopResult] = await Promise.all([
+      const [pricingResult, framesResult, shopResult, pwdResult] = await Promise.all([
         fetchPricingFromFirestore(),
         fetchFramesFromFirestore(),
-        fetchShopInfoFromFirestore()
+        fetchShopInfoFromFirestore(),
+        fetchAdminPasswordFromFirestore()
       ]);
+
+      if (pwdResult) {
+        setAdminPassword(pwdResult);
+      }
 
       let hasFirestoreData = false;
 
@@ -96,12 +108,21 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         setPricing(pricingResult.data);
         hasFirestoreData = true;
         if (pricingResult.updatedAt) setLastUpdated(pricingResult.updatedAt);
+      } else {
+        // Enforce the new Excel factory pricing and sync to Firestore
+        setPricing(initialPricing);
+        savePricingToFirestore(initialPricing).catch(console.warn);
+        hasFirestoreData = true;
       }
 
       if (framesResult && framesResult.frames && framesResult.frames.length > 0) {
         setFrames(framesResult.frames);
         hasFirestoreData = true;
         if (framesResult.updatedAt && !lastUpdated) setLastUpdated(framesResult.updatedAt);
+      } else {
+        setFrames(defaultFrames);
+        saveFramesToFirestore(defaultFrames).catch(console.warn);
+        hasFirestoreData = true;
       }
 
       if (shopResult) {
@@ -206,6 +227,20 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return uploadFrameImageToStorage(file, frameCode);
   };
 
+  const handleChangeAdminPassword = async (newPassword: string): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      await saveAdminPasswordToFirestore(newPassword);
+      setAdminPassword(newPassword);
+      return true;
+    } catch (e) {
+      console.error('Failed to change admin password:', e);
+      throw e;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <AppDataContext.Provider
       value={{
@@ -222,6 +257,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         shopInfo,
         setShopInfo,
         saveShopInfo: handleSaveShopInfo,
+        adminPassword,
+        changeAdminPassword: handleChangeAdminPassword,
         isLoading,
         isSaving,
         dataSource,

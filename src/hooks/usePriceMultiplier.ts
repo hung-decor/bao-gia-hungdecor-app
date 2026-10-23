@@ -46,6 +46,35 @@ export function getPriceMultiplier(): number {
 }
 
 /**
+ * Checks if current view is in Freelance mode (?mode=freelance).
+ */
+export function isFreelanceMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const searchParams = new URLSearchParams(window.location.search);
+  const mode = searchParams.get('mode')?.toLowerCase();
+  return mode === 'freelance' || searchParams.has('freelance');
+}
+
+export function useIsFreelanceMode(): boolean {
+  const [isFreelance, setIsFreelance] = useState<boolean>(isFreelanceMode());
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setIsFreelance(isFreelanceMode());
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
+
+  return isFreelance;
+}
+
+/**
  * React Hook that monitors price multiplier from URL search parameters.
  */
 export function usePriceMultiplier(): number {
@@ -57,7 +86,11 @@ export function usePriceMultiplier(): number {
     };
 
     window.addEventListener('popstate', handleLocationChange);
-    return () => window.removeEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, []);
 
   return multiplier;
