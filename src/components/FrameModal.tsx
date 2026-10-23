@@ -174,7 +174,7 @@ export const FrameModal: React.FC<FrameModalProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-neutral-400 px-1">
-            <span>✓ Ảnh chụp thật góc cạnh và mặt trước tại <strong>Tiệm In 194</strong></span>
+            <span>✓ Ảnh chụp thật góc cạnh và mặt trước tại <strong>Hùng Decor</strong></span>
             <span className="font-mono text-[#E7C184]">{frame.dimensions}</span>
           </div>
 

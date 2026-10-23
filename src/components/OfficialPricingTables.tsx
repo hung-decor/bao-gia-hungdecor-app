@@ -1,11 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  inEpMikaPricingData, 
-  goLuaDongKhungData, 
-  mikaPhoThongData, 
-  hdGuongSieuBongKhungData, 
-  anh4KPricingData 
-} from '../data/tiemIn194Pricing2026';
+import { useAppData } from '../context/AppDataContext';
 import { usePriceMultiplier, applyMultiplier } from '../hooks/usePriceMultiplier';
 import { MaterialTabId } from '../types';
 import { Search } from 'lucide-react';
@@ -26,12 +20,13 @@ const materialTabs: { id: MaterialTabId; label: string }[] = [
 export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   zaloTho
 }) => {
+  const { pricing } = useAppData();
   const [activeTab, setActiveTab] = useState<MaterialTabId>('go-lua');
   const [searchSize, setSearchSize] = useState<string>('');
   const multiplier = usePriceMultiplier();
 
   const goLuaDataTransformed = useMemo(() => 
-    goLuaDongKhungData.map(r => ({
+    pricing.goLua.map(r => ({
       ...r,
       boVien: applyMultiplier(r.boVien, multiplier),
       k0_k3: applyMultiplier(r.k0_k3, multiplier),
@@ -42,10 +37,10 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
       titan1: applyMultiplier(r.titan1, multiplier),
       titan2: applyMultiplier(r.titan2, multiplier),
     })),
-  [multiplier]);
+  [multiplier, pricing.goLua]);
 
   const hdGuongDataTransformed = useMemo(() => 
-    hdGuongSieuBongKhungData.map(r => ({
+    pricing.hdGuong.map(r => ({
       ...r,
       boVien: applyMultiplier(r.boVien, multiplier),
       k0_k3: applyMultiplier(r.k0_k3, multiplier),
@@ -56,10 +51,10 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
       titan1: applyMultiplier(r.titan1, multiplier),
       titan2: applyMultiplier(r.titan2, multiplier),
     })),
-  [multiplier]);
+  [multiplier, pricing.hdGuong]);
 
   const mikaPhoThongDataTransformed = useMemo(() => 
-    mikaPhoThongData.map(r => ({
+    pricing.mikaPhoThong.map(r => ({
       ...r,
       boVien: applyMultiplier(r.boVien, multiplier),
       k0_k3: applyMultiplier(r.k0_k3, multiplier),
@@ -70,23 +65,23 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
       titan1: applyMultiplier(r.titan1, multiplier),
       titan2: applyMultiplier(r.titan2, multiplier),
     })),
-  [multiplier]);
+  [multiplier, pricing.mikaPhoThong]);
 
   const inEpMikaDataTransformed = useMemo(() => 
-    inEpMikaPricingData.map(r => ({
+    pricing.inEpMika.map(r => ({
       ...r,
       inEpMika: applyMultiplier(r.inEpMika, multiplier)!,
       khungXuongGiaCo: applyMultiplier(r.khungXuongGiaCo, multiplier) || undefined,
     })),
-  [multiplier]);
+  [multiplier, pricing.inEpMika]);
 
   const anh4KDataTransformed = useMemo(() => 
-    anh4KPricingData.map(r => ({
+    pricing.anh4K.map(r => ({
       ...r,
       k4_k6: applyMultiplier(r.k4_k6, multiplier),
       titan2: applyMultiplier(r.titan2, multiplier),
     })),
-  [multiplier]);
+  [multiplier, pricing.anh4K]);
 
   const formatPrice = (val: number | null) => {
     if (val === null || val === undefined) return <span className="text-neutral-300">-</span>;
@@ -117,7 +112,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                 Toàn Bộ Bảng Giá Sỉ Theo Chất Liệu
               </h2>
               <p className="text-xs text-[#57534E] mt-0.5">
-                Dữ liệu gốc từ tài liệu chính thức của Tiệm In <span className="text-[#FF0000] font-bold">194</span>
+                Dữ liệu gốc từ xưởng Hùng <span className="text-[#FF0000] font-bold">Decor</span>
               </p>
             </div>
 

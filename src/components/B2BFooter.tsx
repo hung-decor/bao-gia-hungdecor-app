@@ -1,12 +1,13 @@
 import React from 'react';
 import { B2BShopInfo } from '../types';
-import { Phone, MessageCircle, MapPin, Clock } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, Clock, Lock } from 'lucide-react';
 
 interface B2BFooterProps {
   shopInfo: B2BShopInfo;
+  onOpenAdmin?: () => void;
 }
 
-export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo }) => {
+export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) => {
   return (
     <footer className="bg-[#121110] text-neutral-400 py-12 pb-24 md:pb-12 border-t border-neutral-800 text-xs w-full max-w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full max-w-full">
@@ -15,7 +16,7 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo }) => {
           {/* Brand info */}
           <div className="md:col-span-7 space-y-3">
             <div className="font-serif-display text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Tiệm In <span className="text-[#FF0000] font-black">194</span></span>
+              <span>Hùng <span className="text-[#FF0000] font-black">Decor</span></span>
               <span className="text-[10px] font-mono text-[#E7C184] bg-neutral-800 px-2 py-0.5 rounded">
                 B2B STUDIO LAB
               </span>
@@ -64,10 +65,24 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo }) => {
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-500 gap-2 w-full max-w-full">
           <div>
-            © {new Date().getFullYear()} Tiệm In <span className="text-[#FF0000] font-black">194</span> - Xưởng In & Gia Công B2B Dành Cho Thợ Ảnh & Studio.
+            © {new Date().getFullYear()} Hùng <span className="text-[#FF0000] font-black">Decor</span> - Xưởng In & Gia Công B2B Dành Cho Thợ Ảnh & Studio.
           </div>
-          <div className="font-mono">
-            Hệ màu sRGB / Adobe RGB · 300 DPI 1:1
+          
+          <div className="flex items-center gap-4">
+            <span className="font-mono">
+              Hệ màu sRGB / Adobe RGB · 300 DPI 1:1
+            </span>
+
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-[#E7C184] transition-colors border border-neutral-800 cursor-pointer text-[11px]"
+                title="Đăng nhập trang quản trị Hùng Decor"
+              >
+                <Lock className="w-3 h-3 text-[#E7C184]" />
+                <span>Quản Trị Admin</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

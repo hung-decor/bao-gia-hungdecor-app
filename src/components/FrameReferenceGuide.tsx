@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { frameReferenceGuide } from '../data/tiemIn194Pricing2026';
+import { useAppData } from '../context/AppDataContext';
 import { FrameSpecItem } from '../types';
 import { Eye, X, ChevronLeft, ChevronRight, Ruler, Camera, Box, Check, Sparkles } from 'lucide-react';
 import { useModalBackHandler } from '../hooks/useModalBackHandler';
 
 export const FrameReferenceGuide: React.FC = () => {
+  const { frames: frameReferenceGuide } = useAppData();
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
   const [activeImageVariantIndex, setActiveImageVariantIndex] = useState<number>(0);
   const [filterType, setFilterType] = useState<'all' | 'real_only'>('all');
@@ -113,7 +114,7 @@ export const FrameReferenceGuide: React.FC = () => {
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-2 w-full max-w-full">
           <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#936B34]">
-            Quy Chuẩn Kỹ Thuật Xưởng In <span className="text-[#FF0000] font-black">194</span>
+            Quy Chuẩn Kỹ Thuật Xưởng In <span className="text-[#FF0000] font-black">Hùng Decor</span>
           </div>
           <h2 className="font-serif-display text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight">
             Tra Cứu Mã Khung & Ảnh Mẫu Thực Tế
@@ -122,7 +123,7 @@ export const FrameReferenceGuide: React.FC = () => {
             màu ảnh khung có thể khác khung thật ở ngoài do sai lệch màu sắc hiển thị
           </p>
           <p className="text-xs sm:text-sm text-[#57534E]">
-            Ảnh chụp thực tế 100% tại xưởng Tiệm In 194 cho tất cả các dòng khung: K0, K1, K2, K3, K4, K5, K6, K7-K9, K10, K11 và Titan 1, Titan 2. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
+            Ảnh chụp thực tế 100% tại xưởng Hùng Decor cho tất cả các dòng khung: K0, K1, K2, K3, K4, K5, K6, K7-K9, K10, K11 và Titan 1, Titan 2. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
           </p>
 
           {/* Filter Pills */}
@@ -418,7 +419,7 @@ export const FrameReferenceGuide: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-neutral-400 px-1">
-                      <span>✓ Ảnh chụp thật góc cạnh và mặt trước tại <strong>Tiệm In 194</strong></span>
+                      <span>✓ Ảnh chụp thật góc cạnh và mặt trước tại <strong>Hùng Decor</strong></span>
                       <span className="font-mono text-[#E7C184]">{activeItem.dimensions}</span>
                     </div>
                   </div>

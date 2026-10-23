@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { b2bShopInfo2026 } from './data/tiemIn194Pricing2026';
+import React, { useState, useEffect } from 'react';
+import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { B2BHeader } from './components/B2BHeader';
 import { MobileQuickQuoter } from './components/MobileQuickQuoter';
 import { B2BHeroBar } from './components/B2BHeroBar';
@@ -13,8 +13,56 @@ import { FrameReferenceGuide } from './components/FrameReferenceGuide';
 import { B2BGuidelinesSection } from './components/B2BGuidelinesSection';
 import { B2BFooter } from './components/B2BFooter';
 import { B2BStickyMobileBar } from './components/B2BStickyMobileBar';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 
-export default function App() {
+function MainAppContent() {
+  const { shopInfo, isLoading, dataSource } = useAppData();
+  const [isAdminView, setIsAdminView] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      return path === '/admin' || hash === '#admin' || params.has('admin');
+    }
+    return false;
+  });
+
+  // Watch URL changes for /admin or #admin
+  useEffect(() => {
+    const checkAdminRoute = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      if (path === '/admin' || hash === '#admin' || params.has('admin')) {
+        setIsAdminView(true);
+      }
+    };
+
+    window.addEventListener('popstate', checkAdminRoute);
+    window.addEventListener('hashchange', checkAdminRoute);
+    return () => {
+      window.removeEventListener('popstate', checkAdminRoute);
+      window.removeEventListener('hashchange', checkAdminRoute);
+    };
+  }, []);
+
+  const handleOpenAdmin = () => {
+    setIsAdminView(true);
+    // Update hash for easy bookmarking and sharing
+    if (window.location.pathname !== '/admin') {
+      window.location.hash = '#admin';
+    }
+  };
+
+  const handleCloseAdmin = () => {
+    setIsAdminView(false);
+    if (window.location.pathname === '/admin') {
+      window.history.pushState(null, '', '/');
+    } else if (window.location.hash === '#admin') {
+      window.history.pushState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
   const handleScrollToGuidelines = () => {
     const el = document.getElementById('quy-chuan');
     if (el) {
@@ -22,36 +70,48 @@ export default function App() {
     }
   };
 
+  if (isAdminView) {
+    return <AdminDashboard onClose={handleCloseAdmin} />;
+  }
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FAF9F5] text-[#1C1917] antialiased selection:bg-[#E2D4C0] selection:text-[#1C1917]">
-      {/* 1. Header (Sticky Top Bar) */}
-      <B2BHeader />
+      {/* 1. Header (Sticky Top Bar with Admin access) */}
+      <B2BHeader onOpenAdmin={handleOpenAdmin} />
 
-      {/* 2. BỘ TÍNH GIÁ NHANH TRÊN MOBILE (ĐẶT TRÊN CÙNG - Yêu cầu 1) */}
-      <MobileQuickQuoter zaloTho={b2bShopInfo2026.zaloTho} />
+      {/* 2. BỘ TÍNH GIÁ NHANH TRÊN MOBILE (ĐẶT TRÊN CÙNG) */}
+      <MobileQuickQuoter zaloTho={shopInfo.zaloTho} />
 
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
         {/* 3. Hero Overview Bar */}
         <B2BHeroBar />
 
         {/* 4. TOÀN BỘ BẢNG GIÁ THEO CHẤT LIỆU (Mặc định Dạng Bảng) */}
-        <OfficialPricingTables zaloTho={b2bShopInfo2026.zaloTho} />
+        <OfficialPricingTables zaloTho={shopInfo.zaloTho} />
 
         {/* 5. TRA CỨU MÃ KHUNG VÀ THÔNG SỐ KỸ THUẬT */}
         <FrameReferenceGuide />
 
         {/* 6. QUY CHUẨN ĐẶT FILE & CHÍNH SÁCH GIAO HÀNG CHO THỢ */}
-        <B2BGuidelinesSection shopInfo={b2bShopInfo2026} />
+        <B2BGuidelinesSection shopInfo={shopInfo} />
       </main>
 
-      {/* 7. Footer */}
-      <B2BFooter shopInfo={b2bShopInfo2026} />
+      {/* 7. Footer with Admin Access & Brand */}
+      <B2BFooter shopInfo={shopInfo} onOpenAdmin={handleOpenAdmin} />
 
       {/* 8. Sticky Mobile Thumb Bar */}
       <B2BStickyMobileBar
-        shopInfo={b2bShopInfo2026}
+        shopInfo={shopInfo}
         onScrollToGuidelines={handleScrollToGuidelines}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppDataProvider>
+      <MainAppContent />
+    </AppDataProvider>
   );
 }
