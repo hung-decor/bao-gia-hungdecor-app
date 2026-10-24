@@ -57,17 +57,14 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
     return allMaterialTabs.find((t: any) => t.id === selectedMaterial) || allMaterialTabs[0];
   }, [allMaterialTabs, selectedMaterial]);
 
-  // Available frame / finishing options based on selected material & dynamic column labels
   const frameOptions = useMemo(() => {
     const col = pricing.columnLabels;
     if (selectedTabItem?.type === 'inEpMika') {
-      return [
-        { id: 'inAnh', label: col?.inAnh || 'In Ảnh' },
-        { id: 'inEpLua', label: col?.inEpLua || 'In Ép Lụa' },
-        { id: 'inEpMika', label: col?.inEpMikaCol || 'In Ép Mika' },
-        { id: 'inEpPlastic', label: col?.inEpPlastic || 'In Ép Plastic' },
-        { id: 'khungGiaCo', label: col?.khungGiaCo || 'Giá Khung Gia Cố' }
-      ];
+      const keys = pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'];
+      return keys.map(k => ({
+        id: k === 'inEpMikaCol' ? 'inEpMika' : k,
+        label: col?.[k] || k
+      }));
     }
 
     if (selectedTabItem?.type === 'anh4K') {
@@ -77,17 +74,18 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
       ];
     }
 
-    const boVienTitle = col?.boVien ? `Chỉ ${col.boVien} (Không Khung)` : 'Chỉ Bo Viền (Không Khung)';
-    return [
-      { id: 'boVien', label: boVienTitle },
-      { id: 'k0_k3', label: col?.k0_k3 || 'Khung KX' },
-      { id: 'k4_k6', label: col?.k4_k6 || 'Khung HT10' },
-      { id: 'k10', label: col?.k10 || 'Khung K12' },
-      { id: 'k11', label: col?.k11 || 'Khung bản 10cm' },
-      { id: 'titan1', label: col?.titan1 || 'Khung nhôm Titan M' },
-      { id: 'titan2', label: col?.titan2 || 'Khung nhôm Titan C' }
-    ];
-  }, [selectedTabItem, pricing.columnLabels]);
+    const keys = pricing.frameColumnKeys || ['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'];
+    return keys.map(k => {
+      let labelTitle = col?.[k] || k;
+      if (k === 'boVien') {
+        labelTitle = col?.boVien ? `Chỉ ${col.boVien} (Không Khung)` : 'Chỉ Bo Viền (Không Khung)';
+      }
+      return {
+        id: k,
+        label: labelTitle
+      };
+    });
+  }, [selectedTabItem, pricing.columnLabels, pricing.frameColumnKeys, pricing.inEpColumnKeys]);
 
   // Adjust selected frame if not valid for selected material
   React.useEffect(() => {

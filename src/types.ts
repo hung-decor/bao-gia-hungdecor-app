@@ -22,6 +22,7 @@ export interface InEpMikaPriceRow {
   inEpPlastic: number | null;
   khungGiaCo: number | null;
   khungXuongGiaCo?: number | null; // Compatibility alias
+  skus?: { [colKey: string]: string };
 }
 
 export interface DongKhungPriceRow {
@@ -34,12 +35,14 @@ export interface DongKhungPriceRow {
   k11: number | null;
   titan1: number | null; // Titan 1 (đen, bạc)
   titan2: number | null; // Titan 2 (xanh, hồng)
+  skus?: { [colKey: string]: string };
 }
 
 export interface Anh4KPriceRow {
   size: string;
   k4_k6: number | null;
   titan2: number | null;
+  skus?: { [colKey: string]: string };
 }
 
 export interface FrameImageVariant {
@@ -79,17 +82,19 @@ export interface TabLabelsConfig {
 
 export interface ColumnLabelsConfig {
   // DongKhung tables
-  boVien: string;
-  k0_k3: string;
-  k4_k6: string;
-  k10: string;
-  k11: string;
-  titan1: string;
-  titan2: string;
+  boVien?: string;
+  k0_k3?: string;
+  k4_k6?: string;
+  k10?: string;
+  k11?: string;
+  titan1?: string;
+  titan2?: string;
   // Tab 4 (In ép & Giá khung gia cố)
-  inAnh: string;
-  inEpLua: string;
-  inEpMikaCol: string;
-  inEpPlastic: string;
-  khungGiaCo: string;
+  inAnh?: string;
+  inEpLua?: string;
+  inEpMikaCol?: string;
+  inEpPlastic?: string;
+  khungGiaCo?: string;
+  // Dynamic custom columns
+  [key: string]: string | undefined;
 }

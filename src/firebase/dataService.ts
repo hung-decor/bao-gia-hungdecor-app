@@ -44,6 +44,24 @@ export const defaultColumnLabels: ColumnLabelsConfig = {
   khungGiaCo: 'Giá Khung Gia Cố',
 };
 
+export const defaultFrameColumnKeys: string[] = [
+  'boVien',
+  'k0_k3',
+  'k4_k6',
+  'k10',
+  'k11',
+  'titan1',
+  'titan2',
+];
+
+export const defaultInEpColumnKeys: string[] = [
+  'inAnh',
+  'inEpLua',
+  'inEpMikaCol',
+  'inEpPlastic',
+  'khungGiaCo',
+];
+
 export interface FullPricingState {
   inEpMika: InEpMikaPriceRow[];
   goLua: DongKhungPriceRow[];
@@ -52,8 +70,11 @@ export interface FullPricingState {
   anh4K: Anh4KPriceRow[];
   tabLabels?: TabLabelsConfig;
   columnLabels?: ColumnLabelsConfig;
+  frameColumnKeys?: string[];
+  inEpColumnKeys?: string[];
   customTabs?: CustomMaterialTab[];
   deletedTabIds?: string[];
+  lastPriceAdjustmentDate?: string;
 }
 
 export interface ActiveMaterialTabItem {
@@ -185,8 +206,11 @@ export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingSt
             anh4K: d.anh4K,
             tabLabels: d.tabLabels || defaultTabLabels,
             columnLabels: d.columnLabels || defaultColumnLabels,
+            frameColumnKeys: d.frameColumnKeys || defaultFrameColumnKeys,
+            inEpColumnKeys: d.inEpColumnKeys || defaultInEpColumnKeys,
             customTabs: d.customTabs || [],
             deletedTabIds: d.deletedTabIds || [],
+            lastPriceAdjustmentDate: d.lastPriceAdjustmentDate || undefined,
           },
           updatedAt: d.updatedAt || undefined,
         };
@@ -206,6 +230,8 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
       ...pricing,
       tabLabels: pricing.tabLabels || defaultTabLabels,
       columnLabels: pricing.columnLabels || defaultColumnLabels,
+      frameColumnKeys: pricing.frameColumnKeys || defaultFrameColumnKeys,
+      inEpColumnKeys: pricing.inEpColumnKeys || defaultInEpColumnKeys,
       customTabs: pricing.customTabs || [],
       deletedTabIds: pricing.deletedTabIds || [],
     };
@@ -232,6 +258,16 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
 }
 
 export const FREELANCE_PRICING_DOC = 'freelance_pricing';
+
+export function formatViDateTime(d: Date = new Date()): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+  const year = d.getFullYear();
+  const hours = pad(d.getHours());
+  const mins = pad(d.getMinutes());
+  return `${day}/${month}/${year} ${hours}:${mins}`;
+}
 
 // Helper: Apply percentage increase to all numerical price values
 export function applyPercentageIncrease(targetPricing: FullPricingState, percent: number): FullPricingState {
@@ -290,6 +326,7 @@ export function applyPercentageIncrease(targetPricing: FullPricingState, percent
 
   return {
     ...targetPricing,
+    lastPriceAdjustmentDate: formatViDateTime(new Date()),
     goLua: (targetPricing.goLua || []).map(bumpDongKhungRow),
     hdGuong: (targetPricing.hdGuong || []).map(bumpDongKhungRow),
     mikaPhoThong: (targetPricing.mikaPhoThong || []).map(bumpDongKhungRow),
@@ -422,6 +459,8 @@ export function syncPricingStructure(structureSource: FullPricingState, priceTar
     anh4K: syncAnh4K(structureSource.anh4K || [], priceTarget.anh4K || []),
     tabLabels: structureSource.tabLabels || defaultTabLabels,
     columnLabels: structureSource.columnLabels || defaultColumnLabels,
+    frameColumnKeys: structureSource.frameColumnKeys || priceTarget.frameColumnKeys || defaultFrameColumnKeys,
+    inEpColumnKeys: structureSource.inEpColumnKeys || priceTarget.inEpColumnKeys || defaultInEpColumnKeys,
     deletedTabIds: structureSource.deletedTabIds || [],
     customTabs: syncedCustomTabs
   };
@@ -444,8 +483,11 @@ export async function fetchFreelancePricingFromFirestore(): Promise<{ data: Full
             anh4K: d.anh4K,
             tabLabels: d.tabLabels || defaultTabLabels,
             columnLabels: d.columnLabels || defaultColumnLabels,
+            frameColumnKeys: d.frameColumnKeys || defaultFrameColumnKeys,
+            inEpColumnKeys: d.inEpColumnKeys || defaultInEpColumnKeys,
             customTabs: d.customTabs || [],
             deletedTabIds: d.deletedTabIds || [],
+            lastPriceAdjustmentDate: d.lastPriceAdjustmentDate || undefined,
           },
           updatedAt: d.updatedAt || undefined,
         };
@@ -478,6 +520,8 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
       ...pricing,
       tabLabels: pricing.tabLabels || defaultTabLabels,
       columnLabels: pricing.columnLabels || defaultColumnLabels,
+      frameColumnKeys: pricing.frameColumnKeys || defaultFrameColumnKeys,
+      inEpColumnKeys: pricing.inEpColumnKeys || defaultInEpColumnKeys,
       customTabs: pricing.customTabs || [],
       deletedTabIds: pricing.deletedTabIds || [],
     };
@@ -627,4 +671,160 @@ export async function uploadFrameImageToStorage(
   // Get public download URL
   const downloadUrl = await getDownloadURL(snapshot.ref);
   return downloadUrl;
+}
+
+// -------------------------------------------------------------
+// SKU SYSTEM & HUNG DECOR CATALOG PERSISTENCE
+// -------------------------------------------------------------
+
+export function getDefaultSKU(
+  materialTabId: string,
+  mode: 'studio' | 'freelance',
+  colKey: string,
+  size: string
+): string {
+  const modeTag = mode === 'studio' ? 'st' : 'fl';
+  const cleanSize = (size || '').replace(/x/g, '*').replace(/\s+/g, '').trim();
+
+  // Tab 4 (in-ep-mika) special rules
+  if (materialTabId === 'in-ep-mika') {
+    let prefix = 'in';
+    if (colKey === 'inEpLua') prefix = 'inlua';
+    else if (colKey === 'inEpMika' || colKey === 'inEpMikaCol') prefix = 'inep';
+    else if (colKey === 'inEpPlastic') prefix = 'inplast';
+    else if (colKey === 'khungGiaCo') prefix = 'nep';
+    return `${prefix}${modeTag}${cleanSize}`;
+  }
+
+  // Material prefix for frame materials
+  let matPrefix = 'gl';
+  if (materialTabId === 'go-lua') matPrefix = 'gl';
+  else if (materialTabId === 'hd-guong-sieu-bong') matPrefix = 'hd';
+  else if (materialTabId === 'mika-pho-thong') matPrefix = 'mk';
+  else if (materialTabId === 'anh-4k') matPrefix = '8k';
+  else {
+    matPrefix = materialTabId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 4) || 'ct';
+  }
+
+  // Frame suffix
+  let frameSuffix = '';
+  if (colKey === 'boVien') frameSuffix = '';
+  else if (colKey === 'k0_k3') frameSuffix = 'kx';
+  else if (colKey === 'k4_k6') frameSuffix = 'ht10';
+  else if (colKey === 'k10') frameSuffix = 'k12';
+  else if (colKey === 'k11') frameSuffix = 'b10';
+  else if (colKey === 'titan1') frameSuffix = 'ttm';
+  else if (colKey === 'titan2') frameSuffix = 'ttc';
+  else {
+    frameSuffix = colKey.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  }
+
+  return `${matPrefix}${modeTag}${cleanSize}${frameSuffix}`;
+}
+
+export function getCellSKU(
+  row: any,
+  colKey: string,
+  materialTabId: string,
+  mode: 'studio' | 'freelance'
+): string {
+  if (row && row.skus && typeof row.skus[colKey] === 'string' && row.skus[colKey].trim() !== '') {
+    return row.skus[colKey].trim();
+  }
+  return getDefaultSKU(materialTabId, mode, colKey, row?.size || '');
+}
+
+export interface CatalogSKUItem {
+  sku: string;
+  materialTabId: string;
+  materialTitle: string;
+  mode: 'studio' | 'freelance';
+  size: string;
+  colKey: string;
+  colTitle: string;
+  price: number | null;
+  updatedAt: string;
+}
+
+export const CATALOG_DOC = 'hung_decor_catalog';
+
+export function generateCatalogFromPricing(
+  studioPricing: FullPricingState,
+  freelancePricing: FullPricingState
+): { items: CatalogSKUItem[]; itemsBySku: { [sku: string]: CatalogSKUItem } } {
+  const items: CatalogSKUItem[] = [];
+  const itemsBySku: { [sku: string]: CatalogSKUItem } = {};
+  const updatedAt = new Date().toISOString();
+
+  const processPricing = (pricing: FullPricingState, mode: 'studio' | 'freelance') => {
+    const tabs = getAllMaterialTabs(pricing);
+    tabs.forEach(tab => {
+      const isDongKhung = tab.type === 'dongKhung';
+      const isAnh4K = tab.type === 'anh4K';
+      const colKeys = isDongKhung
+        ? (pricing.frameColumnKeys || defaultFrameColumnKeys)
+        : isAnh4K
+        ? ['k4_k6', 'titan2']
+        : (pricing.inEpColumnKeys || defaultInEpColumnKeys);
+
+      (tab.rows || []).forEach(row => {
+        if (!row.size) return;
+        colKeys.forEach(colKey => {
+          const sku = getCellSKU(row, colKey, tab.id, mode);
+          const colTitle = pricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
+          const rawPrice = (row as any)[colKey] ?? (colKey === 'inEpMikaCol' ? row.inEpMika : null) ?? null;
+
+          const catalogItem: CatalogSKUItem = {
+            sku,
+            materialTabId: tab.id,
+            materialTitle: tab.title,
+            mode,
+            size: row.size,
+            colKey,
+            colTitle,
+            price: typeof rawPrice === 'number' ? rawPrice : null,
+            updatedAt
+          };
+
+          items.push(catalogItem);
+          itemsBySku[sku] = catalogItem;
+        });
+      });
+    });
+  };
+
+  processPricing(studioPricing, 'studio');
+  processPricing(freelancePricing, 'freelance');
+
+  return { items, itemsBySku };
+}
+
+export async function saveCatalogToFirestore(
+  studioPricing: FullPricingState,
+  freelancePricing: FullPricingState
+): Promise<boolean> {
+  try {
+    const { items, itemsBySku } = generateCatalogFromPricing(studioPricing, freelancePricing);
+    const docRef = doc(db, FIRESTORE_COLLECTION, CATALOG_DOC);
+    await setDoc(docRef, {
+      version: '2026_HUNG_DECOR_CATALOG_V1',
+      updatedAt: new Date().toISOString(),
+      totalItems: items.length,
+      items,
+      itemsBySku
+    }, { merge: true });
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hung_decor_catalog', JSON.stringify({ items, itemsBySku }));
+      } catch (err) {
+        console.warn('Could not cache catalog to localStorage:', err);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error saving catalog to Firestore:', error);
+    return false;
+  }
 }

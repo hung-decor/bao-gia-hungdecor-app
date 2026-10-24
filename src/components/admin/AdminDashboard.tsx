@@ -19,11 +19,15 @@ import {
 import {
   defaultTabLabels,
   defaultColumnLabels,
+  defaultFrameColumnKeys,
+  defaultInEpColumnKeys,
   FullPricingState,
   getAllMaterialTabs,
   applyPercentageIncrease,
   syncPricingStructure,
-  generateDefaultFreelancePricing
+  generateDefaultFreelancePricing,
+  getDefaultSKU,
+  getCellSKU
 } from '../../firebase/dataService';
 import { 
   Lock, 
@@ -93,6 +97,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [isAddingMaterialModalOpen, setIsAddingMaterialModalOpen] = useState<boolean>(false);
   const [newMaterialTitle, setNewMaterialTitle] = useState<string>('');
   const [newMaterialType, setNewMaterialType] = useState<'dongKhung' | 'inEpMika'>('dongKhung');
+
+  // Add New Frame Column Modal State
+  const [isAddingColumnModalOpen, setIsAddingColumnModalOpen] = useState<boolean>(false);
+  const [newColumnTitle, setNewColumnTitle] = useState<string>('');
+  const [newColumnTargetType, setNewColumnTargetType] = useState<'dongKhung' | 'inEpMika'>('dongKhung');
 
   // Status Notification
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -396,6 +405,136 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setLocalFreelancePricing(applyColLabel);
   };
 
+  // Add new frame column handler
+  const handleAddNewColumn = () => {
+    if (!newColumnTitle.trim()) {
+      alert('Vui lòng nhập tên cột khung mới!');
+      return;
+    }
+    const title = newColumnTitle.trim();
+    const colKey = 'col_' + Date.now();
+
+    const applyAddCol = (prev: FullPricingState): FullPricingState => {
+      const isDongKhung = newColumnTargetType === 'dongKhung';
+      const currentKeys = isDongKhung
+        ? (prev.frameColumnKeys || defaultFrameColumnKeys)
+        : (prev.inEpColumnKeys || defaultInEpColumnKeys);
+
+      const newKeys = [...currentKeys, colKey];
+
+      const addColToRows = (rows: any[]) => (rows || []).map(r => ({ ...r, [colKey]: null }));
+
+      return {
+        ...prev,
+        columnLabels: {
+          ...(prev.columnLabels || defaultColumnLabels),
+          [colKey]: title
+        },
+        frameColumnKeys: isDongKhung ? newKeys : (prev.frameColumnKeys || defaultFrameColumnKeys),
+        inEpColumnKeys: !isDongKhung ? newKeys : (prev.inEpColumnKeys || defaultInEpColumnKeys),
+        goLua: isDongKhung ? addColToRows(prev.goLua) : prev.goLua,
+        hdGuong: isDongKhung ? addColToRows(prev.hdGuong) : prev.hdGuong,
+        mikaPhoThong: isDongKhung ? addColToRows(prev.mikaPhoThong) : prev.mikaPhoThong,
+        inEpMika: !isDongKhung ? addColToRows(prev.inEpMika) : prev.inEpMika,
+        anh4K: isDongKhung ? addColToRows(prev.anh4K) : prev.anh4K,
+        customTabs: (prev.customTabs || []).map(ct => ({
+          ...ct,
+          rows: ((ct.type || 'dongKhung') === newColumnTargetType) ? addColToRows(ct.rows) : ct.rows
+        }))
+      };
+    };
+
+    setLocalStudioPricing(prev => applyAddCol(prev));
+    setLocalFreelancePricing(prev => applyAddCol(prev));
+
+    setNewColumnTitle('');
+    setIsAddingColumnModalOpen(false);
+    showToast(`Đã thêm cột khung "${title}" thành công!`);
+  };
+
+  // Delete frame column handler
+  const handleDeleteColumn = (colKey: string, colTitle: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn XÓA BỚT cột khung "${colTitle}" không?\nToàn bộ đơn giá ở cột này sẽ bị loại bỏ khỏi bảng giá.`)) {
+      const applyDeleteCol = (prev: FullPricingState): FullPricingState => {
+        const frameKeys = (prev.frameColumnKeys || defaultFrameColumnKeys).filter(k => k !== colKey);
+        const inEpKeys = (prev.inEpColumnKeys || defaultInEpColumnKeys).filter(k => k !== colKey);
+
+        const removeColFromRows = (rows: any[]) => (rows || []).map(r => {
+          const copy = { ...r };
+          delete copy[colKey];
+          return copy;
+        });
+
+        const newColLabels = { ...(prev.columnLabels || defaultColumnLabels) };
+        delete newColLabels[colKey];
+
+        return {
+          ...prev,
+          columnLabels: newColLabels,
+          frameColumnKeys: frameKeys,
+          inEpColumnKeys: inEpKeys,
+          goLua: removeColFromRows(prev.goLua),
+          hdGuong: removeColFromRows(prev.hdGuong),
+          mikaPhoThong: removeColFromRows(prev.mikaPhoThong),
+          inEpMika: removeColFromRows(prev.inEpMika),
+          anh4K: removeColFromRows(prev.anh4K),
+          customTabs: (prev.customTabs || []).map(ct => ({
+            ...ct,
+            rows: removeColFromRows(ct.rows)
+          }))
+        };
+      };
+
+      setLocalStudioPricing(prev => applyDeleteCol(prev));
+      setLocalFreelancePricing(prev => applyDeleteCol(prev));
+
+      showToast(`Đã xóa cột khung "${colTitle}" thành công!`);
+    }
+  };
+
+  // Update SKU for a row cell
+  const updateRowSKU = (materialTabId: string, rowIndex: number, colKey: string, newSKU: string) => {
+    updateActivePricing(prev => {
+      if (['go-lua', 'hd-guong-sieu-bong', 'mika-pho-thong'].includes(materialTabId)) {
+        const currentKey = materialTabId === 'go-lua' ? 'goLua' : materialTabId === 'mika-pho-thong' ? 'mikaPhoThong' : 'hdGuong';
+        const copy = [...prev[currentKey]];
+        const targetRow = { ...copy[rowIndex] };
+        targetRow.skus = { ...(targetRow.skus || {}), [colKey]: newSKU };
+        copy[rowIndex] = targetRow;
+        return { ...prev, [currentKey]: copy };
+      }
+      if (materialTabId === 'in-ep-mika') {
+        const copy = [...prev.inEpMika];
+        const targetRow = { ...copy[rowIndex] };
+        targetRow.skus = { ...(targetRow.skus || {}), [colKey]: newSKU };
+        copy[rowIndex] = targetRow;
+        return { ...prev, inEpMika: copy };
+      }
+      if (materialTabId === 'anh-4k') {
+        const copy = [...prev.anh4K];
+        const targetRow = { ...copy[rowIndex] };
+        targetRow.skus = { ...(targetRow.skus || {}), [colKey]: newSKU };
+        copy[rowIndex] = targetRow;
+        return { ...prev, anh4K: copy };
+      }
+      if (prev.customTabs) {
+        const customTabs = [...prev.customTabs];
+        const tabIdx = customTabs.findIndex(ct => ct.id === materialTabId);
+        if (tabIdx !== -1) {
+          const tabCopy = { ...customTabs[tabIdx] };
+          const rowsCopy = [...tabCopy.rows];
+          const rowCopy = { ...rowsCopy[rowIndex] };
+          rowCopy.skus = { ...(rowCopy.skus || {}), [colKey]: newSKU };
+          rowsCopy[rowIndex] = rowCopy;
+          tabCopy.rows = rowsCopy;
+          customTabs[tabIdx] = tabCopy;
+          return { ...prev, customTabs };
+        }
+      }
+      return prev;
+    }, false);
+  };
+
   const moveRowInArray = <T,>(arr: T[], index: number, direction: 'up' | 'down'): T[] => {
     if (direction === 'up' && index === 0) return arr;
     if (direction === 'down' && index === arr.length - 1) return arr;
@@ -553,32 +692,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Quick status & Seed */}
+          {/* Quick status & Logout */}
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {lastUpdated && (
               <span className="text-[11px] text-neutral-400 hidden md:inline">
                 Cập nhật: {new Date(lastUpdated).toLocaleTimeString('vi-VN')}
               </span>
             )}
-
-            <button
-              onClick={handleSeed}
-              disabled={isSaving}
-              title="Đồng bộ / Ghi đè bộ dữ liệu mẫu chuẩn lên Firestore"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Khởi tạo Gốc</span>
-            </button>
-
-            <button
-              onClick={() => reloadFromFirestore()}
-              disabled={isSaving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-300 bg-white/10 hover:bg-white/15 rounded-lg transition-colors cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
-              <span>Tải lại</span>
-            </button>
 
             <button
               onClick={handleLogout}
@@ -633,7 +753,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 )}
               </button>
 
-              {/* Freelance +10% link */}
+              {/* Freelance link */}
               <button
                 type="button"
                 onClick={() => handleCopyLink('freelance')}
@@ -646,12 +766,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 {copiedLinkType === 'freelance' ? (
                   <>
                     <Check className="w-4 h-4 text-white" />
-                    <span>Đã chép Link Freelance (+10%)!</span>
+                    <span>Đã chép Link Freelance!</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4 text-amber-400" />
-                    <span>Link Bảng Giá Freelance (+10%)</span>
+                    <span>Link Bảng Giá Freelance</span>
                   </>
                 )}
               </button>
@@ -663,7 +783,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <span className="text-emerald-400 font-bold">● Link Studio:</span> Giá sỉ xưởng 100%, có hiển thị nút Admin cho anh Hùng.
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-amber-400 font-bold">● Link Freelance:</span> Tự động +10% toàn bộ đơn giá và ẩn hoàn toàn nút Admin.
+              <span className="text-amber-400 font-bold">● Link Freelance:</span> Bảng giá dành riêng cho thợ chụp tự do (đã cấu hình riêng) và ẩn hoàn toàn nút Admin.
             </span>
           </div>
         </div>
@@ -748,7 +868,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>2. Bảng Giá Freelance (+% Tùy Chỉnh)</span>
+                <span>2. Bảng Giá Freelance</span>
               </button>
             </div>
 
@@ -820,25 +940,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Áp Dụng Tăng +{percentInputValue}% Toàn Bảng</span>
                   </button>
-
-                  {/* Special Copy Button for Freelance Tab */}
-                  {activePricingSubTab === 'freelance' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm('Bạn có chắc chắn muốn sao chép 100% đơn giá từ Bảng Sỉ Studio Gốc sang Bảng Freelance?')) {
-                          const copied = syncPricingStructure(localStudioPricing, localStudioPricing);
-                          setLocalFreelancePricing(copied);
-                          showToast('Đã sao chép 100% giá từ Bảng Sỉ Studio Gốc sang Freelance thành công!');
-                        }
-                      }}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Sao Chép Giá Từ Bảng Sỉ Gốc</span>
-                    </button>
-                  )}
                 </div>
+              </div>
+
+              {/* Timestamp of last bulk adjustment */}
+              <div className="pt-2 text-[11px] text-neutral-400 italic flex items-center gap-1.5 border-t border-neutral-800/60">
+                <span className="text-[#E7C184]">⏱</span>
+                {activePricing.lastPriceAdjustmentDate ? (
+                  <span>(Lần điều chỉnh gần nhất: {activePricing.lastPriceAdjustmentDate})</span>
+                ) : (
+                  <span>(Chưa có điều chỉnh hàng loạt)</span>
+                )}
               </div>
             </div>
 
@@ -848,7 +960,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <h3 className="text-sm sm:text-base font-bold text-white font-serif-display flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-[#E7C184]" />
                   <span>
-                    {activePricingSubTab === 'studio' ? 'Đang Chỉnh Sửa: Bảng Giá Sỉ Studio (Gốc)' : 'Đang Chỉnh Sửa: Bảng Giá Freelance (+% Tùy Chỉnh)'}
+                    {activePricingSubTab === 'studio' ? 'Đang Chỉnh Sửa: Bảng Giá Sỉ Studio (Gốc)' : 'Đang Chỉnh Sửa: Bảng Giá Freelance'}
                   </span>
                 </h3>
                 <p className="text-xs text-neutral-400 mt-0.5">
@@ -914,11 +1026,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">a. Tên 5 Tab Chất Liệu</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                   {[
-                    { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 1 (Gỗ Lụa)' },
-                    { key: 'hdGuong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.hdGuong, sub: 'Tab 2 (Mika HD 8K)' },
-                    { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 3 (Mika Phổ Thông)' },
-                    { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.inEpMika, sub: 'Tab 4 (In Ép & Khung)' },
-                    { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 5 (Cao Cấp 4K)' },
+                    { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 1' },
+                    { key: 'hdGuong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.hdGuong, sub: 'Tab 2' },
+                    { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 3' },
+                    { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.inEpMika, sub: 'Tab 4' },
+                    { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 5' },
                   ].map((item) => (
                     <div key={item.key}>
                       <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.sub}</label>
@@ -934,33 +1046,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               </div>
 
               {/* Tùy biến Tên Cột Khung */}
-              <div className="pt-3 border-t border-neutral-800/80 space-y-2">
-                <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">b. Tên Cột Hệ Khung & In Ép</h4>
+              <div className="pt-3 border-t border-neutral-800/80 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
+                    b. Tên Cột Hệ Khung & In Ép
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingColumnModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Thêm Cột Khung Mới</span>
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                  {[
-                    { key: 'boVien' as keyof ColumnLabelsConfig, label: 'Cột Bo Viền', defaultVal: defaultColumnLabels.boVien },
-                    { key: 'k0_k3' as keyof ColumnLabelsConfig, label: 'Cột Khung KX', defaultVal: defaultColumnLabels.k0_k3 },
-                    { key: 'k4_k6' as keyof ColumnLabelsConfig, label: 'Cột Khung HT10', defaultVal: defaultColumnLabels.k4_k6 },
-                    { key: 'k10' as keyof ColumnLabelsConfig, label: 'Cột Khung K12', defaultVal: defaultColumnLabels.k10 },
-                    { key: 'k11' as keyof ColumnLabelsConfig, label: 'Cột Bản 10cm', defaultVal: defaultColumnLabels.k11 },
-                    { key: 'titan1' as keyof ColumnLabelsConfig, label: 'Cột Titan M', defaultVal: defaultColumnLabels.titan1 },
-                    { key: 'titan2' as keyof ColumnLabelsConfig, label: 'Cột Titan C', defaultVal: defaultColumnLabels.titan2 },
-                    { key: 'inAnh' as keyof ColumnLabelsConfig, label: 'Cột In Ảnh', defaultVal: defaultColumnLabels.inAnh },
-                    { key: 'inEpLua' as keyof ColumnLabelsConfig, label: 'Cột In Ép Lụa', defaultVal: defaultColumnLabels.inEpLua },
-                    { key: 'inEpMikaCol' as keyof ColumnLabelsConfig, label: 'Cột In Ép Mika', defaultVal: defaultColumnLabels.inEpMikaCol },
-                    { key: 'inEpPlastic' as keyof ColumnLabelsConfig, label: 'Cột In Plastic', defaultVal: defaultColumnLabels.inEpPlastic },
-                    { key: 'khungGiaCo' as keyof ColumnLabelsConfig, label: 'Cột Khung Gia Cố', defaultVal: defaultColumnLabels.khungGiaCo },
-                  ].map((item) => (
-                    <div key={item.key}>
-                      <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.label}</label>
-                      <input
-                        type="text"
-                        value={activePricing.columnLabels?.[item.key] ?? item.defaultVal}
-                        onChange={(e) => updateColumnLabel(item.key, e.target.value)}
-                        className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
-                      />
-                    </div>
-                  ))}
+                  {/* DongKhung frame columns */}
+                  {(activePricing.frameColumnKeys || defaultFrameColumnKeys).map((colKey) => {
+                    const currentVal = activePricing.columnLabels?.[colKey] ?? (defaultColumnLabels as any)[colKey] ?? colKey;
+                    return (
+                      <div key={colKey} className="bg-neutral-950 p-2 rounded-xl border border-neutral-800 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-mono text-neutral-400 truncate">Hệ Khung</label>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteColumn(colKey, currentVal)}
+                            className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-950/60 transition-colors"
+                            title={`Xóa cột khung "${currentVal}"`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={currentVal}
+                          onChange={(e) => updateColumnLabel(colKey, e.target.value)}
+                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
+                        />
+                      </div>
+                    );
+                  })}
+
+                  {/* InEp columns */}
+                  {(activePricing.inEpColumnKeys || defaultInEpColumnKeys).map((colKey) => {
+                    const currentVal = activePricing.columnLabels?.[colKey] ?? (defaultColumnLabels as any)[colKey] ?? colKey;
+                    return (
+                      <div key={colKey} className="bg-neutral-950 p-2 rounded-xl border border-neutral-800 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-mono text-neutral-400 truncate">Hệ In Ép</label>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteColumn(colKey, currentVal)}
+                            className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-950/60 transition-colors"
+                            title={`Xóa cột "${currentVal}"`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={currentVal}
+                          onChange={(e) => updateColumnLabel(colKey, e.target.value)}
+                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1060,11 +1212,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
                             <th className="p-3 w-16 text-center">Xếp</th>
                             <th className="p-3 w-24">Kích Thước</th>
-                            <th className="p-3">{activePricing.columnLabels?.inAnh || defaultColumnLabels.inAnh}</th>
-                            <th className="p-3">{activePricing.columnLabels?.inEpLua || defaultColumnLabels.inEpLua}</th>
-                            <th className="p-3">{activePricing.columnLabels?.inEpMikaCol || defaultColumnLabels.inEpMikaCol}</th>
-                            <th className="p-3">{activePricing.columnLabels?.inEpPlastic || defaultColumnLabels.inEpPlastic}</th>
-                            <th className="p-3">{activePricing.columnLabels?.khungGiaCo || defaultColumnLabels.khungGiaCo}</th>
+                            {(activePricing.inEpColumnKeys || defaultInEpColumnKeys).map(colKey => (
+                              <th key={colKey} className="p-3">{activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey}</th>
+                            ))}
                             <th className="p-3 w-12 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -1116,22 +1266,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              {(['inAnh', 'inEpLua', 'inEpMika', 'inEpPlastic', 'khungGiaCo'] as (keyof InEpMikaPriceRow)[]).map((colKey) => (
-                                <td key={colKey} className="p-2.5">
-                                  <input
-                                    type="number"
-                                    value={row[colKey] ?? ''}
-                                    placeholder="-"
-                                    onChange={(e) => {
-                                      const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateActivePricing(prev => {
-                                        const copy = [...prev.inEpMika];
-                                        (copy[idx] as any)[colKey] = val;
-                                        return { ...prev, inEpMika: copy };
-                                      }, false);
-                                    }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-emerald-400 w-24 font-mono text-xs focus:outline-none focus:border-emerald-400"
-                                  />
+                              {(activePricing.inEpColumnKeys || defaultInEpColumnKeys).map((colKey) => (
+                                <td key={colKey} className="p-2 align-top">
+                                  <div className="flex flex-col gap-1">
+                                    <input
+                                      type="number"
+                                      value={(row as any)[colKey] ?? (colKey === 'inEpMikaCol' ? row.inEpMika : '') ?? ''}
+                                      placeholder="-"
+                                      onChange={(e) => {
+                                        const val = e.target.value === '' ? null : Number(e.target.value);
+                                        updateActivePricing(prev => {
+                                          const copy = [...prev.inEpMika];
+                                          (copy[idx] as any)[colKey] = val;
+                                          if (colKey === 'inEpMikaCol') {
+                                            (copy[idx] as any).inEpMika = val;
+                                          }
+                                          return { ...prev, inEpMika: copy };
+                                        }, false);
+                                      }}
+                                      className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-emerald-400 w-28 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
+                                    />
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                      <input
+                                        type="text"
+                                        value={getCellSKU(row, colKey, 'in-ep-mika', activePricingSubTab)}
+                                        onChange={(e) => updateRowSKU('in-ep-mika', idx, colKey, e.target.value)}
+                                        placeholder={getDefaultSKU('in-ep-mika', activePricingSubTab, colKey, row.size)}
+                                        className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                        title="Sửa mã SKU thủ công"
+                                      />
+                                    </div>
+                                  </div>
                                 </td>
                               ))}
                               <td className="p-3 text-center">
@@ -1160,7 +1326,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               if (['go-lua', 'hd-guong-sieu-bong', 'mika-pho-thong'].includes(activeItem.id)) {
                 const currentKey = activeItem.id === 'go-lua' ? 'goLua' : activeItem.id === 'mika-pho-thong' ? 'mikaPhoThong' : 'hdGuong';
                 const rows = activePricing[currentKey];
-                const updateCell = (rowIndex: number, field: keyof DongKhungPriceRow, val: any) => {
+                const updateCell = (rowIndex: number, field: string, val: any) => {
                   updateActivePricing(prev => {
                     const copy = [...prev[currentKey]];
                     copy[rowIndex] = { ...copy[rowIndex], [field]: val };
@@ -1207,13 +1373,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <tr>
                             <th className="p-2.5 w-16 text-center">Xếp</th>
                             <th className="p-2.5 w-24">Cỡ Ảnh</th>
-                            <th className="p-2.5">{colConfig.boVien}</th>
-                            <th className="p-2.5">{colConfig.k0_k3}</th>
-                            <th className="p-2.5">{colConfig.k4_k6}</th>
-                            <th className="p-2.5">{colConfig.k10}</th>
-                            <th className="p-2.5">{colConfig.k11}</th>
-                            <th className="p-2.5">{colConfig.titan1}</th>
-                            <th className="p-2.5">{colConfig.titan2}</th>
+                            {(activePricing.frameColumnKeys || defaultFrameColumnKeys).map(colKey => (
+                              <th key={colKey} className="p-2.5">{colConfig[colKey as keyof typeof colConfig] || colKey}</th>
+                            ))}
                             <th className="p-2.5 w-12 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -1258,18 +1420,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              {(['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
-                                <td key={field} className="p-2">
-                                  <input
-                                    type="number"
-                                    value={row[field] ?? ''}
-                                    placeholder="-"
-                                    onChange={(e) => {
-                                      const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateCell(idx, field, val);
-                                    }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-200 w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
-                                  />
+                              {(activePricing.frameColumnKeys || defaultFrameColumnKeys).map((colKey) => (
+                                <td key={colKey} className="p-2 align-top">
+                                  <div className="flex flex-col gap-1">
+                                    <input
+                                      type="number"
+                                      value={(row as any)[colKey] ?? ''}
+                                      placeholder="-"
+                                      onChange={(e) => {
+                                        const val = e.target.value === '' ? null : Number(e.target.value);
+                                        updateCell(idx, colKey, val);
+                                      }}
+                                      className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-200 w-28 font-mono text-xs focus:outline-none focus:border-[#E7C184] font-semibold"
+                                    />
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                      <input
+                                        type="text"
+                                        value={getCellSKU(row, colKey, activeItem.id, activePricingSubTab)}
+                                        onChange={(e) => updateRowSKU(activeItem.id, idx, colKey, e.target.value)}
+                                        placeholder={getDefaultSKU(activeItem.id, activePricingSubTab, colKey, row.size)}
+                                        className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                        title="Sửa mã SKU thủ công"
+                                      />
+                                    </div>
+                                  </div>
                                 </td>
                               ))}
                               <td className="p-2 text-center">
@@ -1381,35 +1556,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-28 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              <td className="p-3">
-                                <input
-                                  type="number"
-                                  value={row.k4_k6 ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value === '' ? null : Number(e.target.value);
-                                    updateActivePricing(prev => {
-                                      const copy = [...prev.anh4K];
-                                      copy[idx].k4_k6 = val;
-                                      return { ...prev, anh4K: copy };
-                                    }, false);
-                                  }}
-                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400"
-                                />
+                              <td className="p-2 align-top">
+                                <div className="flex flex-col gap-1">
+                                  <input
+                                    type="number"
+                                    value={row.k4_k6 ?? ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateActivePricing(prev => {
+                                        const copy = [...prev.anh4K];
+                                        copy[idx].k4_k6 = val;
+                                        return { ...prev, anh4K: copy };
+                                      }, false);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-32 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
+                                  />
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                    <input
+                                      type="text"
+                                      value={getCellSKU(row, 'k4_k6', 'anh-4k', activePricingSubTab)}
+                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'k4_k6', e.target.value)}
+                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'k4_k6', row.size)}
+                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                      title="Sửa mã SKU thủ công"
+                                    />
+                                  </div>
+                                </div>
                               </td>
-                              <td className="p-3">
-                                <input
-                                  type="number"
-                                  value={row.titan2 ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value === '' ? null : Number(e.target.value);
-                                    updateActivePricing(prev => {
-                                      const copy = [...prev.anh4K];
-                                      copy[idx].titan2 = val;
-                                      return { ...prev, anh4K: copy };
-                                    }, false);
-                                  }}
-                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-amber-300 w-36 font-mono text-xs focus:outline-none focus:border-amber-400"
-                                />
+                              <td className="p-2 align-top">
+                                <div className="flex flex-col gap-1">
+                                  <input
+                                    type="number"
+                                    value={row.titan2 ?? ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateActivePricing(prev => {
+                                        const copy = [...prev.anh4K];
+                                        copy[idx].titan2 = val;
+                                        return { ...prev, anh4K: copy };
+                                      }, false);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-amber-300 w-32 font-mono text-xs focus:outline-none focus:border-amber-400 font-semibold"
+                                  />
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                    <input
+                                      type="text"
+                                      value={getCellSKU(row, 'titan2', 'anh-4k', activePricingSubTab)}
+                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'titan2', e.target.value)}
+                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'titan2', row.size)}
+                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                      title="Sửa mã SKU thủ công"
+                                    />
+                                  </div>
+                                </div>
                               </td>
                               <td className="p-3 text-center">
                                 <button
@@ -1461,25 +1662,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <tr>
                           <th className="p-2.5 w-16 text-center">Xếp</th>
                           <th className="p-2.5 w-24">Cỡ Ảnh</th>
-                          {isDongKhungCustom ? (
-                            <>
-                              <th className="p-2.5">{colConfig.boVien}</th>
-                              <th className="p-2.5">{colConfig.k0_k3}</th>
-                              <th className="p-2.5">{colConfig.k4_k6}</th>
-                              <th className="p-2.5">{colConfig.k10}</th>
-                              <th className="p-2.5">{colConfig.k11}</th>
-                              <th className="p-2.5">{colConfig.titan1}</th>
-                              <th className="p-2.5">{colConfig.titan2}</th>
-                            </>
-                          ) : (
-                            <>
-                              <th className="p-2.5">{colConfig.inAnh}</th>
-                              <th className="p-2.5">{colConfig.inEpLua}</th>
-                              <th className="p-2.5">{colConfig.inEpMikaCol}</th>
-                              <th className="p-2.5">{colConfig.inEpPlastic}</th>
-                              <th className="p-2.5">{colConfig.khungGiaCo}</th>
-                            </>
-                          )}
+                          {(isDongKhungCustom ? (activePricing.frameColumnKeys || defaultFrameColumnKeys) : (activePricing.inEpColumnKeys || defaultInEpColumnKeys)).map(colKey => (
+                            <th key={colKey} className="p-2.5">{colConfig[colKey as keyof typeof colConfig] || colKey}</th>
+                          ))}
                           <th className="p-2.5 w-12 text-center">Xóa</th>
                         </tr>
                       </thead>
@@ -1514,37 +1699,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                 className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                               />
                             </td>
-                            {isDongKhungCustom ? (
-                              (['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
-                                <td key={field} className="p-2">
+                            {(isDongKhungCustom ? (activePricing.frameColumnKeys || defaultFrameColumnKeys) : (activePricing.inEpColumnKeys || defaultInEpColumnKeys)).map((colKey) => (
+                              <td key={colKey} className="p-2 align-top">
+                                <div className="flex flex-col gap-1">
                                   <input
                                     type="number"
-                                    value={row[field] ?? ''}
+                                    value={row[colKey] ?? (colKey === 'inEpMikaCol' ? row.inEpMika : '') ?? ''}
                                     placeholder="-"
                                     onChange={(e) => {
                                       const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateCustomTabRowCell(activeItem.id, idx, field, val);
+                                      updateCustomTabRowCell(activeItem.id, idx, colKey, val);
+                                      if (colKey === 'inEpMikaCol') {
+                                        updateCustomTabRowCell(activeItem.id, idx, 'inEpMika', val);
+                                      }
                                     }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-200 w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-[#E7C184] w-28 font-mono text-xs focus:outline-none focus:border-[#E7C184] font-semibold"
                                   />
-                                </td>
-                              ))
-                            ) : (
-                              (['inAnh', 'inEpLua', 'inEpMika', 'inEpPlastic', 'khungGiaCo'] as (keyof InEpMikaPriceRow)[]).map((field) => (
-                                <td key={field} className="p-2">
-                                  <input
-                                    type="number"
-                                    value={row[field] ?? ''}
-                                    placeholder="-"
-                                    onChange={(e) => {
-                                      const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateCustomTabRowCell(activeItem.id, idx, field, val);
-                                    }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-emerald-400 w-24 font-mono text-xs focus:outline-none focus:border-emerald-400"
-                                  />
-                                </td>
-                              ))
-                            )}
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                    <input
+                                      type="text"
+                                      value={getCellSKU(row, colKey, activeItem.id, activePricingSubTab)}
+                                      onChange={(e) => updateRowSKU(activeItem.id, idx, colKey, e.target.value)}
+                                      placeholder={getDefaultSKU(activeItem.id, activePricingSubTab, colKey, row.size)}
+                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                      title="Sửa mã SKU thủ công"
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                            ))}
                             <td className="p-2 text-center">
                               <button
                                 onClick={() => deleteRowFromCustomTab(activeItem.id, idx)}
@@ -2206,6 +2390,106 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               >
                 <Plus className="w-4 h-4" />
                 <span>Xác nhận tạo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: THÊM CỘT KHUNG MỚI */}
+      {isAddingColumnModalOpen && (
+        <div className="fixed inset-0 z-50 bg-[#121110]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#1C1917] border border-neutral-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <h3 className="font-serif-display font-bold text-base text-white">Thêm Cột Khung Mới</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddingColumnModalOpen(false)}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  Tên tiêu đề cột khung mới
+                </label>
+                <input
+                  type="text"
+                  value={newColumnTitle}
+                  onChange={(e) => setNewColumnTitle(e.target.value)}
+                  placeholder="Ví dụ: Khung Gỗ Hàn Quốc, Khung Phào Chỉ..."
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  Áp dụng cho loại bảng
+                </label>
+                <div className="space-y-2">
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    newColumnTargetType === 'dongKhung'
+                      ? 'bg-neutral-800 border-[#E7C184] text-white'
+                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="columnTargetType"
+                      checked={newColumnTargetType === 'dongKhung'}
+                      onChange={() => setNewColumnTargetType('dongKhung')}
+                      className="mt-0.5 accent-[#E7C184]"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white">Bảng Các Hệ Khung (Mặc định)</div>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">Thêm cột này vào các dòng sản phẩm Gỗ Lụa, HD Gương, Mika...</p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    newColumnTargetType === 'inEpMika'
+                      ? 'bg-neutral-800 border-[#E7C184] text-white'
+                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="columnTargetType"
+                      checked={newColumnTargetType === 'inEpMika'}
+                      onChange={() => setNewColumnTargetType('inEpMika')}
+                      className="mt-0.5 accent-[#E7C184]"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white">Bảng In Ép & Gia Cố</div>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">Thêm cột này vào dòng sản phẩm In Ép & Giá khung gia cố</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsAddingColumnModalOpen(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold text-neutral-300 bg-white/10 hover:bg-white/15 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleAddNewColumn}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-md flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Thêm Cột Ngay</span>
               </button>
             </div>
           </div>

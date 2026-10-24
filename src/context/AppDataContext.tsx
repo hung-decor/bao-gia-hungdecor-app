@@ -31,7 +31,8 @@ import {
   seedAllDataToFirestore,
   uploadFrameImageToStorage,
   fetchAdminPasswordFromFirestore,
-  saveAdminPasswordToFirestore
+  saveAdminPasswordToFirestore,
+  saveCatalogToFirestore
 } from '../firebase/dataService';
 import { isFreelanceMode } from '../hooks/usePriceMultiplier';
 
@@ -196,6 +197,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       setStudioPricing(toSave);
       setDataSource('firestore');
       setLastUpdated(new Date().toISOString());
+      saveCatalogToFirestore(toSave, freelancePricing).catch(console.warn);
       return true;
     } catch (e) {
       console.error('Save studio pricing failed', e);
@@ -213,6 +215,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       setFreelancePricing(toSave);
       setDataSource('firestore');
       setLastUpdated(new Date().toISOString());
+      saveCatalogToFirestore(studioPricing, toSave).catch(console.warn);
       return true;
     } catch (e) {
       console.error('Save freelance pricing failed', e);
@@ -229,7 +232,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       await Promise.all([
         savePricingToFirestore(studioSave),
-        saveFreelancePricingToFirestore(freelanceSave)
+        saveFreelancePricingToFirestore(freelanceSave),
+        saveCatalogToFirestore(studioSave, freelanceSave)
       ]);
       setStudioPricing(studioSave);
       setFreelancePricing(freelanceSave);

@@ -132,13 +132,11 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
                       Cỡ Ảnh
                     </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.boVien}</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.k0_k3}</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.k4_k6}</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">{colLabels.k10}</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">{colLabels.k11}</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">{colLabels.titan1}</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">{colLabels.titan2}</th>
+                    {(pricing.frameColumnKeys || ['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2']).map(k => (
+                      <th key={k} className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
@@ -147,13 +145,11 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                         {row.size}
                       </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.boVien, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.k0_k3, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.k4_k6, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(applyMultiplier(row.k10, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(applyMultiplier(row.k11, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(applyMultiplier(row.titan1, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(applyMultiplier(row.titan2, multiplier))}</td>
+                      {(pricing.frameColumnKeys || ['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2']).map(k => (
+                        <td key={k} className="py-2.5 px-3 text-right whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row[k], multiplier))}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
@@ -175,21 +171,11 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
                         Kích Thước
                       </th>
-                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        {colLabels.inAnh}
-                      </th>
-                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        {colLabels.inEpLua}
-                      </th>
-                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        {colLabels.inEpMikaCol}
-                      </th>
-                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        {colLabels.inEpPlastic}
-                      </th>
-                      <th className="py-3 px-3 text-right font-bold text-[#936B34] whitespace-nowrap">
-                        {colLabels.khungGiaCo}
-                      </th>
+                      {(pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo']).map(k => (
+                        <th key={k} className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                          {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
@@ -198,21 +184,11 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                         <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
                         </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          {formatPrice(applyMultiplier(row.inAnh, multiplier))}
-                        </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          {formatPrice(applyMultiplier(row.inEpLua, multiplier))}
-                        </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          {formatPrice(applyMultiplier(row.inEpMika, multiplier))}
-                        </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          {formatPrice(applyMultiplier(row.inEpPlastic, multiplier))}
-                        </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap text-[#936B34]">
-                          {formatPrice(applyMultiplier(row.khungGiaCo ?? row.khungXuongGiaCo ?? null, multiplier))}
-                        </td>
+                        {(pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo']).map(k => (
+                          <td key={k} className="py-2.5 px-3 text-right whitespace-nowrap">
+                            {formatPrice(applyMultiplier(row[k] ?? (k === 'inEpMikaCol' ? row.inEpMika : null), multiplier))}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
