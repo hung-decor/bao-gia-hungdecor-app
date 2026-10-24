@@ -17,8 +17,13 @@ import {
 } from '../data/tiemIn194Pricing2026';
 import {
   FullPricingState,
+  defaultTabLabels,
+  defaultColumnLabels,
   fetchPricingFromFirestore,
   savePricingToFirestore,
+  fetchFreelancePricingFromFirestore,
+  saveFreelancePricingToFirestore,
+  generateDefaultFreelancePricing,
   fetchFramesFromFirestore,
   saveFramesToFirestore,
   fetchShopInfoFromFirestore,
@@ -28,12 +33,24 @@ import {
   fetchAdminPasswordFromFirestore,
   saveAdminPasswordToFirestore
 } from '../firebase/dataService';
+import { isFreelanceMode } from '../hooks/usePriceMultiplier';
 
 export interface AppDataContextType {
-  // Pricing
+  // Active pricing depending on client mode
   pricing: FullPricingState;
+  
+  // Explicit dual pricing states
+  studioPricing: FullPricingState;
+  freelancePricing: FullPricingState;
+  
+  setStudioPricing: React.Dispatch<React.SetStateAction<FullPricingState>>;
+  setFreelancePricing: React.Dispatch<React.SetStateAction<FullPricingState>>;
   setPricing: React.Dispatch<React.SetStateAction<FullPricingState>>;
-  savePricing: (newPricing?: FullPricingState) => Promise<boolean>;
+  
+  saveStudioPricing: (newPricing?: FullPricingState) => Promise<boolean>;
+  saveFreelancePricing: (newPricing?: FullPricingState) => Promise<boolean>;
+  savePricing: (newPricing?: FullPricingState) => Promise<boolean>; // Compatibility alias for saveStudioPricing
+  saveAllPricing: (newStudio?: FullPricingState, newFreelance?: FullPricingState) => Promise<boolean>;
   
   // Frames
   frames: FrameSpecItem[];
@@ -74,12 +91,17 @@ const initialPricing: FullPricingState = {
   mikaPhoThong: defaultMikaPhoThong,
   hdGuong: defaultHdGuong,
   anh4K: defaultAnh4K,
+  tabLabels: defaultTabLabels,
+  columnLabels: defaultColumnLabels,
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
+export const CACHE_VERSION = '2026_HUNG_DECOR_FINAL_V6';
+
 export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [pricing, setPricing] = useState<FullPricingState>(initialPricing);
+  const [studioPricing, setStudioPricing] = useState<FullPricingState>(initialPricing);
+  const [freelancePricing, setFreelancePricing] = useState<FullPricingState>(() => generateDefaultFreelancePricing(initialPricing));
   const [frames, setFrames] = useState<FrameSpecItem[]>(defaultFrames);
   const [shopInfo, setShopInfo] = useState<B2BShopInfo>(initialShopInfo);
   const [adminPassword, setAdminPassword] = useState<string>('123456');
@@ -88,11 +110,26 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [dataSource, setDataSource] = useState<'firestore' | 'default'>('default');
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
+  const [isFreelanceClient, setIsFreelanceClient] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsFreelanceClient(isFreelanceMode());
+  }, []);
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [pricingResult, framesResult, shopResult, pwdResult] = await Promise.all([
+      if (typeof window !== 'undefined') {
+        const localVersion = localStorage.getItem('HUNG_DECOR_CACHE_VERSION');
+        if (localVersion !== CACHE_VERSION) {
+          localStorage.clear();
+          localStorage.setItem('HUNG_DECOR_CACHE_VERSION', CACHE_VERSION);
+        }
+      }
+
+      const [pricingResult, freelanceResult, framesResult, shopResult, pwdResult] = await Promise.all([
         fetchPricingFromFirestore(),
+        fetchFreelancePricingFromFirestore(),
         fetchFramesFromFirestore(),
         fetchShopInfoFromFirestore(),
         fetchAdminPasswordFromFirestore()
@@ -104,15 +141,24 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       let hasFirestoreData = false;
 
+      let loadedStudio = initialPricing;
       if (pricingResult && pricingResult.data) {
-        setPricing(pricingResult.data);
+        loadedStudio = pricingResult.data;
+        setStudioPricing(loadedStudio);
         hasFirestoreData = true;
         if (pricingResult.updatedAt) setLastUpdated(pricingResult.updatedAt);
       } else {
-        // Enforce the new Excel factory pricing and sync to Firestore
-        setPricing(initialPricing);
+        setStudioPricing(initialPricing);
         savePricingToFirestore(initialPricing).catch(console.warn);
         hasFirestoreData = true;
+      }
+
+      if (freelanceResult && freelanceResult.data) {
+        setFreelancePricing(freelanceResult.data);
+      } else {
+        const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
+        setFreelancePricing(generatedFreelance);
+        saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
       }
 
       if (framesResult && framesResult.frames && framesResult.frames.length > 0) {
@@ -142,17 +188,56 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     loadData();
   }, []);
 
-  const handleSavePricing = async (newPricing?: FullPricingState): Promise<boolean> => {
+  const handleSaveStudioPricing = async (newPricing?: FullPricingState): Promise<boolean> => {
     setIsSaving(true);
-    const toSave = newPricing || pricing;
+    const toSave = newPricing || studioPricing;
     try {
       await savePricingToFirestore(toSave);
-      setPricing(toSave);
+      setStudioPricing(toSave);
       setDataSource('firestore');
       setLastUpdated(new Date().toISOString());
       return true;
     } catch (e) {
-      console.error('Save pricing failed', e);
+      console.error('Save studio pricing failed', e);
+      throw e;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveFreelancePricing = async (newPricing?: FullPricingState): Promise<boolean> => {
+    setIsSaving(true);
+    const toSave = newPricing || freelancePricing;
+    try {
+      await saveFreelancePricingToFirestore(toSave);
+      setFreelancePricing(toSave);
+      setDataSource('firestore');
+      setLastUpdated(new Date().toISOString());
+      return true;
+    } catch (e) {
+      console.error('Save freelance pricing failed', e);
+      throw e;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAllPricing = async (newStudio?: FullPricingState, newFreelance?: FullPricingState): Promise<boolean> => {
+    setIsSaving(true);
+    const studioSave = newStudio || studioPricing;
+    const freelanceSave = newFreelance || freelancePricing;
+    try {
+      await Promise.all([
+        savePricingToFirestore(studioSave),
+        saveFreelancePricingToFirestore(freelanceSave)
+      ]);
+      setStudioPricing(studioSave);
+      setFreelancePricing(freelanceSave);
+      setDataSource('firestore');
+      setLastUpdated(new Date().toISOString());
+      return true;
+    } catch (e) {
+      console.error('Save all pricing failed', e);
       throw e;
     } finally {
       setIsSaving(false);
@@ -241,12 +326,22 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // Active pricing for public client pages
+  const activeClientPricing = isFreelanceClient ? freelancePricing : studioPricing;
+
   return (
     <AppDataContext.Provider
       value={{
-        pricing,
-        setPricing,
-        savePricing: handleSavePricing,
+        pricing: activeClientPricing,
+        studioPricing,
+        freelancePricing,
+        setStudioPricing,
+        setFreelancePricing,
+        setPricing: setStudioPricing,
+        saveStudioPricing: handleSaveStudioPricing,
+        saveFreelancePricing: handleSaveFreelancePricing,
+        savePricing: handleSaveStudioPricing,
+        saveAllPricing: handleSaveAllPricing,
         frames,
         setFrames,
         saveFrames: handleSaveFrames,

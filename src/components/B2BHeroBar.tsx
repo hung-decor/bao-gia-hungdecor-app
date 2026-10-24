@@ -34,7 +34,7 @@ export const B2BHeroBar: React.FC = () => {
 
             {/* Core Technical Description - Compact on mobile */}
             <p className="text-[11px] sm:text-xs md:text-sm text-neutral-300 leading-tight md:leading-relaxed max-w-2xl line-clamp-2 sm:line-clamp-none">
-              Bộ bảng giá chuẩn năm 2026: Đầy đủ các dòng <strong>Gỗ Lụa Đóng Khung</strong>, <strong>HD Gương Siêu Bóng</strong>, <strong>Mika Phổ Thông</strong>, <strong>In Ép Mika</strong>, và dòng cao cấp <strong>Ảnh Cao Cấp 4K Fomex</strong>. Tra cứu giá tự động theo từng mã khung K0 - K11 và Titan T1, T2.
+              Bộ bảng giá chuẩn năm 2026: Đầy đủ các dòng <strong>Gỗ Lụa Đóng Khung</strong>, <strong>Mika HD Gương 8K</strong>, <strong>Mika Phổ Thông</strong>, <strong>In Ép và Giá Khung Xương Gia Cố</strong>, và dòng <strong>Cao Cấp 8K</strong>. Tra cứu giá tự động theo các hệ khung chuyên dụng: Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C.
             </p>
 
             {/* Quick Action Navigation Buttons */}
@@ -60,7 +60,7 @@ export const B2BHeroBar: React.FC = () => {
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2.5 text-[11px] md:text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition-colors"
               >
                 <Ruler className="w-3.5 h-3.5 text-[#E7C184]" />
-                <span>Quy cách khung K0 - K11</span>
+                <span>Quy cách các hệ khung</span>
               </a>
             </div>
 

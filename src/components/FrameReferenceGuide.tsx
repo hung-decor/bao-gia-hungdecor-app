@@ -123,7 +123,7 @@ export const FrameReferenceGuide: React.FC = () => {
             màu ảnh khung có thể khác khung thật ở ngoài do sai lệch màu sắc hiển thị
           </p>
           <p className="text-xs sm:text-sm text-[#57534E]">
-            Ảnh chụp thực tế 100% tại xưởng Hùng Decor cho tất cả các dòng khung: Khung KX (K0, K1, K2, K3), Khung HT10 (K4, K5, K6), Khung K12, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
+            Ảnh chụp thực tế 100% tại xưởng Hùng Decor cho tất cả các dòng khung: Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
           </p>
 
           {/* Filter Pills */}

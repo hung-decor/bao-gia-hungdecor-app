@@ -3,13 +3,25 @@ export type MaterialTabId =
   | 'hd-guong-sieu-bong'
   | 'mika-pho-thong'
   | 'in-ep-mika'
-  | 'anh-4k';
+  | 'anh-4k'
+  | string;
+
+export interface CustomMaterialTab {
+  id: string;
+  title: string;
+  type: 'dongKhung' | 'inEpMika' | 'anh4K';
+  rows: any[];
+}
 
 export interface InEpMikaPriceRow {
   stt: number;
   size: string;
+  inAnh: number | null;
+  inEpLua: number | null;
   inEpMika: number | null;
-  khungXuongGiaCo?: number | null;
+  inEpPlastic: number | null;
+  khungGiaCo: number | null;
+  khungXuongGiaCo?: number | null; // Compatibility alias
 }
 
 export interface DongKhungPriceRow {
@@ -55,4 +67,29 @@ export interface B2BShopInfo {
   zaloTho: string;
   address: string;
   workingHours: string;
+}
+
+export interface TabLabelsConfig {
+  goLua: string;
+  hdGuong: string;
+  mikaPhoThong: string;
+  inEpMika: string;
+  anh4K: string;
+}
+
+export interface ColumnLabelsConfig {
+  // DongKhung tables
+  boVien: string;
+  k0_k3: string;
+  k4_k6: string;
+  k10: string;
+  k11: string;
+  titan1: string;
+  titan2: string;
+  // Tab 4 (In ép & Giá khung gia cố)
+  inAnh: string;
+  inEpLua: string;
+  inEpMikaCol: string;
+  inEpPlastic: string;
+  khungGiaCo: string;
 }

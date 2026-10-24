@@ -1,83 +1,88 @@
 import { InEpMikaPriceRow, DongKhungPriceRow, Anh4KPriceRow, FrameSpecItem } from '../types';
 
-// 1. BẢNG GIÁ IN ÉP MIKA & BO VIỀN MIKA
+// 1. BẢNG GIÁ IN ÉP VÀ GIÁ KHUNG XƯƠNG GIA CỐ (TAB 4)
+// Cấu trúc 6 cột: [Kích Thước] | [In Ảnh] | [In Ép Lụa] | [In Ép Mika] | [In Ép Plastic] | [Giá Khung Gia Cố]
 export const inEpMikaPricingData: InEpMikaPriceRow[] = [
-  { stt: 1, size: '13x18', inEpMika: 20000 },
-  { stt: 2, size: '15x21', inEpMika: 27000 },
-  { stt: 3, size: '20x30', inEpMika: 37000 },
-  { stt: 4, size: '25x38', inEpMika: 60000 },
-  { stt: 5, size: '30x45', inEpMika: 75000 },
-  { stt: 6, size: '35x50', inEpMika: 85000 },
-  { stt: 7, size: '40x60', inEpMika: 105000 },
-  { stt: 8, size: '50x75', inEpMika: 130000 },
-  { stt: 9, size: '60x90', inEpMika: 190000 },
-  { stt: 10, size: '60x120', inEpMika: 320000 },
-  { stt: 11, size: '70x110', inEpMika: 300000 },
-  { stt: 12, size: '80x120', inEpMika: 460000, khungXuongGiaCo: 180000 },
-  { stt: 13, size: '90x140', inEpMika: 560000, khungXuongGiaCo: 200000 },
-  { stt: 14, size: '100x150', inEpMika: 690000, khungXuongGiaCo: 220000 },
-  { stt: 15, size: '100x180', inEpMika: 850000, khungXuongGiaCo: 310000 }
+  { stt: 1, size: '10x15', inAnh: 2000, inEpLua: 2500, inEpMika: null, inEpPlastic: null, khungGiaCo: null },
+  { stt: 2, size: '13x18', inAnh: 2500, inEpLua: 4000, inEpMika: 5000, inEpPlastic: 5000, khungGiaCo: null },
+  { stt: 3, size: '15x21', inAnh: 4000, inEpLua: 6000, inEpMika: 7000, inEpPlastic: 7000, khungGiaCo: null },
+  { stt: 4, size: '20x30', inAnh: 10000, inEpLua: 15000, inEpMika: 20000, inEpPlastic: 15000, khungGiaCo: null },
+  { stt: 5, size: '25x38', inAnh: 17000, inEpLua: null, inEpMika: 25000, inEpPlastic: null, khungGiaCo: null },
+  { stt: 6, size: '30x45', inAnh: 27000, inEpLua: 40000, inEpMika: 40000, inEpPlastic: 35000, khungGiaCo: null },
+  { stt: 7, size: '35x50', inAnh: 35000, inEpLua: null, inEpMika: null, inEpPlastic: null, khungGiaCo: null },
+  { stt: 8, size: '40x60', inAnh: 45000, inEpLua: 60000, inEpMika: 60000, inEpPlastic: null, khungGiaCo: null },
+  { stt: 9, size: '50x75', inAnh: 55000, inEpLua: 75000, inEpMika: 75000, inEpPlastic: null, khungGiaCo: null },
+  { stt: 10, size: '60x90', inAnh: 85000, inEpLua: 115000, inEpMika: 125000, inEpPlastic: null, khungGiaCo: null },
+  { stt: 11, size: '60x120', inAnh: null, inEpLua: 145000, inEpMika: 145000, inEpPlastic: null, khungGiaCo: null },
+  { stt: 12, size: '70x110', inAnh: null, inEpLua: null, inEpMika: null, inEpPlastic: null, khungGiaCo: null },
+  { stt: 13, size: '80x120', inAnh: null, inEpLua: null, inEpMika: null, inEpPlastic: null, khungGiaCo: null },
+  { stt: 14, size: '90x140', inAnh: null, inEpLua: null, inEpMika: null, inEpPlastic: null, khungGiaCo: null },
+  { stt: 15, size: '100x150', inAnh: null, inEpLua: null, inEpMika: null, inEpPlastic: null, khungGiaCo: null },
+  { stt: 16, size: '100x180', inAnh: null, inEpLua: null, inEpMika: null, inEpPlastic: null, khungGiaCo: null }
 ];
 // Backwards compatibility alias
 export const boVienPricingData = inEpMikaPricingData;
 
-// 2. GỖ LỤA ĐÓNG KHUNG & IN ẢNH LAB (Khớp các cột theo thực tế Hùng Decor)
+// 2. GỖ LỤA ĐÓNG KHUNG & IN ẢNH LAB (TAB 1)
+// Cột Bo viền lụa của xưởng, các cột khung khác để trống '-'
 export const goLuaDongKhungData: DongKhungPriceRow[] = [
   { size: '13x18', boVien: 18000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
-  { size: '15x21', boVien: 20000, k0_k3: 32000, k4_k6: 48000, k7_k9: 48000, k10: null, k11: null, titan1: 35000, titan2: 45000 },
-  { size: '20x30', boVien: 30000, k0_k3: 43000, k4_k6: 63000, k7_k9: 63000, k10: null, k11: null, titan1: 80000, titan2: 70000 },
-  { size: '25x38', boVien: 55000, k0_k3: 75000, k4_k6: 150000, k7_k9: 100000, k10: null, k11: null, titan1: 95000, titan2: 120000 },
-  { size: '30x45', boVien: 50000, k0_k3: 100000, k4_k6: 130000, k7_k9: 130000, k10: 150000, k11: null, titan1: 120000, titan2: 170000 },
-  { size: '35x50', boVien: 70000, k0_k3: 118000, k4_k6: 150000, k7_k9: 150000, k10: 170000, k11: null, titan1: 145000, titan2: 175000 },
-  { size: '40x60', boVien: 90000, k0_k3: 220000, k4_k6: 240000, k7_k9: 180000, k10: 170000, k11: 240000, titan1: 140000, titan2: 240000 },
-  { size: '50x75', boVien: 120000, k0_k3: 300000, k4_k6: 320000, k7_k9: 235000, k10: 230000, k11: 310000, titan1: 190000, titan2: 270000 },
-  { size: '60x90', boVien: 160000, k0_k3: 350000, k4_k6: 370000, k7_k9: 260000, k10: 300000, k11: 350000, titan1: 240000, titan2: 320000 },
-  { size: '60x120', boVien: 310000, k0_k3: 365000, k4_k6: 436000, k7_k9: 436000, k10: 400000, k11: 544000, titan1: 420000, titan2: 450000 },
-  { size: '70x110', boVien: 270000, k0_k3: 470000, k4_k6: 470000, k7_k9: 450000, k10: 360000, k11: 652000, titan1: 430000, titan2: 470000 },
-  { size: '80x120', boVien: 350000, k0_k3: 660000, k4_k6: 660000, k7_k9: 520000, k10: 510000, k11: 844000, titan1: 500000, titan2: 660000 },
-  { size: '90x140', boVien: 500000, k0_k3: 740000, k4_k6: 900000, k7_k9: 650000, k10: 700000, k11: 992000, titan1: 750000, titan2: 850000 },
-  { size: '100x150', boVien: 670000, k0_k3: 1014000, k4_k6: 1082000, k7_k9: 895000, k10: 920000, k11: 995000, titan1: 870000, titan2: 970000 },
-  { size: '100x180', boVien: 800000, k0_k3: 1200000, k4_k6: 1780000, k7_k9: 1100000, k10: 1250000, k11: 1400000, titan1: 1250000, titan2: 1350000 }
+  { size: '15x21', boVien: 20000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '20x30', boVien: 30000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '25x38', boVien: null, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '30x45', boVien: 50000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '35x50', boVien: 70000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '40x60', boVien: 90000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '50x75', boVien: 120000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '60x90', boVien: 160000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '60x120', boVien: null, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '70x110', boVien: 270000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '80x120', boVien: 350000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '90x140', boVien: 500000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '100x150', boVien: null, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '100x180', boVien: null, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null }
 ];
 
-// 3. MIKA PHỔ THÔNG ĐÓNG KHUNG
+// 3. MIKA PHỔ THÔNG ĐÓNG KHUNG (TAB 3)
+// Đầy đủ Bo viền, Khung KX, HT10, K12, Bản 10cm, Titan M, Titan C theo chuẩn xưởng Hùng Decor
 export const mikaPhoThongData: DongKhungPriceRow[] = [
   { size: '13x18', boVien: 20000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
-  { size: '15x21', boVien: 27000, k0_k3: 38000, k4_k6: 55000, k7_k9: 55000, k10: null, k11: null, titan1: 48000, titan2: 68000 },
-  { size: '20x30', boVien: 37000, k0_k3: 48000, k4_k6: 70000, k7_k9: 70000, k10: null, k11: null, titan1: 65000, titan2: 85000 },
-  { size: '25x38', boVien: 60000, k0_k3: 80000, k4_k6: 105000, k7_k9: 105000, k10: null, k11: null, titan1: 100000, titan2: 125000 },
-  { size: '30x45', boVien: 75000, k0_k3: 110000, k4_k6: 140000, k7_k9: 140000, k10: 155000, k11: 185000, titan1: 135000, titan2: 165000 },
-  { size: '35x50', boVien: 85000, k0_k3: 125000, k4_k6: 160000, k7_k9: 160000, k10: 176000, k11: 210000, titan1: 150000, titan2: 185000 },
-  { size: '40x60', boVien: 105000, k0_k3: 145000, k4_k6: 185000, k7_k9: 185000, k10: 205000, k11: 245000, titan1: 175000, titan2: 215000 },
-  { size: '50x75', boVien: 130000, k0_k3: 190000, k4_k6: 245000, k7_k9: 245000, k10: 265000, k11: 315000, titan1: 230000, titan2: 280000 },
-  { size: '60x90', boVien: 190000, k0_k3: 220000, k4_k6: 280000, k7_k9: 280000, k10: 310000, k11: 370000, titan1: 265000, titan2: 325000 },
-  { size: '60x120', boVien: 320000, k0_k3: 390000, k4_k6: 460000, k7_k9: 460000, k10: 495000, k11: 570000, titan1: 445000, titan2: 515000 },
-  { size: '70x110', boVien: 300000, k0_k3: 375000, k4_k6: 480000, k7_k9: 480000, k10: 500000, k11: 555000, titan1: 465000, titan2: 515000 },
-  { size: '80x120', boVien: 460000, k0_k3: 435000, k4_k6: 555000, k7_k9: 555000, k10: 575000, k11: 635000, titan1: 535000, titan2: 615000 },
-  { size: '90x140', boVien: 560000, k0_k3: 560000, k4_k6: 700000, k7_k9: 700000, k10: 740000, k11: 820000, titan1: 710000, titan2: 800000 },
-  { size: '100x150', boVien: 690000, k0_k3: 770000, k4_k6: 920000, k7_k9: 920000, k10: 945000, k11: 1020000, titan1: 895000, titan2: 995000 },
-  { size: '100x180', boVien: 850000, k0_k3: 970000, k4_k6: 1140000, k7_k9: 1140000, k10: 1170000, k11: 1257000, titan1: 1115000, titan2: 1225000 }
+  { size: '15x21', boVien: 27000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 35000, titan2: 45000 },
+  { size: '20x30', boVien: 37000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 80000, titan2: 70000 },
+  { size: '25x38', boVien: 60000, k0_k3: null, k4_k6: 150000, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '30x45', boVien: 75000, k0_k3: null, k4_k6: null, k7_k9: null, k10: 150000, k11: null, titan1: 120000, titan2: 170000 },
+  { size: '35x50', boVien: 85000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '40x60', boVien: 105000, k0_k3: 220000, k4_k6: 240000, k7_k9: null, k10: 170000, k11: null, titan1: 140000, titan2: 240000 },
+  { size: '50x75', boVien: 130000, k0_k3: 300000, k4_k6: 320000, k7_k9: null, k10: 230000, k11: null, titan1: 190000, titan2: 270000 },
+  { size: '60x90', boVien: 190000, k0_k3: 350000, k4_k6: 370000, k7_k9: null, k10: 300000, k11: null, titan1: 240000, titan2: 320000 },
+  { size: '60x120', boVien: 320000, k0_k3: null, k4_k6: null, k7_k9: null, k10: 400000, k11: null, titan1: null, titan2: 450000 },
+  { size: '70x110', boVien: 300000, k0_k3: 470000, k4_k6: 470000, k7_k9: null, k10: 360000, k11: 652000, titan1: 430000, titan2: 470000 },
+  { size: '80x120', boVien: 460000, k0_k3: 660000, k4_k6: 660000, k7_k9: null, k10: 510000, k11: 844000, titan1: null, titan2: 660000 },
+  { size: '90x140', boVien: 560000, k0_k3: 740000, k4_k6: 900000, k7_k9: null, k10: 700000, k11: 992000, titan1: null, titan2: null },
+  { size: '100x150', boVien: null, k0_k3: 1014000, k4_k6: 1082000, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null },
+  { size: '100x180', boVien: null, k0_k3: null, k4_k6: 1780000, k7_k9: null, k10: null, k11: null, titan1: null, titan2: null }
 ];
 // Backwards compatibility alias
 export const micaPhoThongData = mikaPhoThongData;
 
-// 4. HD GƯƠNG SIÊU BÓNG (MIKA GƯƠNG HD 8K)
+// 4. MIKA HD GƯƠNG 8K (TAB 2)
+// Giữ nguyên Bo viền, Titan M, Titan C; Các cột khung gỗ để trống '-'
 export const hdGuongSieuBongKhungData: DongKhungPriceRow[] = [
   { size: '13x18', boVien: 30000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 45000, titan2: 55000 },
-  { size: '15x21', boVien: 35000, k0_k3: 43000, k4_k6: 58200, k7_k9: 58200, k10: null, k11: null, titan1: 53000, titan2: 73000 },
-  { size: '20x30', boVien: 50000, k0_k3: 53000, k4_k6: 73000, k7_k9: 73000, k10: null, k11: null, titan1: 68000, titan2: 88000 },
-  { size: '25x38', boVien: 75000, k0_k3: 85000, k4_k6: 110000, k7_k9: 110000, k10: null, k11: null, titan1: 105000, titan2: 130000 },
-  { size: '30x45', boVien: 90000, k0_k3: 118000, k4_k6: 145000, k7_k9: 145000, k10: 165000, k11: 195000, titan1: 140000, titan2: 170000 },
-  { size: '35x50', boVien: 110000, k0_k3: 130000, k4_k6: 165000, k7_k9: 165000, k10: 180000, k11: 215000, titan1: 155000, titan2: 190000 },
-  { size: '40x60', boVien: 140000, k0_k3: 155000, k4_k6: 195000, k7_k9: 195000, k10: 215000, k11: 255000, titan1: 185000, titan2: 225000 },
-  { size: '50x75', boVien: 160000, k0_k3: 205000, k4_k6: 255000, k7_k9: 255000, k10: 285000, k11: 335000, titan1: 245000, titan2: 295000 },
-  { size: '60x90', boVien: 260000, k0_k3: 235000, k4_k6: 295000, k7_k9: 295000, k10: 325000, k11: 385000, titan1: 290000, titan2: 340000 },
-  { size: '60x120', boVien: 360000, k0_k3: 405000, k4_k6: 475000, k7_k9: 475000, k10: 515000, k11: 585000, titan1: 505000, titan2: 545000 },
-  { size: '70x110', boVien: 360000, k0_k3: 405000, k4_k6: 515000, k7_k9: 515000, k10: 530000, k11: 585000, titan1: 505000, titan2: 545000 },
-  { size: '80x120', boVien: 580000, k0_k3: 485000, k4_k6: 605000, k7_k9: 605000, k10: 625000, k11: 685000, titan1: 640000, titan2: 720000 },
-  { size: '90x140', boVien: 680000, k0_k3: 650000, k4_k6: 780000, k7_k9: 780000, k10: 820000, k11: 890000, titan1: 780000, titan2: 890000 },
-  { size: '100x150', boVien: 770000, k0_k3: 845000, k4_k6: 995000, k7_k9: 995000, k10: 1020000, k11: 1095000, titan1: 970000, titan2: 1070000 },
-  { size: '100x180', boVien: 950000, k0_k3: 1059000, k4_k6: 1235000, k7_k9: 1235000, k10: 1265000, k11: 1350000, titan1: 1210000, titan2: 1320000 }
+  { size: '15x21', boVien: 35000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 53000, titan2: 73000 },
+  { size: '20x30', boVien: 50000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 68000, titan2: 88000 },
+  { size: '25x38', boVien: 75000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 105000, titan2: 130000 },
+  { size: '30x45', boVien: 90000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 140000, titan2: 170000 },
+  { size: '35x50', boVien: 110000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 155000, titan2: 190000 },
+  { size: '40x60', boVien: 140000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 185000, titan2: 225000 },
+  { size: '50x75', boVien: 160000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 245000, titan2: 295000 },
+  { size: '60x90', boVien: 260000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 290000, titan2: 340000 },
+  { size: '60x120', boVien: 360000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 505000, titan2: 545000 },
+  { size: '70x110', boVien: 360000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 505000, titan2: 545000 },
+  { size: '80x120', boVien: 580000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 640000, titan2: 720000 },
+  { size: '90x140', boVien: 680000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 780000, titan2: 890000 },
+  { size: '100x150', boVien: 770000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 970000, titan2: 1070000 },
+  { size: '100x180', boVien: 950000, k0_k3: null, k4_k6: null, k7_k9: null, k10: null, k11: null, titan1: 1210000, titan2: 1320000 }
 ];
 // Backwards compatibility alias
 export const micaGuongHDKhungData = hdGuongSieuBongKhungData;

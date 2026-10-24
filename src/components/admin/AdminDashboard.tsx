@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppData } from '../../context/AppDataContext';
-import { FrameSpecItem, InEpMikaPriceRow, DongKhungPriceRow, Anh4KPriceRow } from '../../types';
+import { 
+  FrameSpecItem, 
+  InEpMikaPriceRow, 
+  DongKhungPriceRow, 
+  Anh4KPriceRow,
+  TabLabelsConfig,
+  ColumnLabelsConfig,
+  CustomMaterialTab
+} from '../../types';
 import {
   inEpMikaPricingData as defaultInEpMika,
   goLuaDongKhungData as defaultGoLua,
@@ -8,6 +16,15 @@ import {
   hdGuongSieuBongKhungData as defaultHdGuong,
   anh4KPricingData as defaultAnh4K
 } from '../../data/tiemIn194Pricing2026';
+import {
+  defaultTabLabels,
+  defaultColumnLabels,
+  FullPricingState,
+  getAllMaterialTabs,
+  applyPercentageIncrease,
+  syncPricingStructure,
+  generateDefaultFreelancePricing
+} from '../../firebase/dataService';
 import { 
   Lock, 
   Unlock, 
@@ -30,7 +47,9 @@ import {
   EyeOff,
   LogOut,
   X,
-  Copy
+  Copy,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -39,8 +58,11 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const {
-    pricing,
-    savePricing,
+    studioPricing,
+    freelancePricing,
+    saveStudioPricing,
+    saveFreelancePricing,
+    saveAllPricing,
     frames,
     saveFrames,
     shopInfo,
@@ -65,7 +87,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'pricing' | 'frames' | 'shop' | 'security'>('pricing');
-  const [activeMaterialTab, setActiveMaterialTab] = useState<number>(0);
+  const [activeMaterialTabId, setActiveMaterialTabId] = useState<string>('go-lua');
+
+  // Add New Material Modal State
+  const [isAddingMaterialModalOpen, setIsAddingMaterialModalOpen] = useState<boolean>(false);
+  const [newMaterialTitle, setNewMaterialTitle] = useState<string>('');
+  const [newMaterialType, setNewMaterialType] = useState<'dongKhung' | 'inEpMika'>('dongKhung');
 
   // Status Notification
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -84,30 +111,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [changePasswordError, setChangePasswordError] = useState<string>('');
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
 
-  // Link copy state
+  // Link copy state - FIXED VERCEL DOMAIN
   const [copiedLinkType, setCopiedLinkType] = useState<'studio' | 'freelance' | null>(null);
 
   const handleCopyLink = (type: 'studio' | 'freelance') => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const url = type === 'studio' ? `${origin}/` : `${origin}/?mode=freelance`;
+    const url = type === 'studio' 
+      ? 'https://bao-gia-hungdecor-app.vercel.app/' 
+      : 'https://bao-gia-hungdecor-app.vercel.app/?mode=freelance';
     navigator.clipboard.writeText(url);
     setCopiedLinkType(type);
-    showToast(
-      type === 'studio' 
-        ? 'Đã sao chép: Link Bảng Giá Sỉ Studio (Gốc)' 
-        : 'Đã sao chép: Link Bảng Giá Freelance (+10%)'
-    );
+    showToast('Đã sao chép link gửi Zalo thành công!');
     setTimeout(() => {
       setCopiedLinkType(null);
     }, 2500);
   };
 
-  // Local editable copies of pricing data
-  const [localPricing, setLocalPricing] = useState(pricing);
-  // Synchronize when pricing updates from context
+  // Active Pricing SubTab (Studio Base vs Freelance)
+  const [activePricingSubTab, setActivePricingSubTab] = useState<'studio' | 'freelance'>('studio');
+  const [percentInputValue, setPercentInputValue] = useState<number>(10);
+
+  // Local editable copies of dual pricing data
+  const [localStudioPricing, setLocalStudioPricing] = useState<FullPricingState>(studioPricing);
+  const [localFreelancePricing, setLocalFreelancePricing] = useState<FullPricingState>(freelancePricing);
+
   React.useEffect(() => {
-    setLocalPricing(pricing);
-  }, [pricing]);
+    setLocalStudioPricing(studioPricing);
+  }, [studioPricing]);
+
+  React.useEffect(() => {
+    setLocalFreelancePricing(freelancePricing);
+  }, [freelancePricing]);
+
+  // Active pricing dataset currently being edited
+  const activePricing = activePricingSubTab === 'studio' ? localStudioPricing : localFreelancePricing;
+
+  // Active pricing updater with automatic structural sync
+  const updateActivePricing = (updater: (prev: FullPricingState) => FullPricingState, isStructuralChange: boolean = false) => {
+    if (activePricingSubTab === 'studio') {
+      setLocalStudioPricing(prevStudio => {
+        const updatedStudio = updater(prevStudio);
+        if (isStructuralChange) {
+          setLocalFreelancePricing(prevFreelance => syncPricingStructure(updatedStudio, prevFreelance));
+        }
+        return updatedStudio;
+      });
+    } else {
+      setLocalFreelancePricing(prevFreelance => {
+        const updatedFreelance = updater(prevFreelance);
+        if (isStructuralChange) {
+          setLocalStudioPricing(prevStudio => syncPricingStructure(updatedFreelance, prevStudio));
+        }
+        return updatedFreelance;
+      });
+    }
+  };
 
   // Frame editing states
   const [editingFrameIndex, setEditingFrameIndex] = useState<number | null>(null);
@@ -149,11 +206,211 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setPasswordInput('');
   };
 
+  // List of active material tabs in Admin
+  const adminMaterialTabs = useMemo(() => {
+    return getAllMaterialTabs(activePricing);
+  }, [activePricing]);
+
+  // Keep activeMaterialTabId valid
+  React.useEffect(() => {
+    if (adminMaterialTabs.length > 0 && !adminMaterialTabs.some((t: any) => t.id === activeMaterialTabId)) {
+      setActiveMaterialTabId(adminMaterialTabs[0].id);
+    }
+  }, [adminMaterialTabs, activeMaterialTabId]);
+
+  // Delete Material Tab Handler
+  const handleDeleteMaterialTab = (tabId: string, tabTitle: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa chất liệu "${tabTitle}" không?`)) {
+      updateActivePricing(prev => {
+        const isCustom = prev.customTabs?.some(ct => ct.id === tabId);
+        let updatedCustomTabs = prev.customTabs || [];
+        let updatedDeletedTabIds = prev.deletedTabIds || [];
+
+        if (isCustom) {
+          updatedCustomTabs = updatedCustomTabs.filter(ct => ct.id !== tabId);
+        } else {
+          if (!updatedDeletedTabIds.includes(tabId)) {
+            updatedDeletedTabIds = [...updatedDeletedTabIds, tabId];
+          }
+        }
+
+        return {
+          ...prev,
+          customTabs: updatedCustomTabs,
+          deletedTabIds: updatedDeletedTabIds
+        };
+      }, true);
+      showToast(`Đã xóa chất liệu "${tabTitle}"! Hãy nhấn nút Lưu Bảng Giá để hoàn tất.`);
+    }
+  };
+
+  // Add Material Tab Handler
+  const handleCreateMaterialTab = () => {
+    if (!newMaterialTitle.trim()) {
+      alert('Vui lòng nhập tên chất liệu mới!');
+      return;
+    }
+    const newId = `custom_${Date.now()}`;
+    const defaultSizes = ['13x18', '15x21', '20x30', '25x38', '30x45', '35x50', '40x60', '50x75', '60x90', '60x120', '70x110', '80x120'];
+    
+    let initialRows: any[] = [];
+    if (newMaterialType === 'dongKhung') {
+      initialRows = defaultSizes.map(sz => ({
+        size: sz,
+        boVien: 0,
+        k0_k3: 0,
+        k4_k6: 0,
+        k7_k9: null,
+        k10: null,
+        k11: null,
+        titan1: 0,
+        titan2: 0
+      }));
+    } else {
+      initialRows = defaultSizes.map((sz, idx) => ({
+        stt: idx + 1,
+        size: sz,
+        inAnh: 0,
+        inEpLua: 0,
+        inEpMika: 0,
+        inEpPlastic: 0,
+        khungGiaCo: 0
+      }));
+    }
+
+    const newTabObj: CustomMaterialTab = {
+      id: newId,
+      title: newMaterialTitle.trim(),
+      type: newMaterialType,
+      rows: initialRows
+    };
+
+    updateActivePricing(prev => ({
+      ...prev,
+      customTabs: [...(prev.customTabs || []), newTabObj]
+    }), true);
+
+    setIsAddingMaterialModalOpen(false);
+    setNewMaterialTitle('');
+    setActiveMaterialTabId(newId);
+    showToast(`Đã thêm chất liệu "${newMaterialTitle.trim()}"! Hãy bấm "Lưu Bảng Giá".`);
+  };
+
+  // Custom tab row cell update helper
+  const updateCustomTabRowCell = (tabId: string, rowIndex: number, field: string, value: any) => {
+    updateActivePricing(prev => {
+      const customTabs: CustomMaterialTab[] = [...(prev.customTabs || [])];
+      const targetIdx = customTabs.findIndex(ct => ct.id === tabId);
+      if (targetIdx === -1) return prev;
+      const targetTab: CustomMaterialTab = { ...customTabs[targetIdx] };
+      const rows = [...targetTab.rows];
+      rows[rowIndex] = { ...rows[rowIndex], [field]: value };
+      targetTab.rows = rows;
+      customTabs[targetIdx] = targetTab;
+      return { ...prev, customTabs };
+    }, false);
+  };
+
+  // Custom tab move row
+  const moveCustomTabRow = (tabId: string, rowIndex: number, direction: 'up' | 'down') => {
+    updateActivePricing(prev => {
+      const customTabs: CustomMaterialTab[] = [...(prev.customTabs || [])];
+      const targetIdx = customTabs.findIndex(ct => ct.id === tabId);
+      if (targetIdx === -1) return prev;
+      const targetTab: CustomMaterialTab = { ...customTabs[targetIdx] };
+      const updatedRows = moveRowInArray<any>(targetTab.rows, rowIndex, direction);
+      targetTab.rows = updatedRows;
+      customTabs[targetIdx] = targetTab;
+      return { ...prev, customTabs };
+    }, true);
+  };
+
+  // Add row to custom tab
+  const addSizeToCustomTab = (tabId: string) => {
+    updateActivePricing(prev => {
+      const customTabs: CustomMaterialTab[] = [...(prev.customTabs || [])];
+      const targetIdx = customTabs.findIndex(ct => ct.id === tabId);
+      if (targetIdx === -1) return prev;
+      const targetTab: CustomMaterialTab = { ...customTabs[targetIdx] };
+      const isDongKhung = targetTab.type === 'dongKhung';
+      const newRow = isDongKhung ? {
+        size: 'Mới',
+        boVien: 0,
+        k0_k3: 0,
+        k4_k6: 0,
+        k7_k9: null,
+        k10: null,
+        k11: null,
+        titan1: 0,
+        titan2: 0
+      } : {
+        stt: targetTab.rows.length + 1,
+        size: 'Mới',
+        inAnh: 0,
+        inEpLua: 0,
+        inEpMika: 0,
+        inEpPlastic: 0,
+        khungGiaCo: 0
+      };
+      targetTab.rows = [...targetTab.rows, newRow];
+      customTabs[targetIdx] = targetTab;
+      return { ...prev, customTabs };
+    }, true);
+  };
+
+  // Delete row from custom tab
+  const deleteRowFromCustomTab = (tabId: string, rowIndex: number) => {
+    updateActivePricing(prev => {
+      const customTabs: CustomMaterialTab[] = [...(prev.customTabs || [])];
+      const targetIdx = customTabs.findIndex(ct => ct.id === tabId);
+      if (targetIdx === -1) return prev;
+      const targetTab: CustomMaterialTab = { ...customTabs[targetIdx] };
+      targetTab.rows = targetTab.rows.filter((_: any, i: number) => i !== rowIndex);
+      customTabs[targetIdx] = targetTab;
+      return { ...prev, customTabs };
+    }, true);
+  };
+
+  // Helper updates for dynamic Tab Labels & Column Labels (updates BOTH datasets for 100% label sync)
+  const updateTabLabel = (key: keyof TabLabelsConfig, val: string) => {
+    const applyLabel = (prev: FullPricingState) => ({
+      ...prev,
+      tabLabels: {
+        ...(prev.tabLabels || defaultTabLabels),
+        [key]: val
+      }
+    });
+    setLocalStudioPricing(applyLabel);
+    setLocalFreelancePricing(applyLabel);
+  };
+
+  const updateColumnLabel = (key: keyof ColumnLabelsConfig, val: string) => {
+    const applyColLabel = (prev: FullPricingState) => ({
+      ...prev,
+      columnLabels: {
+        ...(prev.columnLabels || defaultColumnLabels),
+        [key]: val
+      }
+    });
+    setLocalStudioPricing(applyColLabel);
+    setLocalFreelancePricing(applyColLabel);
+  };
+
+  const moveRowInArray = <T,>(arr: T[], index: number, direction: 'up' | 'down'): T[] => {
+    if (direction === 'up' && index === 0) return arr;
+    if (direction === 'down' && index === arr.length - 1) return arr;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const copy = [...arr];
+    const [item] = copy.splice(index, 1);
+    copy.splice(targetIndex, 0, item);
+    return copy;
+  };
+
   // Save Pricing handler
   const handleSaveAllPricing = async () => {
     try {
-      await savePricing(localPricing);
-      showToast('Đã lưu toàn bộ bảng giá lên Firestore thành công!');
+      await saveAllPricing(localStudioPricing, localFreelancePricing);
+      showToast('Đã lưu toàn bộ cấu trúc & đơn giá lên Firestore thành công!');
     } catch (e) {
       showToast('Lỗi khi lưu bảng giá lên Firestore. Vui lòng thử lại!', 'error');
     }
@@ -422,7 +679,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>1. Chỉnh Sửa Bảng Giá 5 Chất Liệu</span>
+            <span>1. Chỉnh Sửa Bảng Giá & Tên Chất Liệu / Khung</span>
           </button>
 
           <button
@@ -434,7 +691,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <Ruler className="w-4 h-4" />
-            <span>2. Quản Lý Mẫu Khung & Tải Ảnh (Khung KX, HT10, K12, Bản 10cm, Titan...)</span>
+            <span>2. Quản Lý Mẫu Khung & Tải Ảnh</span>
           </button>
 
           <button
@@ -462,224 +719,735 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </button>
         </div>
 
-        {/* TAB 1: PRICING EDITOR */}
+        {/* TAB 1: PRICING EDITOR & CUSTOMIZATION */}
         {activeTab === 'pricing' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900/60 border border-neutral-800 p-4 rounded-2xl">
+
+            {/* DUAL PRICING SUBTABS NAVIGATION */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-neutral-900 border border-neutral-800 p-2.5 rounded-2xl shadow-lg">
+              <button
+                type="button"
+                onClick={() => setActivePricingSubTab('studio')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  activePricingSubTab === 'studio'
+                    ? 'bg-[#E7C184] text-[#1C1917] shadow-md scale-[1.01]'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>1. Bảng Giá Sỉ Studio (Gốc)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePricingSubTab('freelance')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  activePricingSubTab === 'freelance'
+                    ? 'bg-amber-500 text-neutral-950 shadow-md scale-[1.01]'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>2. Bảng Giá Freelance (+% Tùy Chỉnh)</span>
+              </button>
+            </div>
+
+            {/* BULK % INCREASE TOOLBAR */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-neutral-800 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h3 className="font-bold text-sm text-white font-serif-display">
+                      Công Cụ Tăng Giá Hàng Loạt Theo % ({activePricingSubTab === 'studio' ? 'Bảng Sỉ Studio Gốc' : 'Bảng Freelance'})
+                    </h3>
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-1">
+                    Tự động nhân tỷ lệ % cho toàn bộ đơn giá và làm tròn đến hàng nghìn đồng. Cấu trúc kích thước & tên cột luôn được đồng bộ 100%.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Quick % Presets */}
+                  {[5, 10, 15, 20].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setPercentInputValue(pct)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        percentInputValue === pct
+                          ? 'bg-[#E7C184] text-neutral-950 shadow-xs'
+                          : 'bg-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-700'
+                      }`}
+                    >
+                      +{pct}%
+                    </button>
+                  ))}
+
+                  {/* Percentage Custom Input */}
+                  <div className="flex items-center bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-1 text-xs text-white">
+                    <span className="text-neutral-400 mr-1 font-bold">+</span>
+                    <input
+                      type="number"
+                      value={percentInputValue}
+                      onChange={(e) => setPercentInputValue(Number(e.target.value) || 0)}
+                      className="w-12 bg-transparent text-white font-bold text-center focus:outline-none"
+                    />
+                    <span className="text-neutral-400 ml-1 font-bold">%</span>
+                  </div>
+
+                  {/* Apply % Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (percentInputValue === 0) {
+                        alert('Vui lòng nhập số % lớn hơn 0!');
+                        return;
+                      }
+                      if (activePricingSubTab === 'studio') {
+                        const boosted = applyPercentageIncrease(localStudioPricing, percentInputValue);
+                        setLocalStudioPricing(boosted);
+                        setLocalFreelancePricing(prev => syncPricingStructure(boosted, prev));
+                        showToast(`Đã tăng +${percentInputValue}% cho toàn bộ Bảng Giá Sỉ Studio Gốc!`);
+                      } else {
+                        const boosted = applyPercentageIncrease(localFreelancePricing, percentInputValue);
+                        setLocalFreelancePricing(boosted);
+                        showToast(`Đã tăng +${percentInputValue}% cho toàn bộ Bảng Giá Freelance!`);
+                      }
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-all shadow-md cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Áp Dụng Tăng +{percentInputValue}% Toàn Bảng</span>
+                  </button>
+
+                  {/* Special Copy Button for Freelance Tab */}
+                  {activePricingSubTab === 'freelance' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Bạn có chắc chắn muốn sao chép 100% đơn giá từ Bảng Sỉ Studio Gốc sang Bảng Freelance?')) {
+                          const copied = syncPricingStructure(localStudioPricing, localStudioPricing);
+                          setLocalFreelancePricing(copied);
+                          showToast('Đã sao chép 100% giá từ Bảng Sỉ Studio Gốc sang Freelance thành công!');
+                        }
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Sao Chép Giá Từ Bảng Sỉ Gốc</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ACTION & SAVE BAR */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900/80 border border-neutral-800 p-4 rounded-2xl">
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white font-serif-display">
-                  Chỉnh Sửa Đơn Giá Từng Kích Cỡ & Từng Chất Liệu
-                </h2>
-                <p className="text-xs text-neutral-400">
-                  Nhập số tiền VNĐ vào từng ô. Sau khi hoàn tất bấm nút <strong>"Lưu Thay Đổi Lên Firestore"</strong> để cập nhật ngay cho thợ xem.
+                <h3 className="text-sm sm:text-base font-bold text-white font-serif-display flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-[#E7C184]" />
+                  <span>
+                    {activePricingSubTab === 'studio' ? 'Đang Chỉnh Sửa: Bảng Giá Sỉ Studio (Gốc)' : 'Đang Chỉnh Sửa: Bảng Giá Freelance (+% Tùy Chỉnh)'}
+                  </span>
+                </h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  Anh Hùng có thể nhập sửa bất kỳ ô giá nào thủ công. Nhấn nút bên dưới để lưu tương ứng lên Firestore.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                {activePricingSubTab === 'studio' ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await saveStudioPricing(localStudioPricing);
+                      showToast('Đã lưu Bảng Giá Sỉ Studio Gốc thành công!');
+                    }}
+                    disabled={isSaving}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSaving ? 'Đang lưu...' : 'Lưu Bảng Giá Gốc'}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await saveFreelancePricing(localFreelancePricing);
+                      showToast('Đã lưu Bảng Giá Freelance thành công!');
+                    }}
+                    disabled={isSaving}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSaving ? 'Đang lưu...' : 'Lưu Bảng Giá Freelance'}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={async () => {
-                    if (window.confirm('Bạn có muốn đồng bộ lại bảng giá mới theo đúng chuẩn thực tế xưởng Hùng Decor lên Firestore?')) {
-                      const updatedPricing = {
-                        inEpMika: defaultInEpMika,
-                        goLua: defaultGoLua,
-                        mikaPhoThong: defaultMikaPhoThong,
-                        hdGuong: defaultHdGuong,
-                        anh4K: defaultAnh4K,
-                      };
-                      setLocalPricing(updatedPricing);
-                      await savePricing(updatedPricing);
-                      showToast('Đã nạp và lưu bảng giá mới của Hùng Decor lên Firestore thành công!');
-                    }
+                    await saveAllPricing(localStudioPricing, localFreelancePricing);
+                    showToast('Đã lưu đồng thời cả 2 Bảng Giá (Studio Gốc & Freelance) thành công!');
                   }}
                   disabled={isSaving}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs sm:text-sm transition-all cursor-pointer disabled:opacity-50"
-                  title="Tải bảng giá chuẩn thực tế xưởng Hùng Decor và lưu lên Firestore"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs sm:text-sm border border-neutral-700 transition-all shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Đồng Bộ Giá Gốc Hùng Decor</span>
-                </button>
-
-                <button
-                  onClick={handleSaveAllPricing}
-                  disabled={isSaving}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{isSaving ? 'Đang lưu lên Firestore...' : 'Lưu Thay Đổi Bảng Giá'}</span>
+                  <Save className="w-4 h-4 text-[#E7C184]" />
+                  <span>Lưu Tất Cả Bảng Giá</span>
                 </button>
               </div>
             </div>
 
-            {/* Material Selector Subtabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {[
-                { id: 0, title: 'In Ép Mika' },
-                { id: 1, title: 'Gỗ Lụa Đóng Khung' },
-                { id: 2, title: 'Mika Phổ Thông' },
-                { id: 3, title: 'HD Gương Siêu Bóng' },
-                { id: 4, title: 'Ảnh 4K Fomex' },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setActiveMaterialTab(m.id)}
-                  className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
-                    activeMaterialTab === m.id
-                      ? 'bg-neutral-800 border-[#E7C184] text-[#E7C184] shadow-sm'
-                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  {m.title}
-                </button>
-              ))}
+            {/* PANEL TÙY BIẾN TÊN TAB VÀ CỘT KHUNG */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                <h3 className="font-bold text-sm text-[#E7C184] font-serif-display flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-[#E7C184]" />
+                  <span>1. Tùy Biến Tên 5 Tab Chất Liệu & Tiêu Đề Cột Khung (Đồng Bộ Cả 2 Bảng)</span>
+                </h3>
+              </div>
+
+              {/* Tùy biến Tên 5 Tab */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">a. Tên 5 Tab Chất Liệu</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                  {[
+                    { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 1 (Gỗ Lụa)' },
+                    { key: 'hdGuong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.hdGuong, sub: 'Tab 2 (Mika HD 8K)' },
+                    { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 3 (Mika Phổ Thông)' },
+                    { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.inEpMika, sub: 'Tab 4 (In Ép & Khung)' },
+                    { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 5 (Cao Cấp 4K)' },
+                  ].map((item) => (
+                    <div key={item.key}>
+                      <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.sub}</label>
+                      <input
+                        type="text"
+                        value={activePricing.tabLabels?.[item.key] ?? item.defaultVal}
+                        onChange={(e) => updateTabLabel(item.key, e.target.value)}
+                        className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#E7C184] font-semibold"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tùy biến Tên Cột Khung */}
+              <div className="pt-3 border-t border-neutral-800/80 space-y-2">
+                <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">b. Tên Cột Hệ Khung & In Ép</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                  {[
+                    { key: 'boVien' as keyof ColumnLabelsConfig, label: 'Cột Bo Viền', defaultVal: defaultColumnLabels.boVien },
+                    { key: 'k0_k3' as keyof ColumnLabelsConfig, label: 'Cột Khung KX', defaultVal: defaultColumnLabels.k0_k3 },
+                    { key: 'k4_k6' as keyof ColumnLabelsConfig, label: 'Cột Khung HT10', defaultVal: defaultColumnLabels.k4_k6 },
+                    { key: 'k10' as keyof ColumnLabelsConfig, label: 'Cột Khung K12', defaultVal: defaultColumnLabels.k10 },
+                    { key: 'k11' as keyof ColumnLabelsConfig, label: 'Cột Bản 10cm', defaultVal: defaultColumnLabels.k11 },
+                    { key: 'titan1' as keyof ColumnLabelsConfig, label: 'Cột Titan M', defaultVal: defaultColumnLabels.titan1 },
+                    { key: 'titan2' as keyof ColumnLabelsConfig, label: 'Cột Titan C', defaultVal: defaultColumnLabels.titan2 },
+                    { key: 'inAnh' as keyof ColumnLabelsConfig, label: 'Cột In Ảnh', defaultVal: defaultColumnLabels.inAnh },
+                    { key: 'inEpLua' as keyof ColumnLabelsConfig, label: 'Cột In Ép Lụa', defaultVal: defaultColumnLabels.inEpLua },
+                    { key: 'inEpMikaCol' as keyof ColumnLabelsConfig, label: 'Cột In Ép Mika', defaultVal: defaultColumnLabels.inEpMikaCol },
+                    { key: 'inEpPlastic' as keyof ColumnLabelsConfig, label: 'Cột In Plastic', defaultVal: defaultColumnLabels.inEpPlastic },
+                    { key: 'khungGiaCo' as keyof ColumnLabelsConfig, label: 'Cột Khung Gia Cố', defaultVal: defaultColumnLabels.khungGiaCo },
+                  ].map((item) => (
+                    <div key={item.key}>
+                      <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.label}</label>
+                      <input
+                        type="text"
+                        value={activePricing.columnLabels?.[item.key] ?? item.defaultVal}
+                        onChange={(e) => updateColumnLabel(item.key, e.target.value)}
+                        className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Subtab 0: In Ép Mika Table */}
-            {activeMaterialTab === 0 && (
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
-                <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-sm text-[#E7C184]">Bảng Giá In Ép Mika & Khung Xương Gia Cố</h3>
-                    <p className="text-xs text-neutral-400">Đơn vị tính: VNĐ</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newRow: InEpMikaPriceRow = {
-                        stt: localPricing.inEpMika.length + 1,
-                        size: 'Mới',
-                        inEpMika: 0,
-                        khungXuongGiaCo: null
-                      };
-                      setLocalPricing({
-                        ...localPricing,
-                        inEpMika: [...localPricing.inEpMika, newRow]
-                      });
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
+            {/* Material Selector Subtabs in Admin with ADD and DELETE features */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-neutral-900 border border-neutral-800 p-3 rounded-2xl">
+                <div className="text-xs text-neutral-300 font-semibold flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-[#E7C184]" />
+                  <span>Danh Sách Chất Liệu Hiện Có ({adminMaterialTabs.length}):</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingMaterialModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Thêm Chất Liệu Mới</span>
+                </button>
+              </div>
+
+              {/* Subtabs Bar */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {adminMaterialTabs.map((m: any) => (
+                  <div
+                    key={m.id}
+                    className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold border transition-all shrink-0 cursor-pointer ${
+                      activeMaterialTabId === m.id
+                        ? 'bg-neutral-800 border-[#E7C184] text-[#E7C184] shadow-sm'
+                        : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
+                    }`}
+                    onClick={() => setActiveMaterialTabId(m.id)}
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Thêm Kích Thước</span>
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
-                        <th className="p-3 w-12 text-center">STT</th>
-                        <th className="p-3 w-28">Kích Thước</th>
-                        <th className="p-3">Đơn Giá In Ép Mika (đ)</th>
-                        <th className="p-3">Khung Xương Gia Cố Sau (đ)</th>
-                        <th className="p-3 w-14 text-center">Xóa</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-800 font-mono">
-                      {localPricing.inEpMika.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-neutral-800/40">
-                          <td className="p-3 text-center text-neutral-400">{row.stt}</td>
-                          <td className="p-3 font-bold text-white">
-                            <input
-                              type="text"
-                              value={row.size}
-                              onChange={(e) => {
-                                const copy = [...localPricing.inEpMika];
-                                copy[idx].size = e.target.value;
-                                setLocalPricing({ ...localPricing, inEpMika: copy });
-                              }}
-                              className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="number"
-                              value={row.inEpMika ?? ''}
-                              onChange={(e) => {
-                                const copy = [...localPricing.inEpMika];
-                                copy[idx].inEpMika = e.target.value === '' ? null : Number(e.target.value);
-                                setLocalPricing({ ...localPricing, inEpMika: copy });
-                              }}
-                              className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400"
-                            />
-                            <span className="text-[10px] text-neutral-500 ml-2 font-sans">
-                              {row.inEpMika ? `${row.inEpMika.toLocaleString('vi-VN')} đ` : '-'}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="number"
-                              value={row.khungXuongGiaCo ?? ''}
-                              placeholder="Không có"
-                              onChange={(e) => {
-                                const copy = [...localPricing.inEpMika];
-                                copy[idx].khungXuongGiaCo = e.target.value === '' ? null : Number(e.target.value);
-                                setLocalPricing({ ...localPricing, inEpMika: copy });
-                              }}
-                              className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-amber-300 w-36 font-mono text-xs focus:outline-none focus:border-amber-400"
-                            />
-                            <span className="text-[10px] text-neutral-500 ml-2 font-sans">
-                              {row.khungXuongGiaCo ? `${row.khungXuongGiaCo.toLocaleString('vi-VN')} đ` : '-'}
-                            </span>
-                          </td>
-                          <td className="p-3 text-center">
-                            <button
-                              onClick={() => {
-                                const copy = localPricing.inEpMika.filter((_, i) => i !== idx);
-                                setLocalPricing({ ...localPricing, inEpMika: copy });
-                              }}
-                              className="text-neutral-500 hover:text-red-400 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    <span>{m.title}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteMaterialTab(m.id, m.title);
+                      }}
+                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-950/60 transition-colors ml-1"
+                      title={`Xóa chất liệu "${m.title}"`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* Subtab 1, 2, 3: Dong Khung Tables (Gỗ lụa, Mika phổ thông, HD gương) */}
-            {(activeMaterialTab === 1 || activeMaterialTab === 2 || activeMaterialTab === 3) && (() => {
-              const currentKey = activeMaterialTab === 1 ? 'goLua' : activeMaterialTab === 2 ? 'mikaPhoThong' : 'hdGuong';
-              const rows = localPricing[currentKey];
-              const title = activeMaterialTab === 1 
-                ? 'Bảng Giá Gỗ Lụa Đóng Khung' 
-                : activeMaterialTab === 2 
-                ? 'Bảng Giá Mika Phổ Thông Đóng Khung' 
-                : 'Bảng Giá HD Gương Siêu Bóng Khung';
+            {/* Render Active Material Table */}
+            {(() => {
+              const activeItem = adminMaterialTabs.find((t: any) => t.id === activeMaterialTabId) || adminMaterialTabs[0];
+              if (!activeItem) {
+                return (
+                  <div className="p-8 text-center text-neutral-400 bg-neutral-900 rounded-2xl border border-neutral-800">
+                    Chưa có chất liệu nào. Hãy nhấn <strong>"+ Thêm Chất Liệu Mới"</strong> để tạo dòng sản phẩm mới.
+                  </div>
+                );
+              }
 
-              const updateCell = (rowIndex: number, field: keyof DongKhungPriceRow, val: any) => {
-                const copy = [...rows];
-                copy[rowIndex] = { ...copy[rowIndex], [field]: val };
-                setLocalPricing({ ...localPricing, [currentKey]: copy });
-              };
+              // Built-in Tab: In Ép (in-ep-mika)
+              if (activeItem.id === 'in-ep-mika') {
+                return (
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
+                        <p className="text-xs text-neutral-400">Chỉnh sửa đơn giá VNĐ, tùy biến size & sắp xếp vị trí dòng</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newRow: InEpMikaPriceRow = {
+                            stt: activePricing.inEpMika.length + 1,
+                            size: 'Mới',
+                            inAnh: null,
+                            inEpLua: null,
+                            inEpMika: null,
+                            inEpPlastic: null,
+                            khungGiaCo: null
+                          };
+                          updateActivePricing(prev => ({
+                            ...prev,
+                            inEpMika: [...prev.inEpMika, newRow]
+                          }), true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm Kích Thước</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
+                            <th className="p-3 w-16 text-center">Xếp</th>
+                            <th className="p-3 w-24">Kích Thước</th>
+                            <th className="p-3">{activePricing.columnLabels?.inAnh || defaultColumnLabels.inAnh}</th>
+                            <th className="p-3">{activePricing.columnLabels?.inEpLua || defaultColumnLabels.inEpLua}</th>
+                            <th className="p-3">{activePricing.columnLabels?.inEpMikaCol || defaultColumnLabels.inEpMikaCol}</th>
+                            <th className="p-3">{activePricing.columnLabels?.inEpPlastic || defaultColumnLabels.inEpPlastic}</th>
+                            <th className="p-3">{activePricing.columnLabels?.khungGiaCo || defaultColumnLabels.khungGiaCo}</th>
+                            <th className="p-3 w-12 text-center">Xóa</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-800 font-mono">
+                          {activePricing.inEpMika.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-neutral-800/40">
+                              <td className="p-2 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    disabled={idx === 0}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        inEpMika: moveRowInArray(prev.inEpMika, idx, 'up')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Lên trên"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    disabled={idx === activePricing.inEpMika.length - 1}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        inEpMika: moveRowInArray(prev.inEpMika, idx, 'down')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Xuống dưới"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="p-3 font-bold text-white">
+                                <input
+                                  type="text"
+                                  value={row.size}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    updateActivePricing(prev => {
+                                      const copy = [...prev.inEpMika];
+                                      copy[idx].size = val;
+                                      return { ...prev, inEpMika: copy };
+                                    }, true);
+                                  }}
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                />
+                              </td>
+                              {(['inAnh', 'inEpLua', 'inEpMika', 'inEpPlastic', 'khungGiaCo'] as (keyof InEpMikaPriceRow)[]).map((colKey) => (
+                                <td key={colKey} className="p-2.5">
+                                  <input
+                                    type="number"
+                                    value={row[colKey] ?? ''}
+                                    placeholder="-"
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateActivePricing(prev => {
+                                        const copy = [...prev.inEpMika];
+                                        (copy[idx] as any)[colKey] = val;
+                                        return { ...prev, inEpMika: copy };
+                                      }, false);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-emerald-400 w-24 font-mono text-xs focus:outline-none focus:border-emerald-400"
+                                  />
+                                </td>
+                              ))}
+                              <td className="p-3 text-center">
+                                <button
+                                  onClick={() => {
+                                    updateActivePricing(prev => ({
+                                      ...prev,
+                                      inEpMika: prev.inEpMika.filter((_, i) => i !== idx)
+                                    }), true);
+                                  }}
+                                  className="text-neutral-500 hover:text-red-400 p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Built-in Tab: Dong Khung (go-lua, hd-guong-sieu-bong, mika-pho-thong)
+              if (['go-lua', 'hd-guong-sieu-bong', 'mika-pho-thong'].includes(activeItem.id)) {
+                const currentKey = activeItem.id === 'go-lua' ? 'goLua' : activeItem.id === 'mika-pho-thong' ? 'mikaPhoThong' : 'hdGuong';
+                const rows = activePricing[currentKey];
+                const updateCell = (rowIndex: number, field: keyof DongKhungPriceRow, val: any) => {
+                  updateActivePricing(prev => {
+                    const copy = [...prev[currentKey]];
+                    copy[rowIndex] = { ...copy[rowIndex], [field]: val };
+                    return { ...prev, [currentKey]: copy };
+                  }, field === 'size');
+                };
+                const colConfig = activePricing.columnLabels || defaultColumnLabels;
+
+                return (
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
+                        <p className="text-xs text-neutral-400">Chỉnh sửa giá trực tiếp cho từng hệ khung, tùy biến cỡ ảnh & thứ tự dòng</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newRow: DongKhungPriceRow = {
+                            size: 'Mới',
+                            boVien: 0,
+                            k0_k3: 0,
+                            k4_k6: 0,
+                            k7_k9: null,
+                            k10: null,
+                            k11: null,
+                            titan1: 0,
+                            titan2: 0
+                          };
+                          updateActivePricing(prev => ({
+                            ...prev,
+                            [currentKey]: [...prev[currentKey], newRow]
+                          }), true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm Kích Thước</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto max-h-[600px]">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="sticky top-0 bg-neutral-950 text-neutral-400 border-b border-neutral-800 z-10 shadow-sm">
+                          <tr>
+                            <th className="p-2.5 w-16 text-center">Xếp</th>
+                            <th className="p-2.5 w-24">Cỡ Ảnh</th>
+                            <th className="p-2.5">{colConfig.boVien}</th>
+                            <th className="p-2.5">{colConfig.k0_k3}</th>
+                            <th className="p-2.5">{colConfig.k4_k6}</th>
+                            <th className="p-2.5">{colConfig.k10}</th>
+                            <th className="p-2.5">{colConfig.k11}</th>
+                            <th className="p-2.5">{colConfig.titan1}</th>
+                            <th className="p-2.5">{colConfig.titan2}</th>
+                            <th className="p-2.5 w-12 text-center">Xóa</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-800 font-mono">
+                          {rows.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-neutral-800/40">
+                              <td className="p-2 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    disabled={idx === 0}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        [currentKey]: moveRowInArray(prev[currentKey], idx, 'up')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Lên trên"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    disabled={idx === rows.length - 1}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        [currentKey]: moveRowInArray(prev[currentKey], idx, 'down')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Xuống dưới"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="p-2 font-bold text-white">
+                                <input
+                                  type="text"
+                                  value={row.size}
+                                  onChange={(e) => updateCell(idx, 'size', e.target.value)}
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                />
+                              </td>
+                              {(['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
+                                <td key={field} className="p-2">
+                                  <input
+                                    type="number"
+                                    value={row[field] ?? ''}
+                                    placeholder="-"
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateCell(idx, field, val);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-200 w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                  />
+                                </td>
+                              ))}
+                              <td className="p-2 text-center">
+                                <button
+                                  onClick={() => {
+                                    updateActivePricing(prev => ({
+                                      ...prev,
+                                      [currentKey]: prev[currentKey].filter((_, i) => i !== idx)
+                                    }), true);
+                                  }}
+                                  className="text-neutral-500 hover:text-red-400 p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Built-in Tab: anh-4k
+              if (activeItem.id === 'anh-4k') {
+                return (
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
+                        <p className="text-xs text-neutral-400">Áp dụng {activePricing.columnLabels?.k4_k6 || defaultColumnLabels.k4_k6} và {activePricing.columnLabels?.titan2 || defaultColumnLabels.titan2}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newRow: Anh4KPriceRow = {
+                            size: 'Mới',
+                            k4_k6: 0,
+                            titan2: 0
+                          };
+                          updateActivePricing(prev => ({
+                            ...prev,
+                            anh4K: [...prev.anh4K, newRow]
+                          }), true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm Kích Thước</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
+                            <th className="p-3 w-16 text-center">Xếp</th>
+                            <th className="p-3 w-32">Kích Thước</th>
+                            <th className="p-3">{activePricing.columnLabels?.k4_k6 || defaultColumnLabels.k4_k6} (đ)</th>
+                            <th className="p-3">{activePricing.columnLabels?.titan2 || defaultColumnLabels.titan2} (đ)</th>
+                            <th className="p-3 w-14 text-center">Xóa</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-800 font-mono">
+                          {activePricing.anh4K.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-neutral-800/40">
+                              <td className="p-2 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    disabled={idx === 0}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        anh4K: moveRowInArray(prev.anh4K, idx, 'up')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Lên trên"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    disabled={idx === activePricing.anh4K.length - 1}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        anh4K: moveRowInArray(prev.anh4K, idx, 'down')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Xuống dưới"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="p-3 font-bold text-white">
+                                <input
+                                  type="text"
+                                  value={row.size}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    updateActivePricing(prev => {
+                                      const copy = [...prev.anh4K];
+                                      copy[idx].size = val;
+                                      return { ...prev, anh4K: copy };
+                                    }, true);
+                                  }}
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-28 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="number"
+                                  value={row.k4_k6 ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? null : Number(e.target.value);
+                                    updateActivePricing(prev => {
+                                      const copy = [...prev.anh4K];
+                                      copy[idx].k4_k6 = val;
+                                      return { ...prev, anh4K: copy };
+                                    }, false);
+                                  }}
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="number"
+                                  value={row.titan2 ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? null : Number(e.target.value);
+                                    updateActivePricing(prev => {
+                                      const copy = [...prev.anh4K];
+                                      copy[idx].titan2 = val;
+                                      return { ...prev, anh4K: copy };
+                                    }, false);
+                                  }}
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-amber-300 w-36 font-mono text-xs focus:outline-none focus:border-amber-400"
+                                />
+                              </td>
+                              <td className="p-3 text-center">
+                                <button
+                                  onClick={() => {
+                                    updateActivePricing(prev => ({
+                                      ...prev,
+                                      anh4K: prev.anh4K.filter((_, i) => i !== idx)
+                                    }), true);
+                                  }}
+                                  className="text-neutral-500 hover:text-red-400 p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Custom Material Tab Render
+              const isDongKhungCustom = activeItem.type === 'dongKhung';
+              const colConfig = activePricing.columnLabels || defaultColumnLabels;
 
               return (
                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
                   <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-sm text-[#E7C184]">{title}</h3>
-                      <p className="text-xs text-neutral-400">Chỉnh sửa giá trực tiếp cho từng hệ khung: Bo viền, Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M, Khung nhôm Titan C</p>
+                      <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
+                      <p className="text-xs text-neutral-400">
+                        Chất liệu tùy chỉnh ({isDongKhungCustom ? 'Hệ Đóng Khung' : 'Hệ In Ép'}). Chỉnh sửa giá VNĐ, tùy biến size & thứ tự dòng.
+                      </p>
                     </div>
                     <button
-                      onClick={() => {
-                        const newRow: DongKhungPriceRow = {
-                          size: 'Mới',
-                          boVien: 0,
-                          k0_k3: 0,
-                          k4_k6: 0,
-                          k7_k9: null,
-                          k10: null,
-                          k11: null,
-                          titan1: 0,
-                          titan2: 0
-                        };
-                        setLocalPricing({
-                          ...localPricing,
-                          [currentKey]: [...rows, newRow]
-                        });
-                      }}
+                      onClick={() => addSizeToCustomTab(activeItem.id)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -691,48 +1459,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="sticky top-0 bg-neutral-950 text-neutral-400 border-b border-neutral-800 z-10 shadow-sm">
                         <tr>
+                          <th className="p-2.5 w-16 text-center">Xếp</th>
                           <th className="p-2.5 w-24">Cỡ Ảnh</th>
-                          <th className="p-2.5">Bo Viền</th>
-                          <th className="p-2.5">Khung KX</th>
-                          <th className="p-2.5">Khung HT10</th>
-                          <th className="p-2.5">Khung K12</th>
-                          <th className="p-2.5">Khung bản 10cm</th>
-                          <th className="p-2.5">Khung nhôm Titan M</th>
-                          <th className="p-2.5">Khung nhôm Titan C</th>
+                          {isDongKhungCustom ? (
+                            <>
+                              <th className="p-2.5">{colConfig.boVien}</th>
+                              <th className="p-2.5">{colConfig.k0_k3}</th>
+                              <th className="p-2.5">{colConfig.k4_k6}</th>
+                              <th className="p-2.5">{colConfig.k10}</th>
+                              <th className="p-2.5">{colConfig.k11}</th>
+                              <th className="p-2.5">{colConfig.titan1}</th>
+                              <th className="p-2.5">{colConfig.titan2}</th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="p-2.5">{colConfig.inAnh}</th>
+                              <th className="p-2.5">{colConfig.inEpLua}</th>
+                              <th className="p-2.5">{colConfig.inEpMikaCol}</th>
+                              <th className="p-2.5">{colConfig.inEpPlastic}</th>
+                              <th className="p-2.5">{colConfig.khungGiaCo}</th>
+                            </>
+                          )}
                           <th className="p-2.5 w-12 text-center">Xóa</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-800 font-mono">
-                        {rows.map((row, idx) => (
+                        {activeItem.rows.map((row: any, idx: number) => (
                           <tr key={idx} className="hover:bg-neutral-800/40">
+                            <td className="p-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  disabled={idx === 0}
+                                  onClick={() => moveCustomTabRow(activeItem.id, idx, 'up')}
+                                  className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                  title="Lên trên"
+                                >
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  disabled={idx === activeItem.rows.length - 1}
+                                  onClick={() => moveCustomTabRow(activeItem.id, idx, 'down')}
+                                  className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                  title="Xuống dưới"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
                             <td className="p-2 font-bold text-white">
                               <input
                                 type="text"
                                 value={row.size}
-                                onChange={(e) => updateCell(idx, 'size', e.target.value)}
+                                onChange={(e) => updateCustomTabRowCell(activeItem.id, idx, 'size', e.target.value)}
                                 className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                               />
                             </td>
-                            {(['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
-                              <td key={field} className="p-2">
-                                <input
-                                  type="number"
-                                  value={row[field] ?? ''}
-                                  placeholder="-"
-                                  onChange={(e) => {
-                                    const val = e.target.value === '' ? null : Number(e.target.value);
-                                    updateCell(idx, field, val);
-                                  }}
-                                  className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-200 w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
-                                />
-                              </td>
-                            ))}
+                            {isDongKhungCustom ? (
+                              (['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'] as (keyof DongKhungPriceRow)[]).map((field) => (
+                                <td key={field} className="p-2">
+                                  <input
+                                    type="number"
+                                    value={row[field] ?? ''}
+                                    placeholder="-"
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateCustomTabRowCell(activeItem.id, idx, field, val);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-200 w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                  />
+                                </td>
+                              ))
+                            ) : (
+                              (['inAnh', 'inEpLua', 'inEpMika', 'inEpPlastic', 'khungGiaCo'] as (keyof InEpMikaPriceRow)[]).map((field) => (
+                                <td key={field} className="p-2">
+                                  <input
+                                    type="number"
+                                    value={row[field] ?? ''}
+                                    placeholder="-"
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateCustomTabRowCell(activeItem.id, idx, field, val);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-emerald-400 w-24 font-mono text-xs focus:outline-none focus:border-emerald-400"
+                                  />
+                                </td>
+                              ))
+                            )}
                             <td className="p-2 text-center">
                               <button
-                                onClick={() => {
-                                  const copy = rows.filter((_, i) => i !== idx);
-                                  setLocalPricing({ ...localPricing, [currentKey]: copy });
-                                }}
+                                onClick={() => deleteRowFromCustomTab(activeItem.id, idx)}
                                 className="text-neutral-500 hover:text-red-400 p-1"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -746,107 +1561,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </div>
               );
             })()}
-
-            {/* Subtab 4: Ảnh 4K Table */}
-            {activeMaterialTab === 4 && (
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
-                <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-sm text-[#E7C184]">Bảng Giá Ảnh 4K Fomex Cao Cấp</h3>
-                    <p className="text-xs text-neutral-400">Áp dụng Khung HT10 và Khung nhôm Titan C</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newRow: Anh4KPriceRow = {
-                        size: 'Mới',
-                        k4_k6: 0,
-                        titan2: 0
-                      };
-                      setLocalPricing({
-                        ...localPricing,
-                        anh4K: [...localPricing.anh4K, newRow]
-                      });
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Thêm Kích Thước</span>
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
-                        <th className="p-3 w-32">Kích Thước</th>
-                        <th className="p-3">Khung HT10 (đ)</th>
-                        <th className="p-3">Khung nhôm Titan C (đ)</th>
-                        <th className="p-3 w-14 text-center">Xóa</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-800 font-mono">
-                      {localPricing.anh4K.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-neutral-800/40">
-                          <td className="p-3 font-bold text-white">
-                            <input
-                              type="text"
-                              value={row.size}
-                              onChange={(e) => {
-                                const copy = [...localPricing.anh4K];
-                                copy[idx].size = e.target.value;
-                                setLocalPricing({ ...localPricing, anh4K: copy });
-                              }}
-                              className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-28 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="number"
-                              value={row.k4_k6 ?? ''}
-                              onChange={(e) => {
-                                const copy = [...localPricing.anh4K];
-                                copy[idx].k4_k6 = e.target.value === '' ? null : Number(e.target.value);
-                                setLocalPricing({ ...localPricing, anh4K: copy });
-                              }}
-                              className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400"
-                            />
-                            <span className="text-[10px] text-neutral-500 ml-2 font-sans">
-                              {row.k4_k6 ? `${row.k4_k6.toLocaleString('vi-VN')} đ` : '-'}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="number"
-                              value={row.titan2 ?? ''}
-                              onChange={(e) => {
-                                const copy = [...localPricing.anh4K];
-                                copy[idx].titan2 = e.target.value === '' ? null : Number(e.target.value);
-                                setLocalPricing({ ...localPricing, anh4K: copy });
-                              }}
-                              className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-amber-300 w-36 font-mono text-xs focus:outline-none focus:border-amber-400"
-                            />
-                            <span className="text-[10px] text-neutral-500 ml-2 font-sans">
-                              {row.titan2 ? `${row.titan2.toLocaleString('vi-VN')} đ` : '-'}
-                            </span>
-                          </td>
-                          <td className="p-3 text-center">
-                            <button
-                              onClick={() => {
-                                const copy = localPricing.anh4K.filter((_, i) => i !== idx);
-                                setLocalPricing({ ...localPricing, anh4K: copy });
-                              }}
-                              className="text-neutral-500 hover:text-red-400 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -1397,6 +2111,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         )}
 
       </main>
+
+      {/* MODAL: THÊM CHẤT LIỆU MỚI */}
+      {isAddingMaterialModalOpen && (
+        <div className="fixed inset-0 z-50 bg-[#121110]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#1C1917] border border-neutral-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <h3 className="font-serif-display font-bold text-base text-white">Thêm Chất Liệu Mới</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddingMaterialModalOpen(false)}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  Tên dòng sản phẩm / Chất liệu mới
+                </label>
+                <input
+                  type="text"
+                  value={newMaterialTitle}
+                  onChange={(e) => setNewMaterialTitle(e.target.value)}
+                  placeholder="Ví dụ: 6. Tráng Gương Pha Lê Premium"
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  Kiểu cấu trúc bảng giá
+                </label>
+                <div className="space-y-2">
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    newMaterialType === 'dongKhung'
+                      ? 'bg-neutral-800 border-[#E7C184] text-white'
+                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="materialType"
+                      checked={newMaterialType === 'dongKhung'}
+                      onChange={() => setNewMaterialType('dongKhung')}
+                      className="mt-0.5 accent-[#E7C184]"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white">Cấu trúc Bảng Khung</div>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">Có đơn giá Bo viền & các loại hệ khung (KX, HT10, K12, Titan M, Titan C...)</p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    newMaterialType === 'inEpMika'
+                      ? 'bg-neutral-800 border-[#E7C184] text-white'
+                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="materialType"
+                      checked={newMaterialType === 'inEpMika'}
+                      onChange={() => setNewMaterialType('inEpMika')}
+                      className="mt-0.5 accent-[#E7C184]"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white">Cấu trúc Bảng In Ép</div>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">Có các cột In ảnh, In ép lụa, In ép Mika, In Plastic, Khung gia cố</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsAddingMaterialModalOpen(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold text-neutral-300 bg-white/10 hover:bg-white/15 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateMaterialTab}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-md flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Xác nhận tạo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

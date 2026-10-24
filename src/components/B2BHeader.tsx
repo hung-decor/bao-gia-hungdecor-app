@@ -39,7 +39,7 @@ export const B2BHeader: React.FC<B2BHeaderProps> = ({ onOpenAdmin }) => {
             </a>
             <a href="#tra-cuu-khung" className="hover:text-white transition-colors flex items-center gap-1.5">
               <Ruler className="w-3.5 h-3.5 text-[#E7C184]" />
-              <span>Tra Cứu Khung K0-K11</span>
+              <span>Tra Cứu Khung Mẫu</span>
             </a>
             <a href="#quy-chuan" className="hover:text-white transition-colors">
               Quy Chuẩn Gửi File

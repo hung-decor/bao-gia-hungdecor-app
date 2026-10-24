@@ -2,84 +2,92 @@ import React, { useState, useMemo } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { usePriceMultiplier, applyMultiplier } from '../hooks/usePriceMultiplier';
 import { Calculator, Copy, Check, MessageCircle, ChevronDown, Camera } from 'lucide-react';
+import { getAllMaterialTabs } from '../firebase/dataService';
 
 interface MobileQuickQuoterProps {
   zaloTho: string;
 }
 
-// All standard sizes sorted from smallest to largest, without trailing annotations
-const allAvailableSizes = [
-  { size: '13x18', label: '13x18' },
-  { size: '15x21', label: '15x21' },
-  { size: '20x30', label: '20x30' },
-  { size: '25x38', label: '25x38' },
-  { size: '30x45', label: '30x45' },
-  { size: '35x50', label: '35x50' },
-  { size: '40x60', label: '40x60' },
-  { size: '50x75', label: '50x75' },
-  { size: '60x90', label: '60x90' },
-  { size: '60x120', label: '60x120' },
-  { size: '70x110', label: '70x110' },
-  { size: '80x120', label: '80x120' },
-  { size: '90x130', label: '90x130' },
-  { size: '90x140', label: '90x140' },
-  { size: '100x150', label: '100x150' },
-  { size: '100x180', label: '100x180' },
-  { size: '110x180', label: '110x180' }
-];
-
-const materialOptions = [
-  { id: 'go-lua', name: 'Gỗ Lụa Đóng Khung' },
-  { id: 'hd-guong-sieu-bong', name: 'HD Gương Siêu Bóng', badge: 'Khuyên Dùng' },
-  { id: 'mika-pho-thong', name: 'Mika Phổ Thông' },
-  { id: 'in-ep-mika', name: 'In ép Mika & Khung xương Gia Cố' },
-  { id: 'anh-4k', name: 'Ảnh 4K Fomex' }
-];
-
 export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho }) => {
   const { pricing } = useAppData();
+  const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing), [pricing]);
+
+  // All standard sizes sorted and derived dynamically from active pricing datasets
+  const allAvailableSizes = useMemo(() => {
+    const sizeSet = new Set<string>();
+    allMaterialTabs.forEach((t: any) => {
+      t.rows.forEach((r: any) => r.size && sizeSet.add(r.size));
+    });
+
+    if (sizeSet.size === 0) {
+      return [{ size: '60x90', label: '60x90' }];
+    }
+    return Array.from(sizeSet).map(s => ({ size: s, label: s }));
+  }, [allMaterialTabs]);
+
+  // Material options derived dynamically from active material tabs
+  const materialOptions = useMemo(() => {
+    return allMaterialTabs.map((t: any) => ({
+      id: t.id,
+      name: t.title,
+      badge: t.id === 'hd-guong-sieu-bong' ? 'Khuyên Dùng' : undefined
+    }));
+  }, [allMaterialTabs]);
 
   // Step 1: Kích thước - Mặc định 60x90
   const [selectedSize, setSelectedSize] = useState<string>('60x90');
 
-  // Step 2: Chất liệu - Mặc định HD gương siêu bóng
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('hd-guong-sieu-bong');
+  // Step 2: Chất liệu - Mặc định HD gương siêu bóng hoặc tab đầu tiên
+  const [selectedMaterial, setSelectedMaterial] = useState<string>(() => allMaterialTabs[0]?.id || 'hd-guong-sieu-bong');
+
+  // Keep selectedMaterial valid
+  React.useEffect(() => {
+    if (allMaterialTabs.length > 0 && !allMaterialTabs.some((m: any) => m.id === selectedMaterial)) {
+      setSelectedMaterial(allMaterialTabs[0].id);
+    }
+  }, [allMaterialTabs, selectedMaterial]);
 
   // Step 3: Loại khung - Mặc định Chỉ bo viền (Không Khung)
   const [selectedFrame, setSelectedFrame] = useState<string>('boVien');
 
-  // Option for In Ép Mika large sizes: Khung xương gia cố phía sau
-  const [hasKhungXuongGiaCo, setHasKhungXuongGiaCo] = useState<boolean>(false);
-
   // Copy status
   const [copiedCustomer, setCopiedCustomer] = useState<boolean>(false);
 
-  // Available frame options based on selected material
+  const selectedTabItem = useMemo(() => {
+    return allMaterialTabs.find((t: any) => t.id === selectedMaterial) || allMaterialTabs[0];
+  }, [allMaterialTabs, selectedMaterial]);
+
+  // Available frame / finishing options based on selected material & dynamic column labels
   const frameOptions = useMemo(() => {
-    if (selectedMaterial === 'in-ep-mika') {
+    const col = pricing.columnLabels;
+    if (selectedTabItem?.type === 'inEpMika') {
       return [
-        { id: 'inEpMika', label: 'In Ép Mika' }
+        { id: 'inAnh', label: col?.inAnh || 'In Ảnh' },
+        { id: 'inEpLua', label: col?.inEpLua || 'In Ép Lụa' },
+        { id: 'inEpMika', label: col?.inEpMikaCol || 'In Ép Mika' },
+        { id: 'inEpPlastic', label: col?.inEpPlastic || 'In Ép Plastic' },
+        { id: 'khungGiaCo', label: col?.khungGiaCo || 'Giá Khung Gia Cố' }
       ];
     }
 
-    if (selectedMaterial === 'anh-4k') {
+    if (selectedTabItem?.type === 'anh4K') {
       return [
-        { id: 'k4_k6', label: 'Khung HT10' },
-        { id: 'titan2', label: 'Khung nhôm Titan C' }
+        { id: 'k4_k6', label: col?.k4_k6 || 'Khung HT10' },
+        { id: 'titan2', label: col?.titan2 || 'Khung nhôm Titan C' }
       ];
     }
 
-    // Default for Gỗ Lụa, Mika Phổ Thông, HD Gương Siêu Bóng (Chỉ Bo Viền đặt lên đầu làm mặc định)
+    const boVienTitle = col?.boVien ? `Chỉ ${col.boVien} (Không Khung)` : 'Chỉ Bo Viền (Không Khung)';
     return [
-      { id: 'boVien', label: 'Chỉ Bo Viền (Không Khung)' },
-      { id: 'k0_k3', label: 'Khung KX' },
-      { id: 'k4_k6', label: 'Khung HT10' },
-      { id: 'k10', label: 'Khung K12' },
-      { id: 'k11', label: 'Khung bản 10cm' },
-      { id: 'titan1', label: 'Khung nhôm Titan M' },
-      { id: 'titan2', label: 'Khung nhôm Titan C' }
+      { id: 'boVien', label: boVienTitle },
+      { id: 'k0_k3', label: col?.k0_k3 || 'Khung KX' },
+      { id: 'k4_k6', label: col?.k4_k6 || 'Khung HT10' },
+      { id: 'k10', label: col?.k10 || 'Khung K12' },
+      { id: 'k11', label: col?.k11 || 'Khung bản 10cm' },
+      { id: 'titan1', label: col?.titan1 || 'Khung nhôm Titan M' },
+      { id: 'titan2', label: col?.titan2 || 'Khung nhôm Titan C' }
     ];
-  }, [selectedMaterial]);
+  }, [selectedTabItem, pricing.columnLabels]);
 
   // Adjust selected frame if not valid for selected material
   React.useEffect(() => {
@@ -91,87 +99,36 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
 
   const multiplier = usePriceMultiplier();
 
-  // Current In Ép Mika row if applicable
-  const currentInEpMikaRow = useMemo(() => {
-    if (selectedMaterial !== 'in-ep-mika') return null;
-    return pricing.inEpMika.find(r => r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
-  }, [selectedMaterial, selectedSize, pricing.inEpMika]);
-
-  const currentReinforcedFrameCostFormatted = useMemo(() => {
-    if (!currentInEpMikaRow?.khungXuongGiaCo) return null;
-    return applyMultiplier(currentInEpMikaRow.khungXuongGiaCo, multiplier);
-  }, [currentInEpMikaRow, multiplier]);
-
   // Calculate Base Price
   const rawBasePrice = useMemo<number | null>(() => {
-    if (selectedMaterial === 'in-ep-mika') {
-      return currentInEpMikaRow?.inEpMika ?? null;
-    }
+    if (!selectedTabItem || !selectedTabItem.rows) return null;
+    const row = selectedTabItem.rows.find((r: any) => r.size && r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
+    if (!row) return null;
+    return (row as any)[selectedFrame] ?? null;
+  }, [selectedTabItem, selectedSize, selectedFrame]);
 
-    if (selectedMaterial === 'go-lua') {
-      const row = pricing.goLua.find(r => r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
-      if (!row) return null;
-      return (row as any)[selectedFrame] ?? null;
-    }
-
-    if (selectedMaterial === 'mika-pho-thong') {
-      const row = pricing.mikaPhoThong.find(r => r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
-      if (!row) return null;
-      return (row as any)[selectedFrame] ?? null;
-    }
-
-    if (selectedMaterial === 'hd-guong-sieu-bong') {
-      const row = pricing.hdGuong.find(r => r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
-      if (!row) return null;
-      return (row as any)[selectedFrame] ?? null;
-    }
-
-    if (selectedMaterial === 'anh-4k') {
-      const row = pricing.anh4K.find(r => r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
-      if (!row) return null;
-      return (row as any)[selectedFrame] ?? null;
-    }
-
-    return null;
-  }, [selectedMaterial, selectedSize, selectedFrame, currentInEpMikaRow, pricing]);
-
-  const basePrice = useMemo<number | null>(() => {
+  const totalPrice = useMemo<number | null>(() => {
+    if (rawBasePrice === null || rawBasePrice === 0) return null;
     return applyMultiplier(rawBasePrice, multiplier);
   }, [rawBasePrice, multiplier]);
 
-  const rawReinforcedFrameCost = useMemo(() => {
-    if (selectedMaterial === 'in-ep-mika' && hasKhungXuongGiaCo && currentInEpMikaRow?.khungXuongGiaCo) {
-      return currentInEpMikaRow.khungXuongGiaCo;
-    }
-    return 0;
-  }, [selectedMaterial, hasKhungXuongGiaCo, currentInEpMikaRow]);
-
-  const reinforcedFrameCost = useMemo(() => {
-    return applyMultiplier(rawReinforcedFrameCost, multiplier) || 0;
-  }, [rawReinforcedFrameCost, multiplier]);
-
-  const totalPrice = basePrice !== null ? basePrice + reinforcedFrameCost : null;
-
-  const currentMaterialObj = materialOptions.find(m => m.id === selectedMaterial);
+  const currentMaterialObj = materialOptions.find((m: any) => m.id === selectedMaterial);
   const currentFrameObj = frameOptions.find(f => f.id === selectedFrame);
 
   // Copy customer-facing quote
   const handleCopyCustomerQuote = () => {
-    if (totalPrice === null) return;
-    const frameLabel = selectedMaterial === 'in-ep-mika' 
-      ? (hasKhungXuongGiaCo && currentReinforcedFrameCostFormatted ? ' (Có Khung xương gia cố)' : '') 
-      : ` - ${currentFrameObj?.label}`;
-    const text = `Báo giá ảnh ${selectedSize}cm: ${currentMaterialObj?.name}${frameLabel}: ${totalPrice.toLocaleString('vi-VN')} đ`;
+    const frameLabel = ` - ${currentFrameObj?.label}`;
+    const priceDisplay = totalPrice !== null ? `${totalPrice.toLocaleString('vi-VN')} đ` : 'Liên hệ xưởng';
+    const text = `Báo giá ảnh ${selectedSize}cm: ${currentMaterialObj?.name}${frameLabel}: ${priceDisplay}`;
     navigator.clipboard.writeText(text);
     setCopiedCustomer(true);
     setTimeout(() => setCopiedCustomer(false), 2000);
   };
 
   const generateZaloUrl = () => {
-    const frameLabel = selectedMaterial === 'in-ep-mika' 
-      ? (hasKhungXuongGiaCo && currentReinforcedFrameCostFormatted ? '\n- Tùy chọn: Khung xương gia cố phía sau (+ ' + currentReinforcedFrameCostFormatted.toLocaleString('vi-VN') + ' đ)' : '') 
-      : `\n- Khung: ${currentFrameObj?.label}`;
-    const text = `Hùng Decor ơi, mình đặt file:\n- Size: ${selectedSize}\n- Loại: ${currentMaterialObj?.name}${frameLabel}\n- Giá sỉ: ${totalPrice?.toLocaleString('vi-VN')} đ\nNhờ xưởng duyệt file nhé!`;
+    const frameLabel = `\n- Quy cách / Khung: ${currentFrameObj?.label}`;
+    const priceStr = totalPrice !== null ? `${totalPrice.toLocaleString('vi-VN')} đ` : 'Liên hệ xưởng';
+    const text = `Hùng Decor ơi, mình đặt file:\n- Size: ${selectedSize}\n- Loại: ${currentMaterialObj?.name}${frameLabel}\n- Giá sỉ: ${priceStr}\nNhờ xưởng kiểm tra file và báo giá nhé!`;
     return `https://zalo.me/${zaloTho.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
   };
 
@@ -250,7 +207,7 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
                 onChange={(e) => setSelectedMaterial(e.target.value)}
                 className="w-full bg-white border border-[#D7D2C9] rounded-lg px-2.5 py-2 text-xs sm:text-sm font-semibold text-[#1C1917] appearance-none focus:outline-none focus:ring-1 focus:ring-[#936B34] focus:border-[#936B34] pr-8 cursor-pointer"
               >
-                {materialOptions.map(m => (
+                {materialOptions.map((m: any) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>
@@ -289,23 +246,6 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
         </div>
 
         {/* Option for In Ép Mika: Khung xương gia cố phía sau */}
-        {selectedMaterial === 'in-ep-mika' && currentInEpMikaRow?.khungXuongGiaCo && (
-          <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-3">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={hasKhungXuongGiaCo}
-                onChange={(e) => setHasKhungXuongGiaCo(e.target.checked)}
-                className="w-4 h-4 text-[#936B34] rounded border-amber-300 focus:ring-[#936B34]"
-              />
-              <span className="text-xs font-semibold text-amber-950">
-                Thêm tùy chọn Khung xương gia cố phía sau (+ {currentReinforcedFrameCostFormatted?.toLocaleString('vi-VN')} đ)
-              </span>
-            </label>
-            <span className="text-[10px] text-amber-800 font-mono hidden sm:inline">Khuyên dùng cho cỡ &ge; 80x120 chống cong vênh</span>
-          </div>
-        )}
-
         {/* RESULT BOX */}
         <div className="bg-[#1C1917] text-white rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-md w-full max-w-full">
           
@@ -323,14 +263,18 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
                   <span className="text-xs sm:text-sm text-[#E7C184] font-semibold">VNĐ</span>
                 </>
               ) : (
-                <span className="text-sm sm:text-base font-semibold text-neutral-400 italic">
-                  Không áp dụng quy cách này
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl font-bold text-amber-400 font-sans tracking-tight">
+                    Liên hệ xưởng
+                  </span>
+                  <span className="text-[11px] text-amber-200/90 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 font-sans">
+                    Chưa có giá cố định
+                  </span>
+                </div>
               )}
             </div>
             <div className="text-[11px] text-neutral-400 truncate max-w-md">
-              {selectedSize}cm · {currentMaterialObj?.name} {selectedMaterial !== 'in-ep-mika' ? `· ${currentFrameObj?.label}` : ''}
-              {hasKhungXuongGiaCo && currentReinforcedFrameCostFormatted ? ' (Có Khung Xương)' : ''}
+              {selectedSize}cm · {currentMaterialObj?.name} · {currentFrameObj?.label}
             </div>
           </div>
 
@@ -339,11 +283,10 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
             {/* Copy Button */}
             <button
               onClick={handleCopyCustomerQuote}
-              disabled={totalPrice === null}
               className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                 copiedCustomer
                   ? 'bg-emerald-600 border-emerald-600 text-white'
-                  : 'bg-white/10 hover:bg-white/20 border-white/15 text-white active:scale-95 disabled:opacity-40'
+                  : 'bg-white/10 hover:bg-white/20 border-white/15 text-white active:scale-95'
               }`}
               title="Sao chép báo giá gửi khách hàng"
             >

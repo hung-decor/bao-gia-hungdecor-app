@@ -3,85 +3,45 @@ import { useAppData } from '../context/AppDataContext';
 import { usePriceMultiplier, applyMultiplier } from '../hooks/usePriceMultiplier';
 import { MaterialTabId } from '../types';
 import { Search } from 'lucide-react';
+import { getAllMaterialTabs } from '../firebase/dataService';
 
 interface OfficialPricingTablesProps {
   onSelectSizeForCalculator?: (productLine: string, size: string) => void;
   zaloTho: string;
 }
 
-const materialTabs: { id: MaterialTabId; label: string }[] = [
-  { id: 'go-lua', label: '1. Gỗ Lụa Đóng Khung' },
-  { id: 'hd-guong-sieu-bong', label: '2. HD Gương Siêu Bóng (Khuyên Dùng)' },
-  { id: 'mika-pho-thong', label: '3. Mika Phổ Thông' },
-  { id: 'in-ep-mika', label: '4. In ép Mika & Giá Khung xương Gia Cố' },
-  { id: 'anh-4k', label: '5. Cao Cấp 4K' }
-];
-
 export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   zaloTho
 }) => {
   const { pricing } = useAppData();
-  const [activeTab, setActiveTab] = useState<MaterialTabId>('go-lua');
+  const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing), [pricing]);
+  const [activeTab, setActiveTab] = useState<string>(() => allMaterialTabs[0]?.id || 'go-lua');
   const [searchSize, setSearchSize] = useState<string>('');
   const multiplier = usePriceMultiplier();
 
-  const goLuaDataTransformed = useMemo(() => 
-    pricing.goLua.map(r => ({
-      ...r,
-      boVien: applyMultiplier(r.boVien, multiplier),
-      k0_k3: applyMultiplier(r.k0_k3, multiplier),
-      k4_k6: applyMultiplier(r.k4_k6, multiplier),
-      k7_k9: applyMultiplier(r.k7_k9, multiplier),
-      k10: applyMultiplier(r.k10, multiplier),
-      k11: applyMultiplier(r.k11, multiplier),
-      titan1: applyMultiplier(r.titan1, multiplier),
-      titan2: applyMultiplier(r.titan2, multiplier),
-    })),
-  [multiplier, pricing.goLua]);
+  // Keep activeTab valid if material tabs change
+  React.useEffect(() => {
+    if (allMaterialTabs.length > 0 && !allMaterialTabs.some((t: any) => t.id === activeTab)) {
+      setActiveTab(allMaterialTabs[0].id);
+    }
+  }, [allMaterialTabs, activeTab]);
 
-  const hdGuongDataTransformed = useMemo(() => 
-    pricing.hdGuong.map(r => ({
-      ...r,
-      boVien: applyMultiplier(r.boVien, multiplier),
-      k0_k3: applyMultiplier(r.k0_k3, multiplier),
-      k4_k6: applyMultiplier(r.k4_k6, multiplier),
-      k7_k9: applyMultiplier(r.k7_k9, multiplier),
-      k10: applyMultiplier(r.k10, multiplier),
-      k11: applyMultiplier(r.k11, multiplier),
-      titan1: applyMultiplier(r.titan1, multiplier),
-      titan2: applyMultiplier(r.titan2, multiplier),
-    })),
-  [multiplier, pricing.hdGuong]);
-
-  const mikaPhoThongDataTransformed = useMemo(() => 
-    pricing.mikaPhoThong.map(r => ({
-      ...r,
-      boVien: applyMultiplier(r.boVien, multiplier),
-      k0_k3: applyMultiplier(r.k0_k3, multiplier),
-      k4_k6: applyMultiplier(r.k4_k6, multiplier),
-      k7_k9: applyMultiplier(r.k7_k9, multiplier),
-      k10: applyMultiplier(r.k10, multiplier),
-      k11: applyMultiplier(r.k11, multiplier),
-      titan1: applyMultiplier(r.titan1, multiplier),
-      titan2: applyMultiplier(r.titan2, multiplier),
-    })),
-  [multiplier, pricing.mikaPhoThong]);
-
-  const inEpMikaDataTransformed = useMemo(() => 
-    pricing.inEpMika.map(r => ({
-      ...r,
-      inEpMika: applyMultiplier(r.inEpMika, multiplier)!,
-      khungXuongGiaCo: applyMultiplier(r.khungXuongGiaCo, multiplier) || undefined,
-    })),
-  [multiplier, pricing.inEpMika]);
-
-  const anh4KDataTransformed = useMemo(() => 
-    pricing.anh4K.map(r => ({
-      ...r,
-      k4_k6: applyMultiplier(r.k4_k6, multiplier),
-      titan2: applyMultiplier(r.titan2, multiplier),
-    })),
-  [multiplier, pricing.anh4K]);
+  const colLabels = useMemo(() => {
+    return {
+      boVien: pricing.columnLabels?.boVien || 'Bo Viền',
+      k0_k3: pricing.columnLabels?.k0_k3 || 'Khung KX',
+      k4_k6: pricing.columnLabels?.k4_k6 || 'Khung HT10',
+      k10: pricing.columnLabels?.k10 || 'Khung K12',
+      k11: pricing.columnLabels?.k11 || 'Khung bản 10cm',
+      titan1: pricing.columnLabels?.titan1 || 'Khung nhôm Titan M',
+      titan2: pricing.columnLabels?.titan2 || 'Khung nhôm Titan C',
+      inAnh: pricing.columnLabels?.inAnh || 'In Ảnh',
+      inEpLua: pricing.columnLabels?.inEpLua || 'In Ép Lụa',
+      inEpMikaCol: pricing.columnLabels?.inEpMikaCol || 'In Ép Mika',
+      inEpPlastic: pricing.columnLabels?.inEpPlastic || 'In Ép Plastic',
+      khungGiaCo: pricing.columnLabels?.khungGiaCo || 'Giá Khung Gia Cố',
+    };
+  }, [pricing.columnLabels]);
 
   const formatPrice = (val: number | null) => {
     if (val === null || val === undefined) return <span className="text-neutral-300">-</span>;
@@ -96,6 +56,10 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
     if (!searchSize.trim()) return true;
     return size.toLowerCase().includes(searchSize.toLowerCase().trim());
   };
+
+  const activeTabItem = useMemo(() => {
+    return allMaterialTabs.find((t: any) => t.id === activeTab) || allMaterialTabs[0];
+  }, [allMaterialTabs, activeTab]);
 
   return (
     <section id="bang-gia-chi-tiet" className="py-6 md:py-12 bg-[#FAF9F5] w-full max-w-full overflow-hidden">
@@ -129,9 +93,9 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
             </div>
           </div>
 
-          {/* 5 Material Tabs: Grid layout hiển thị trọn vẹn 5 chất liệu trên mobile mà không cần cuộn ngang */}
+          {/* Dynamic Material Tabs */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 w-full max-w-full">
-            {materialTabs.map((tab, idx) => (
+            {allMaterialTabs.map((tab: any, idx: number) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -143,7 +107,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     : 'bg-[#EFEAE2] text-[#57534E] hover:text-[#1C1917] hover:bg-[#E5DDCF]'
                 }`}
               >
-                {tab.label}
+                {tab.title}
               </button>
             ))}
           </div>
@@ -161,122 +125,47 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
 
           <div className="overflow-x-auto max-w-full relative">
             
-            {/* Table for Gỗ Lụa */}
-            {activeTab === 'go-lua' && (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
-                    {/* STICKY COLUMN */}
-                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
-                      Cỡ Ảnh
-                    </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Bo Viền</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung KX</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung K12</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung bản 10cm</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan M</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan C</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0EBE3]">
-                  {goLuaDataTransformed.filter(r => matchesSearch(r.size)).map((row) => (
-                    <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
-                      <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
-                        {row.size}
-                      </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.boVien)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k0_k3)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k10)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k11)}</td>
-                      <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(row.titan1)}</td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(row.titan2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* Table for HD Gương Siêu Bóng */}
-            {activeTab === 'hd-guong-sieu-bong' && (
+            {activeTabItem && activeTabItem.type === 'dongKhung' && (
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
                     <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
                       Cỡ Ảnh
                     </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Bo Viền</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung KX</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung K12</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung bản 10cm</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan M</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan C</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.boVien}</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.k0_k3}</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.k4_k6}</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">{colLabels.k10}</th>
+                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">{colLabels.k11}</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">{colLabels.titan1}</th>
+                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">{colLabels.titan2}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
-                  {hdGuongDataTransformed.filter(r => matchesSearch(r.size)).map((row) => (
+                  {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
                     <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                       <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                         {row.size}
                       </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.boVien)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k0_k3)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k10)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k11)}</td>
-                      <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(row.titan1)}</td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(row.titan2)}</td>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.boVien, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.k0_k3, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.k4_k6, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(applyMultiplier(row.k10, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(applyMultiplier(row.k11, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(applyMultiplier(row.titan1, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(applyMultiplier(row.titan2, multiplier))}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
 
-            {/* Table for Mika Phổ Thông */}
-            {activeTab === 'mika-pho-thong' && (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
-                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
-                      Cỡ Ảnh
-                    </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Bo Viền</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung KX</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung K12</th>
-                    <th className="py-3 px-3 text-right text-[#936B34] whitespace-nowrap">Khung bản 10cm</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan M</th>
-                    <th className="py-3 px-3 text-right text-emerald-800 whitespace-nowrap">Khung nhôm Titan C</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0EBE3]">
-                  {mikaPhoThongDataTransformed.filter(r => matchesSearch(r.size)).map((row) => (
-                    <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
-                      <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
-                        {row.size}
-                      </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.boVien)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k0_k3)}</td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k10)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#936B34] whitespace-nowrap">{formatPrice(row.k11)}</td>
-                      <td className="py-2.5 px-3 text-right text-emerald-800 whitespace-nowrap">{formatPrice(row.titan1)}</td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(row.titan2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* Table for In Ép Mika (Bổ sung Khung xương gia cố cho khổ lớn) */}
-            {activeTab === 'in-ep-mika' && (
+            {activeTabItem && activeTabItem.type === 'inEpMika' && (
               <div className="space-y-3">
                 <div className="p-3 bg-[#FFFDF9] border-b border-[#E7E2DA] flex items-center gap-2 text-xs text-[#57534E]">
                   <span className="text-[#936B34] font-bold text-sm shrink-0">💡</span>
                   <span>
-                    <strong>Dành cho khổ lớn (80x120, 100x150, 110x180):</strong> Có thêm tùy chọn <strong>Khung xương gia cố phía sau</strong> giúp chống cong vênh và tăng độ vững chãi tuyệt đối.
+                    Bảng giá in ảnh Lab, in ép lụa, in ép Mika, ép Plastic và Khung xương gia cố chịu lực của xưởng Hùng Decor.
                   </span>
                 </div>
 
@@ -284,31 +173,45 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                   <thead>
                     <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
                       <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
-                        Cỡ Ảnh
+                        Kích Thước
                       </th>
                       <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        In Ép Mika
+                        {colLabels.inAnh}
+                      </th>
+                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {colLabels.inEpLua}
+                      </th>
+                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {colLabels.inEpMikaCol}
+                      </th>
+                      <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {colLabels.inEpPlastic}
                       </th>
                       <th className="py-3 px-3 text-right font-bold text-[#936B34] whitespace-nowrap">
-                        Giá Khung Xương Gia Cố
+                        {colLabels.khungGiaCo}
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
-                    {inEpMikaDataTransformed.filter(r => matchesSearch(r.size)).map((row) => (
-                      <tr key={row.stt} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
+                    {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                      <tr key={row.stt || row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                         <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-bold font-mono text-[#1C1917] whitespace-nowrap">
-                          {formatPrice(row.inEpMika)}
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row.inAnh, multiplier))}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono text-[#936B34] whitespace-nowrap">
-                          {row.khungXuongGiaCo ? (
-                            <span className="font-bold text-[#936B34]">+{row.khungXuongGiaCo.toLocaleString('vi-VN')} đ</span>
-                          ) : (
-                            <span className="text-neutral-400 font-normal italic text-[11px]">-</span>
-                          )}
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row.inEpLua, multiplier))}
+                        </td>
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row.inEpMika, multiplier))}
+                        </td>
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row.inEpPlastic, multiplier))}
+                        </td>
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap text-[#936B34]">
+                          {formatPrice(applyMultiplier(row.khungGiaCo ?? row.khungXuongGiaCo ?? null, multiplier))}
                         </td>
                       </tr>
                     ))}
@@ -317,26 +220,25 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
               </div>
             )}
 
-            {/* Table for Cao Cấp 4K */}
-            {activeTab === 'anh-4k' && (
+            {activeTabItem && activeTabItem.type === 'anh4K' && (
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
                     <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
                       Cỡ Ảnh
                     </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">Khung HT10</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap text-emerald-800">Khung nhôm Titan C</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.k4_k6}</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap text-emerald-800">{colLabels.titan2}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
-                  {anh4KDataTransformed.filter(r => matchesSearch(r.size)).map((row) => (
+                  {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
                     <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                       <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                         {row.size}
                       </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(row.k4_k6)}</td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(row.titan2)}</td>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.k4_k6, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(applyMultiplier(row.titan2, multiplier))}</td>
                     </tr>
                   ))}
                 </tbody>
