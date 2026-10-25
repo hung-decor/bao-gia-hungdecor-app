@@ -10,6 +10,7 @@ import { MobileQuickQuoter } from './components/MobileQuickQuoter';
 import { B2BHeroBar } from './components/B2BHeroBar';
 import { OfficialPricingTables } from './components/OfficialPricingTables';
 import { FrameReferenceGuide } from './components/FrameReferenceGuide';
+import { RealCustomerPhotosSection } from './components/RealCustomerPhotosSection';
 import { B2BGuidelinesSection } from './components/B2BGuidelinesSection';
 import { B2BFooter } from './components/B2BFooter';
 import { B2BStickyMobileBar } from './components/B2BStickyMobileBar';
@@ -99,7 +100,10 @@ function MainAppContent() {
         {/* 5. TRA CỨU MÃ KHUNG VÀ THÔNG SỐ KỸ THUẬT */}
         <FrameReferenceGuide />
 
-        {/* 6. QUY CHUẨN ĐẶT FILE & CHÍNH SÁCH GIAO HÀNG CHO THỢ */}
+        {/* 6. ẢNH THỰC TẾ CỦA KHÁCH KHÁCH (LIGHTBOX) */}
+        <RealCustomerPhotosSection />
+
+        {/* 7. QUY CHUẨN ĐẶT FILE & CHÍNH SÁCH GIAO HÀNG CHO THỢ */}
         <B2BGuidelinesSection shopInfo={shopInfo} />
       </main>
 

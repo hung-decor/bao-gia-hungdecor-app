@@ -52,6 +52,15 @@ export interface FrameImageVariant {
   tag?: string;
 }
 
+export interface RealGalleryPhoto {
+  id: string;
+  url: string;
+  title: string;
+  caption?: string;
+  category?: string;
+  createdAt?: string;
+}
+
 export interface FrameSpecItem {
   code: string;
   name: string;

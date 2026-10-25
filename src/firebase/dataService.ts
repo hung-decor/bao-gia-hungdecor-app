@@ -9,7 +9,8 @@ import {
   B2BShopInfo,
   TabLabelsConfig,
   ColumnLabelsConfig,
-  CustomMaterialTab
+  CustomMaterialTab,
+  RealGalleryPhoto
 } from '../types';
 import {
   inEpMikaPricingData as defaultInEpMika,
@@ -18,15 +19,16 @@ import {
   hdGuongSieuBongKhungData as defaultHdGuong,
   anh4KPricingData as defaultAnh4K,
   frameReferenceGuide as defaultFrames,
-  b2bShopInfo2026 as defaultShopInfo
+  b2bShopInfo2026 as defaultShopInfo,
+  defaultRealGalleryPhotos
 } from '../data/tiemIn194Pricing2026';
 
 export const defaultTabLabels: TabLabelsConfig = {
-  goLua: '1. Gỗ Lụa Đóng Khung',
+  goLua: '1. Gỗ Lụa Bo Viền',
   hdGuong: '2. Mika HD Gương 8K',
   mikaPhoThong: '3. Mika Phổ Thông',
   inEpMika: '4. In Ép và Giá Khung Xương Gia Cố',
-  anh4K: '5. Cao Cấp 4K',
+  anh4K: '5. Album - Photobook',
 };
 
 export const defaultColumnLabels: ColumnLabelsConfig = {
@@ -80,7 +82,7 @@ export interface FullPricingState {
 export interface ActiveMaterialTabItem {
   id: string;
   title: string;
-  type: 'dongKhung' | 'inEpMika' | 'anh4K';
+  type: 'dongKhung' | 'inEpMika' | 'anh4K' | 'album' | 'goLuaBoVien';
   rows: any[];
   isCustom?: boolean;
 }
@@ -94,7 +96,7 @@ export function getAllMaterialTabs(pricing: FullPricingState): ActiveMaterialTab
     list.push({
       id: 'go-lua',
       title: tabs.goLua || defaultTabLabels.goLua,
-      type: 'dongKhung',
+      type: 'goLuaBoVien',
       rows: pricing.goLua || []
     });
   }
@@ -126,7 +128,7 @@ export function getAllMaterialTabs(pricing: FullPricingState): ActiveMaterialTab
     list.push({
       id: 'anh-4k',
       title: tabs.anh4K || defaultTabLabels.anh4K,
-      type: 'anh4K',
+      type: 'album',
       rows: pricing.anh4K || []
     });
   }
@@ -153,6 +155,66 @@ export const PRICING_DOC = 'pricing';
 export const FRAMES_DOC = 'frames';
 export const SHOP_INFO_DOC = 'shop_info';
 export const SECURITY_DOC = 'security';
+export const GALLERY_REAL_PHOTOS_DOC = 'gallery_real_photos';
+export const GALLERY_VERSION = '2026_REAL_PHOTOS_V1';
+
+// Fetch Real Customer Photos from Firestore
+export async function fetchRealPhotosFromFirestore(): Promise<{ realPhotos: RealGalleryPhoto[]; updatedAt?: string } | null> {
+  try {
+    const docRef = doc(db, FIRESTORE_COLLECTION, GALLERY_REAL_PHOTOS_DOC);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const d = snap.data();
+      if (Array.isArray(d.photosList) && d.photosList.length > 0) {
+        return {
+          realPhotos: d.photosList,
+          updatedAt: d.updatedAt || undefined,
+        };
+      }
+    }
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem('hung_decor_real_photos');
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return { realPhotos: parsed };
+          }
+        } catch (e) {
+          console.warn('Could not parse local real photos');
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.warn('Could not fetch real photos from Firestore:', error);
+    return null;
+  }
+}
+
+// Save Real Customer Photos to Firestore
+export async function saveRealPhotosToFirestore(photosList: RealGalleryPhoto[]): Promise<boolean> {
+  try {
+    const docRef = doc(db, FIRESTORE_COLLECTION, GALLERY_REAL_PHOTOS_DOC);
+    await setDoc(docRef, {
+      photosList,
+      version: GALLERY_VERSION,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hung_decor_real_photos', JSON.stringify(photosList));
+      } catch (err) {
+        console.warn('Could not cache real photos to localStorage:', err);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error('Error saving real photos to Firestore:', error);
+    throw error;
+  }
+}
 
 // 0. Fetch & Save Admin Password
 export async function fetchAdminPasswordFromFirestore(): Promise<string> {
@@ -186,7 +248,7 @@ export async function saveAdminPasswordToFirestore(newPassword: string): Promise
   }
 }
 
-export const PRICING_VERSION = '2026_HUNG_DECOR_FINAL_V6';
+export const PRICING_VERSION = '2026_HUNG_DECOR_GOLUA_V8';
 
 // 1. Fetch Pricing from Firestore
 export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingState; updatedAt?: string } | null> {
@@ -639,6 +701,7 @@ export async function seedAllDataToFirestore(): Promise<boolean> {
     savePricingToFirestore(defaultPricing),
     saveFramesToFirestore(defaultFrames),
     saveShopInfoToFirestore(updatedDefaultShopInfo),
+    saveRealPhotosToFirestore(defaultRealGalleryPhotos)
   ]);
 
   return true;
@@ -673,7 +736,6 @@ export async function uploadFrameImageToStorage(
   return downloadUrl;
 }
 
-// -------------------------------------------------------------
 // SKU SYSTEM & HUNG DECOR CATALOG PERSISTENCE
 // -------------------------------------------------------------
 
@@ -684,6 +746,21 @@ export function getDefaultSKU(
   size: string
 ): string {
   const modeTag = mode === 'studio' ? 'st' : 'fl';
+  const normSize = (size || '').toLowerCase();
+
+  // Tab 5: Album - Photobook
+  if (materialTabId === 'anh-4k' || materialTabId === 'album' || materialTabId === 'album-photobook') {
+    if (normSize.includes('tờ') || normSize.includes('trang') || normSize.includes('to')) {
+      return `ab${modeTag}_to`;
+    }
+    const cleanSize = (size || '')
+      .replace(/cm/gi, '')
+      .replace(/x/g, '*')
+      .replace(/\s+/g, '')
+      .trim();
+    return `ab${modeTag}${cleanSize}`;
+  }
+
   const cleanSize = (size || '').replace(/x/g, '*').replace(/\s+/g, '').trim();
 
   // Tab 4 (in-ep-mika) special rules
@@ -701,7 +778,7 @@ export function getDefaultSKU(
   if (materialTabId === 'go-lua') matPrefix = 'gl';
   else if (materialTabId === 'hd-guong-sieu-bong') matPrefix = 'hd';
   else if (materialTabId === 'mika-pho-thong') matPrefix = 'mk';
-  else if (materialTabId === 'anh-4k') matPrefix = '8k';
+  else if (materialTabId === 'anh-4k') matPrefix = 'ab';
   else {
     matPrefix = materialTabId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 4) || 'ct';
   }
@@ -715,6 +792,7 @@ export function getDefaultSKU(
   else if (colKey === 'k11') frameSuffix = 'b10';
   else if (colKey === 'titan1') frameSuffix = 'ttm';
   else if (colKey === 'titan2') frameSuffix = 'ttc';
+  else if (colKey === 'donGia') frameSuffix = '';
   else {
     frameSuffix = colKey.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   }
@@ -759,20 +837,23 @@ export function generateCatalogFromPricing(
   const processPricing = (pricing: FullPricingState, mode: 'studio' | 'freelance') => {
     const tabs = getAllMaterialTabs(pricing);
     tabs.forEach(tab => {
+      const isGoLua = tab.type === 'goLuaBoVien' || tab.id === 'go-lua';
       const isDongKhung = tab.type === 'dongKhung';
-      const isAnh4K = tab.type === 'anh4K';
-      const colKeys = isDongKhung
+      const isAlbum = tab.type === 'album' || tab.id === 'anh-4k' || tab.id === 'album';
+      const colKeys = isGoLua
+        ? ['boVien']
+        : isDongKhung
         ? (pricing.frameColumnKeys || defaultFrameColumnKeys)
-        : isAnh4K
-        ? ['k4_k6', 'titan2']
+        : isAlbum
+        ? ['donGia']
         : (pricing.inEpColumnKeys || defaultInEpColumnKeys);
 
       (tab.rows || []).forEach(row => {
         if (!row.size) return;
         colKeys.forEach(colKey => {
           const sku = getCellSKU(row, colKey, tab.id, mode);
-          const colTitle = pricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
-          const rawPrice = (row as any)[colKey] ?? (colKey === 'inEpMikaCol' ? row.inEpMika : null) ?? null;
+          const colTitle = isAlbum ? 'Đơn Giá' : (pricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey);
+          const rawPrice = (row as any)[colKey] ?? (row as any).donGia ?? (row as any).k4_k6 ?? (colKey === 'inEpMikaCol' ? row.inEpMika : null) ?? null;
 
           const catalogItem: CatalogSKUItem = {
             sku,

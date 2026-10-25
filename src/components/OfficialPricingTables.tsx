@@ -125,7 +125,34 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
 
           <div className="overflow-x-auto max-w-full relative">
             
-            {activeTabItem && activeTabItem.type === 'dongKhung' && (
+            {activeTabItem && (activeTabItem.type === 'goLuaBoVien' || activeTabItem.id === 'go-lua') && (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
+                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[120px]">
+                      Cỡ Ảnh
+                    </th>
+                    <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                      {colLabels.boVien || 'Bo Viền'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F0EBE3]">
+                  {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                    <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
+                      <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
+                        {row.size}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {formatPrice(applyMultiplier(row.boVien, multiplier))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {activeTabItem && activeTabItem.type === 'dongKhung' && activeTabItem.id !== 'go-lua' && (
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
@@ -196,15 +223,16 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
               </div>
             )}
 
-            {activeTabItem && activeTabItem.type === 'anh4K' && (
+            {activeTabItem && (activeTabItem.type === 'album' || activeTabItem.id === 'anh-4k' || activeTabItem.id === 'album') && (
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
-                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
-                      Cỡ Ảnh
+                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[120px]">
+                      Kích Thước
                     </th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap">{colLabels.k4_k6}</th>
-                    <th className="py-3 px-3 text-right whitespace-nowrap text-emerald-800">{colLabels.titan2}</th>
+                    <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                      Đơn Giá
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
@@ -213,8 +241,9 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                         {row.size}
                       </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">{formatPrice(applyMultiplier(row.k4_k6, multiplier))}</td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 whitespace-nowrap">{formatPrice(applyMultiplier(row.titan2, multiplier))}</td>
+                      <td className="py-2.5 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {formatPrice(applyMultiplier(row.donGia ?? row.k4_k6 ?? row.boVien, multiplier))}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

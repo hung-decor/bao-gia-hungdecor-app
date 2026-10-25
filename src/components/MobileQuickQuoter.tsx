@@ -59,6 +59,18 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
 
   const frameOptions = useMemo(() => {
     const col = pricing.columnLabels;
+    if (selectedTabItem?.id === 'go-lua' || selectedTabItem?.type === 'goLuaBoVien') {
+      return [
+        { id: 'boVien', label: col?.boVien ? `Chỉ ${col.boVien} (Không Khung)` : 'Chỉ Bo Viền (Không Khung)' }
+      ];
+    }
+
+    if (selectedTabItem?.type === 'album' || selectedTabItem?.id === 'anh-4k' || selectedTabItem?.id === 'album') {
+      return [
+        { id: 'donGia', label: 'Giá trọn gói (Không dùng khung)' }
+      ];
+    }
+
     if (selectedTabItem?.type === 'inEpMika') {
       const keys = pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'];
       return keys.map(k => ({
@@ -102,7 +114,7 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
     if (!selectedTabItem || !selectedTabItem.rows) return null;
     const row = selectedTabItem.rows.find((r: any) => r.size && r.size.replace('*', 'x') === selectedSize.replace('*', 'x'));
     if (!row) return null;
-    return (row as any)[selectedFrame] ?? null;
+    return (row as any).donGia ?? (row as any)[selectedFrame] ?? (row as any).k4_k6 ?? null;
   }, [selectedTabItem, selectedSize, selectedFrame]);
 
   const totalPrice = useMemo<number | null>(() => {
@@ -115,9 +127,10 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
 
   // Copy customer-facing quote
   const handleCopyCustomerQuote = () => {
-    const frameLabel = ` - ${currentFrameObj?.label}`;
+    const isAlbum = selectedTabItem?.type === 'album' || selectedTabItem?.id === 'anh-4k';
+    const frameLabel = isAlbum ? '' : ` - ${currentFrameObj?.label}`;
     const priceDisplay = totalPrice !== null ? `${totalPrice.toLocaleString('vi-VN')} đ` : 'Liên hệ xưởng';
-    const text = `Báo giá ảnh ${selectedSize}cm: ${currentMaterialObj?.name}${frameLabel}: ${priceDisplay}`;
+    const text = `Báo giá ${currentMaterialObj?.name} (${selectedSize}): ${priceDisplay}${frameLabel}`;
     navigator.clipboard.writeText(text);
     setCopiedCustomer(true);
     setTimeout(() => setCopiedCustomer(false), 2000);

@@ -4,7 +4,8 @@ import {
   DongKhungPriceRow, 
   Anh4KPriceRow, 
   FrameSpecItem, 
-  B2BShopInfo 
+  B2BShopInfo,
+  RealGalleryPhoto 
 } from '../types';
 import {
   inEpMikaPricingData as defaultInEpMika,
@@ -13,7 +14,8 @@ import {
   hdGuongSieuBongKhungData as defaultHdGuong,
   anh4KPricingData as defaultAnh4K,
   frameReferenceGuide as defaultFrames,
-  b2bShopInfo2026 as defaultShopInfo
+  b2bShopInfo2026 as defaultShopInfo,
+  defaultRealGalleryPhotos
 } from '../data/tiemIn194Pricing2026';
 import {
   FullPricingState,
@@ -26,6 +28,8 @@ import {
   generateDefaultFreelancePricing,
   fetchFramesFromFirestore,
   saveFramesToFirestore,
+  fetchRealPhotosFromFirestore,
+  saveRealPhotosToFirestore,
   fetchShopInfoFromFirestore,
   saveShopInfoToFirestore,
   seedAllDataToFirestore,
@@ -71,6 +75,11 @@ export interface AppDataContextType {
   adminPassword: string;
   changeAdminPassword: (newPassword: string) => Promise<boolean>;
 
+  // Real Photos
+  realPhotos: RealGalleryPhoto[];
+  setRealPhotos: React.Dispatch<React.SetStateAction<RealGalleryPhoto[]>>;
+  saveRealPhotos: (newPhotos?: RealGalleryPhoto[]) => Promise<boolean>;
+
   // Meta status
   isLoading: boolean;
   isSaving: boolean;
@@ -98,12 +107,13 @@ const initialPricing: FullPricingState = {
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
-export const CACHE_VERSION = '2026_HUNG_DECOR_FINAL_V6';
+export const CACHE_VERSION = '2026_HUNG_DECOR_GOLUA_V8';
 
 export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [studioPricing, setStudioPricing] = useState<FullPricingState>(initialPricing);
   const [freelancePricing, setFreelancePricing] = useState<FullPricingState>(() => generateDefaultFreelancePricing(initialPricing));
   const [frames, setFrames] = useState<FrameSpecItem[]>(defaultFrames);
+  const [realPhotos, setRealPhotos] = useState<RealGalleryPhoto[]>(defaultRealGalleryPhotos);
   const [shopInfo, setShopInfo] = useState<B2BShopInfo>(initialShopInfo);
   const [adminPassword, setAdminPassword] = useState<string>('123456');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -128,12 +138,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
       }
 
-      const [pricingResult, freelanceResult, framesResult, shopResult, pwdResult] = await Promise.all([
+      const [pricingResult, freelanceResult, framesResult, shopResult, pwdResult, realPhotosResult] = await Promise.all([
         fetchPricingFromFirestore(),
         fetchFreelancePricingFromFirestore(),
         fetchFramesFromFirestore(),
         fetchShopInfoFromFirestore(),
-        fetchAdminPasswordFromFirestore()
+        fetchAdminPasswordFromFirestore(),
+        fetchRealPhotosFromFirestore()
       ]);
 
       if (pwdResult) {
@@ -170,6 +181,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         setFrames(defaultFrames);
         saveFramesToFirestore(defaultFrames).catch(console.warn);
         hasFirestoreData = true;
+      }
+
+      if (realPhotosResult && realPhotosResult.realPhotos && realPhotosResult.realPhotos.length > 0) {
+        setRealPhotos(realPhotosResult.realPhotos);
+        hasFirestoreData = true;
+      } else {
+        setRealPhotos(defaultRealGalleryPhotos);
+        saveRealPhotosToFirestore(defaultRealGalleryPhotos).catch(console.warn);
       }
 
       if (shopResult) {
@@ -312,6 +331,21 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const handleSaveRealPhotos = async (newPhotos?: RealGalleryPhoto[]): Promise<boolean> => {
+    setIsSaving(true);
+    const toSave = newPhotos || realPhotos;
+    try {
+      await saveRealPhotosToFirestore(toSave);
+      setRealPhotos(toSave);
+      return true;
+    } catch (e) {
+      console.error('Save real photos failed', e);
+      throw e;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleUploadImage = async (file: File, frameCode: string): Promise<string> => {
     return uploadFrameImageToStorage(file, frameCode);
   };
@@ -353,6 +387,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         updateFrame: handleUpdateFrame,
         deleteFrame: handleDeleteFrame,
         uploadFrameImage: handleUploadImage,
+        realPhotos,
+        setRealPhotos,
+        saveRealPhotos: handleSaveRealPhotos,
         shopInfo,
         setShopInfo,
         saveShopInfo: handleSaveShopInfo,

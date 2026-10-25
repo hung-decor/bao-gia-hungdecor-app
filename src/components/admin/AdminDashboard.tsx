@@ -7,7 +7,8 @@ import {
   Anh4KPriceRow,
   TabLabelsConfig,
   ColumnLabelsConfig,
-  CustomMaterialTab
+  CustomMaterialTab,
+  RealGalleryPhoto
 } from '../../types';
 import {
   inEpMikaPricingData as defaultInEpMika,
@@ -53,7 +54,8 @@ import {
   X,
   Copy,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Camera
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -69,6 +71,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     saveAllPricing,
     frames,
     saveFrames,
+    realPhotos,
+    saveRealPhotos,
     shopInfo,
     saveShopInfo,
     adminPassword,
@@ -90,8 +94,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'pricing' | 'frames' | 'shop' | 'security'>('pricing');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'frames' | 'gallery' | 'shop' | 'security'>('pricing');
   const [activeMaterialTabId, setActiveMaterialTabId] = useState<string>('go-lua');
+
+  // Real photos state
+  const [localRealPhotos, setLocalRealPhotos] = useState<RealGalleryPhoto[]>(realPhotos);
+  React.useEffect(() => {
+    setLocalRealPhotos(realPhotos);
+  }, [realPhotos]);
+
+  // Form state for adding new real photo
+  const [newPhotoTitle, setNewPhotoTitle] = useState<string>('');
+  const [newPhotoUrl, setNewPhotoUrl] = useState<string>('');
+  const [newPhotoCaption, setNewPhotoCaption] = useState<string>('');
 
   // Add New Material Modal State
   const [isAddingMaterialModalOpen, setIsAddingMaterialModalOpen] = useState<boolean>(false);
@@ -815,6 +830,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </button>
 
           <button
+            onClick={() => setActiveTab('gallery')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'gallery'
+                ? 'bg-[#E7C184] text-[#1C1917] shadow-md'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            <span>3. Quản Lý Ảnh Thực Tế</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('shop')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'shop'
@@ -823,7 +850,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <Phone className="w-4 h-4" />
-            <span>3. Thông Tin Xưởng & Hotline</span>
+            <span>4. Thông Tin Xưởng & Hotline</span>
           </button>
 
           <button
@@ -835,7 +862,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <Lock className="w-4 h-4" />
-            <span>4. Đổi Mật Khẩu Quản Trị</span>
+            <span>5. Đổi Mật Khẩu Quản Trị</span>
           </button>
         </div>
 
@@ -1322,9 +1349,150 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 );
               }
 
-              // Built-in Tab: Dong Khung (go-lua, hd-guong-sieu-bong, mika-pho-thong)
-              if (['go-lua', 'hd-guong-sieu-bong', 'mika-pho-thong'].includes(activeItem.id)) {
-                const currentKey = activeItem.id === 'go-lua' ? 'goLua' : activeItem.id === 'mika-pho-thong' ? 'mikaPhoThong' : 'hdGuong';
+              // Built-in Tab 1: Gỗ Lụa Bo Viền (go-lua)
+              if (activeItem.id === 'go-lua' || activeItem.type === 'goLuaBoVien') {
+                const rows = activePricing.goLua;
+                const updateCell = (rowIndex: number, field: string, val: any) => {
+                  updateActivePricing(prev => {
+                    const copy = [...prev.goLua];
+                    copy[rowIndex] = { ...copy[rowIndex], [field]: val };
+                    return { ...prev, goLua: copy };
+                  }, field === 'size');
+                };
+
+                return (
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
+                        <p className="text-xs text-neutral-400">Danh mục Gỗ Lụa Bo Viền gồm Cỡ Ảnh, Đơn Giá Bo Viền và Mã SKU chuẩn</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newRow: DongKhungPriceRow = {
+                            size: 'Mới',
+                            boVien: 0,
+                            k0_k3: null,
+                            k4_k6: null,
+                            k7_k9: null,
+                            k10: null,
+                            k11: null,
+                            titan1: null,
+                            titan2: null
+                          };
+                          updateActivePricing(prev => ({
+                            ...prev,
+                            goLua: [...prev.goLua, newRow]
+                          }), true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm Kích Thước</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto max-h-[600px]">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="sticky top-0 bg-neutral-950 text-neutral-400 border-b border-neutral-800 z-10 shadow-sm">
+                          <tr>
+                            <th className="p-2.5 w-16 text-center">Xếp</th>
+                            <th className="p-2.5 w-28">Cỡ Ảnh</th>
+                            <th className="p-2.5">Bo Viền (VNĐ)</th>
+                            <th className="p-2.5 w-12 text-center">Xóa</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-800 font-mono">
+                          {rows.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-neutral-800/40">
+                              <td className="p-2 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    disabled={idx === 0}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        goLua: moveRowInArray(prev.goLua, idx, 'up')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Lên trên"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    disabled={idx === rows.length - 1}
+                                    onClick={() => {
+                                      updateActivePricing(prev => ({
+                                        ...prev,
+                                        goLua: moveRowInArray(prev.goLua, idx, 'down')
+                                      }), true);
+                                    }}
+                                    className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
+                                    title="Xuống dưới"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="p-2 font-bold text-white">
+                                <input
+                                  type="text"
+                                  value={row.size}
+                                  onChange={(e) => updateCell(idx, 'size', e.target.value)}
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                />
+                              </td>
+                              <td className="p-2 align-top">
+                                <div className="flex flex-col gap-1">
+                                  <input
+                                    type="number"
+                                    value={row.boVien ?? ''}
+                                    placeholder="-"
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateCell(idx, 'boVien', val);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-32 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
+                                  />
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                    <input
+                                      type="text"
+                                      value={getCellSKU(row, 'boVien', 'go-lua', activePricingSubTab)}
+                                      onChange={(e) => updateRowSKU('go-lua', idx, 'boVien', e.target.value)}
+                                      placeholder={getDefaultSKU('go-lua', activePricingSubTab, 'boVien', row.size)}
+                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
+                                      title="Sửa mã SKU thủ công"
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  onClick={() => {
+                                    updateActivePricing(prev => ({
+                                      ...prev,
+                                      goLua: prev.goLua.filter((_, i) => i !== idx)
+                                    }), true);
+                                  }}
+                                  className="text-neutral-500 hover:text-red-400 p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Built-in Tab: Dong Khung (hd-guong-sieu-bong, mika-pho-thong)
+              if (['hd-guong-sieu-bong', 'mika-pho-thong'].includes(activeItem.id)) {
+                const currentKey = activeItem.id === 'mika-pho-thong' ? 'mikaPhoThong' : 'hdGuong';
                 const rows = activePricing[currentKey];
                 const updateCell = (rowIndex: number, field: string, val: any) => {
                   updateActivePricing(prev => {
@@ -1469,21 +1637,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 );
               }
 
-              // Built-in Tab: anh-4k
-              if (activeItem.id === 'anh-4k') {
+              // Built-in Tab: Tab 5 (Album - Photobook)
+              if (activeItem.id === 'anh-4k' || activeItem.type === 'album') {
                 return (
                   <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
                     <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
                       <div>
                         <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
-                        <p className="text-xs text-neutral-400">Áp dụng {activePricing.columnLabels?.k4_k6 || defaultColumnLabels.k4_k6} và {activePricing.columnLabels?.titan2 || defaultColumnLabels.titan2}</p>
+                        <p className="text-xs text-neutral-400">Danh mục Album - Photobook gồm Kích Thước, Đơn Giá và Mã SKU chuẩn</p>
                       </div>
                       <button
                         onClick={() => {
-                          const newRow: Anh4KPriceRow = {
+                          const newRow: any = {
                             size: 'Mới',
-                            k4_k6: 0,
-                            titan2: 0
+                            donGia: 0,
+                            k4_k6: 0
                           };
                           updateActivePricing(prev => ({
                             ...prev,
@@ -1502,14 +1670,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <thead>
                           <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
                             <th className="p-3 w-16 text-center">Xếp</th>
-                            <th className="p-3 w-32">Kích Thước</th>
-                            <th className="p-3">{activePricing.columnLabels?.k4_k6 || defaultColumnLabels.k4_k6} (đ)</th>
-                            <th className="p-3">{activePricing.columnLabels?.titan2 || defaultColumnLabels.titan2} (đ)</th>
+                            <th className="p-3 w-36">Kích Thước</th>
+                            <th className="p-3">Đơn Giá VNĐ (Trọn gói)</th>
                             <th className="p-3 w-14 text-center">Xóa</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800 font-mono">
-                          {activePricing.anh4K.map((row, idx) => (
+                          {activePricing.anh4K.map((row: any, idx: number) => (
                             <tr key={idx} className="hover:bg-neutral-800/40">
                               <td className="p-2 text-center">
                                 <div className="flex items-center justify-center gap-1">
@@ -1553,60 +1720,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                       return { ...prev, anh4K: copy };
                                     }, true);
                                   }}
-                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-28 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-32 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
                               <td className="p-2 align-top">
                                 <div className="flex flex-col gap-1">
                                   <input
                                     type="number"
-                                    value={row.k4_k6 ?? ''}
+                                    value={row.donGia ?? row.k4_k6 ?? ''}
                                     onChange={(e) => {
                                       const val = e.target.value === '' ? null : Number(e.target.value);
                                       updateActivePricing(prev => {
                                         const copy = [...prev.anh4K];
-                                        copy[idx].k4_k6 = val;
+                                        (copy[idx] as any).donGia = val;
+                                        (copy[idx] as any).k4_k6 = val;
                                         return { ...prev, anh4K: copy };
                                       }, false);
                                     }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-32 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
                                   />
                                   <div className="flex items-center gap-1">
                                     <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
                                     <input
                                       type="text"
-                                      value={getCellSKU(row, 'k4_k6', 'anh-4k', activePricingSubTab)}
-                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'k4_k6', e.target.value)}
-                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'k4_k6', row.size)}
-                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
-                                      title="Sửa mã SKU thủ công"
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-2 align-top">
-                                <div className="flex flex-col gap-1">
-                                  <input
-                                    type="number"
-                                    value={row.titan2 ?? ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateActivePricing(prev => {
-                                        const copy = [...prev.anh4K];
-                                        copy[idx].titan2 = val;
-                                        return { ...prev, anh4K: copy };
-                                      }, false);
-                                    }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-amber-300 w-32 font-mono text-xs focus:outline-none focus:border-amber-400 font-semibold"
-                                  />
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
-                                    <input
-                                      type="text"
-                                      value={getCellSKU(row, 'titan2', 'anh-4k', activePricingSubTab)}
-                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'titan2', e.target.value)}
-                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'titan2', row.size)}
-                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                      value={getCellSKU(row, 'donGia', 'anh-4k', activePricingSubTab)}
+                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'donGia', e.target.value)}
+                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'donGia', row.size)}
+                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
                                       title="Sửa mã SKU thủ công"
                                     />
                                   </div>
@@ -2080,7 +2220,253 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* TAB 3: SHOP INFO */}
+        {/* TAB 3: GALLERY REAL PHOTOS */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900/80 border border-neutral-800 p-4 sm:p-5 rounded-2xl shadow-xl">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white font-serif-display flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#E7C184]" />
+                  <span>Quản Lý Ảnh Thực Tế Của Khách (Album & Khung Hoàn Thiện)</span>
+                </h2>
+                <p className="text-xs text-neutral-400 mt-1">
+                  Đăng tải hình ảnh thực tế sản phẩm xưởng đã bàn giao cho khách. Hiển thị ở cuối trang chủ với chế độ xem phóng to (Lightbox) tối ưu cho điện thoại & máy tính.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await saveRealPhotos(localRealPhotos);
+                    showToast('Đã lưu danh sách Ảnh Thực Tế lên Firestore thành công!');
+                  } catch (e) {
+                    showToast('Lỗi khi lưu danh sách ảnh thực tế!', 'error');
+                  }
+                }}
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSaving ? 'Đang lưu...' : 'Lưu Danh Sách Ảnh Thực Tế'}</span>
+              </button>
+            </div>
+
+            {/* Form Thêm Ảnh Mới */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-lg">
+              <h3 className="text-sm font-bold text-[#E7C184] uppercase tracking-wider flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                <span>Thêm Ảnh Thực Tế Mới</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Tiêu Đề Ảnh / Tên Sản Phẩm
+                  </label>
+                  <input
+                    type="text"
+                    value={newPhotoTitle}
+                    onChange={(e) => setNewPhotoTitle(e.target.value)}
+                    placeholder="vd: Khung Gỗ Óc Chó 60x90cm"
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Ghi Chú / Chú Thích Phụ
+                  </label>
+                  <input
+                    type="text"
+                    value={newPhotoCaption}
+                    onChange={(e) => setNewPhotoCaption(e.target.value)}
+                    placeholder="vd: Ảnh cưới phủ Mika bóng - Studio Hùng Decor"
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#E7C184]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Đường Dẫn Ảnh (URL) Hoặc Tải Từ Máy
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newPhotoUrl}
+                      onChange={(e) => setNewPhotoUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 bg-neutral-950 border border-neutral-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#E7C184] truncate"
+                    />
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 text-xs font-semibold cursor-pointer shrink-0 transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-[#E7C184]" />
+                      <span>Chọn file</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setNewPhotoUrl(event.target.result as string);
+                              showToast('Đã nạp file ảnh thành công!');
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newPhotoUrl.trim()) {
+                      alert('Vui lòng chọn file ảnh hoặc dán URL ảnh!');
+                      return;
+                    }
+                    const newPhoto: RealGalleryPhoto = {
+                      id: `photo_${Date.now()}`,
+                      title: newPhotoTitle.trim() || 'Ảnh thực tế sản phẩm',
+                      url: newPhotoUrl.trim(),
+                      caption: newPhotoCaption.trim() || 'Hùng Decor Fine Art Print'
+                    };
+                    setLocalRealPhotos(prev => [newPhoto, ...prev]);
+                    setNewPhotoTitle('');
+                    setNewPhotoUrl('');
+                    setNewPhotoCaption('');
+                    showToast('Đã thêm ảnh vào danh sách! Hãy bấm "Lưu Danh Sách Ảnh Thực Tế".');
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-[#E7C184] hover:bg-[#D4AF37] text-[#1C1917] font-bold text-xs sm:text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Thêm Ảnh Vào Thư Viện</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Danh Sách Ảnh Hiện Tại */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                  <span>Danh Sách Ảnh Đang Hiển Thị ({localRealPhotos.length})</span>
+                </h3>
+                <span className="text-xs text-neutral-400">
+                  Tỉ lệ hiển thị chuẩn: 2:3 (Đứng)
+                </span>
+              </div>
+
+              {localRealPhotos.length === 0 ? (
+                <div className="p-8 text-center text-neutral-500 text-xs">
+                  Chưa có ảnh nào trong thư viện. Thêm ảnh mới ở khung phía trên.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {localRealPhotos.map((photo, idx) => (
+                    <div
+                      key={photo.id || idx}
+                      className="bg-neutral-950 border border-neutral-800 rounded-xl p-3 flex flex-col justify-between space-y-3 relative group"
+                    >
+                      {/* Image Preview */}
+                      <div className="relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-neutral-900 border border-white/10">
+                        <img
+                          src={photo.url}
+                          alt={photo.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-mono font-bold text-[#E7C184]">
+                          #{idx + 1}
+                        </div>
+                      </div>
+
+                      {/* Photo inputs */}
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-neutral-400 uppercase">Tiêu đề</label>
+                          <input
+                            type="text"
+                            value={photo.title}
+                            onChange={(e) => {
+                              const copy = [...localRealPhotos];
+                              copy[idx] = { ...copy[idx], title: e.target.value };
+                              setLocalRealPhotos(copy);
+                            }}
+                            className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#E7C184]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-neutral-400 uppercase">Ghi chú</label>
+                          <input
+                            type="text"
+                            value={photo.caption || ''}
+                            onChange={(e) => {
+                              const copy = [...localRealPhotos];
+                              copy[idx] = { ...copy[idx], caption: e.target.value };
+                              setLocalRealPhotos(copy);
+                            }}
+                            className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-neutral-300 focus:outline-none focus:border-[#E7C184]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const updated = moveRowInArray(localRealPhotos, idx, 'up');
+                              setLocalRealPhotos(updated);
+                            }}
+                            className="p-1 rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
+                            title="Chuyển lên trước"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === localRealPhotos.length - 1}
+                            onClick={() => {
+                              const updated = moveRowInArray(localRealPhotos, idx, 'down');
+                              setLocalRealPhotos(updated);
+                            }}
+                            className="p-1 rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
+                            title="Chuyển xuống sau"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Xóa ảnh "${photo.title}" khỏi danh sách?`)) {
+                              setLocalRealPhotos(prev => prev.filter((_, i) => i !== idx));
+                            }
+                          }}
+                          className="p-1 text-neutral-500 hover:text-red-400 hover:bg-neutral-900 rounded transition-colors cursor-pointer"
+                          title="Xóa ảnh này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: SHOP INFO */}
         {activeTab === 'shop' && (
           <div className="max-w-2xl bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4">
             <div>

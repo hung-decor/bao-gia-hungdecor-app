@@ -1,4 +1,4 @@
-import { InEpMikaPriceRow, DongKhungPriceRow, Anh4KPriceRow, FrameSpecItem } from '../types';
+import { InEpMikaPriceRow, DongKhungPriceRow, Anh4KPriceRow, FrameSpecItem, RealGalleryPhoto } from '../types';
 
 // 1. BẢNG GIÁ IN ÉP VÀ GIÁ KHUNG XƯƠNG GIA CỐ (TAB 4)
 // Cấu trúc 6 cột: [Kích Thước] | [In Ảnh] | [In Ép Lụa] | [In Ép Mika] | [In Ép Plastic] | [Giá Khung Gia Cố]
@@ -87,22 +87,27 @@ export const hdGuongSieuBongKhungData: DongKhungPriceRow[] = [
 // Backwards compatibility alias
 export const micaGuongHDKhungData = hdGuongSieuBongKhungData;
 
-// 5. ẢNH 4K (Trang 5 PDF)
-export const anh4KPricingData: Anh4KPriceRow[] = [
-  { size: '15x21', k4_k6: 58000, titan2: 70000 },
-  { size: '20x30', k4_k6: 80000, titan2: 90000 },
-  { size: '25x38', k4_k6: 110000, titan2: 120000 },
-  { size: '30x45', k4_k6: 170000, titan2: 190000 },
-  { size: '35x50', k4_k6: 220000, titan2: 240000 },
-  { size: '40x60', k4_k6: 355000, titan2: 375000 },
-  { size: '50x75', k4_k6: 430000, titan2: 465000 },
-  { size: '60x90', k4_k6: 470000, titan2: 515000 },
-  { size: '60x120', k4_k6: 850000, titan2: 915000 },
-  { size: '70x110', k4_k6: 820000, titan2: 870000 },
-  { size: '80x120', k4_k6: 925000, titan2: 975000 },
-  { size: '90x130', k4_k6: 1260000, titan2: 1365000 },
-  { size: '100x150', k4_k6: 1580000, titan2: 1680000 }
+export interface AlbumPriceRow {
+  stt?: number;
+  size: string;
+  donGia: number | null;
+  k4_k6?: number | null; // Compatibility alias
+  titan2?: number | null; // Compatibility alias
+  skus?: { [colKey: string]: string };
+}
+
+// 5. ALBUM - PHOTOBOOK (TAB 5)
+export const albumPricingData: AlbumPriceRow[] = [
+  { size: '15x21', donGia: 250000, k4_k6: 250000, titan2: 250000 },
+  { size: '20x20', donGia: 350000, k4_k6: 350000, titan2: 350000 },
+  { size: '25x25', donGia: 408000, k4_k6: 408000, titan2: 408000 },
+  { size: '25x35', donGia: 590000, k4_k6: 590000, titan2: 590000 },
+  { size: '30x30', donGia: 650000, k4_k6: 650000, titan2: 650000 },
+  { size: 'Thêm trang/tờ', donGia: 37000, k4_k6: 37000, titan2: 37000 }
 ];
+
+// Backwards compatibility alias
+export const anh4KPricingData = albumPricingData as any;
 
 // Chú thích quy cách khung (Trang 7 PDF)
 export const frameReferenceGuide: FrameSpecItem[] = [
@@ -251,3 +256,42 @@ export const b2bShopInfo2026 = {
   address: 'Ql1a, Quỳnh Lưu, Nghệ An',
   workingHours: '08:00 - 20:00 từ thứ 2 đến thứ 7 hàng tuần',
 };
+
+export const defaultRealGalleryPhotos: RealGalleryPhoto[] = [
+  {
+    id: 'gal-1',
+    url: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop',
+    title: 'Ảnh Cưới Phóng Cỡ 60x90cm - Khung HT10 Trắng Hàn Quốc',
+    caption: 'Mika HD Gương 8K bóng mịn sắc nét, vào khung HT10 K4 trắng thanh lịch cho studio cưới.'
+  },
+  {
+    id: 'gal-2',
+    url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800&auto=format&fit=crop',
+    title: 'Ảnh Gia Đình Kỷ Niệm 70x110cm - Khung Nhôm Titan C Vàng Hồng',
+    caption: 'Mika Phổ Thông bề thế, viền nhôm Titan C ánh hồng sang trọng treo phòng khách.'
+  },
+  {
+    id: 'gal-3',
+    url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop',
+    title: 'Ảnh Chân Dung Nghệ Thuật 40x60cm - Gỗ Lụa Bo Viền',
+    caption: 'In Lab siêu mịn phủ lụa mờ chống chói, bo viền nâu mộc ấm áp.'
+  },
+  {
+    id: 'gal-4',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+    title: 'Ảnh Thời Trang Studio 50x75cm - Khung Nhôm Titan M Đen Mate',
+    caption: 'Mika HD Gương viền nhôm vuông vức, tông đen huyền bí cho không gian hiện đại.'
+  },
+  {
+    id: 'gal-5',
+    url: 'https://images.unsplash.com/photo-1581952976147-5a2d15560349?q=80&w=800&auto=format&fit=crop',
+    title: 'Album - Photobook Cưới Mở Cổng 30x30cm',
+    caption: 'Bìa mika tràn viền, ruột giấy ruột nhựa phẳng 180 độ màu sắc trung thực.'
+  },
+  {
+    id: 'gal-6',
+    url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=800&auto=format&fit=crop',
+    title: 'Ảnh Em Bé Sinh Nhật 35x50cm - Khung HT10 Gỗ Nhạt K6',
+    caption: 'Góc chụp trong trẻo, màu gỗ tự nhiên ấm áp hợp không gian phòng ngủ bé.'
+  }
+];
