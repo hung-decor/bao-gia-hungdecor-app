@@ -183,12 +183,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         hasFirestoreData = true;
       }
 
-      if (realPhotosResult && realPhotosResult.realPhotos && realPhotosResult.realPhotos.length > 0) {
+      if (realPhotosResult && Array.isArray(realPhotosResult.realPhotos)) {
         setRealPhotos(realPhotosResult.realPhotos);
         hasFirestoreData = true;
       } else {
-        setRealPhotos(defaultRealGalleryPhotos);
-        saveRealPhotosToFirestore(defaultRealGalleryPhotos).catch(console.warn);
+        setRealPhotos([]);
       }
 
       if (shopResult) {

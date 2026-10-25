@@ -28,7 +28,8 @@ import {
   syncPricingStructure,
   generateDefaultFreelancePricing,
   getDefaultSKU,
-  getCellSKU
+  getCellSKU,
+  compressImageFile
 } from '../../firebase/dataService';
 import { 
   Lock, 
@@ -2089,20 +2090,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     </div>
                   </div>
 
-                  {/* FIREBASE STORAGE IMAGE UPLOAD SECTION */}
+                  {/* DIRECT BASE64 IMAGE COMPRESSION UPLOAD SECTION */}
                   <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 text-[#E7C184]" />
                         <span className="text-xs font-bold text-white uppercase tracking-wider">
-                          Ảnh Chụp Thật (Firebase Storage)
+                          Ảnh Chụp Thật (Lưu Trực Tiếp Vào Firestore)
                         </span>
                       </div>
                       
-                      {/* Direct File Upload to Firebase Storage */}
+                      {/* Direct Compressed File Upload */}
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer transition-colors shadow">
                         <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingImage ? 'Đang tải lên Storage...' : 'Tải Ảnh Mới Lên'}</span>
+                        <span>{uploadingImage ? 'Đang nén ảnh...' : 'Tải Ảnh Mới Lên'}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -2113,10 +2114,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             if (!file) return;
                             try {
                               setUploadingImage(true);
-                              const downloadUrl = await uploadFrameImage(file, frameFormData.code || 'frame');
+                              const base64Url = await compressImageFile(file, 1200, 1200, 0.75);
                               const newImageItem = {
                                 name: `${frameFormData.name || frameFormData.code}: ${file.name}`,
-                                url: downloadUrl,
+                                url: base64Url,
                                 tag: frameFormData.code || 'Mẫu mới',
                                 colorHex: '#4A2A16'
                               };
@@ -2125,10 +2126,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                 hasRealPhotos: true,
                                 images: [...(prev.images || []), newImageItem]
                               }));
-                              showToast('Tải ảnh lên Firebase Storage thành công!');
+                              showToast('Đã nén & nạp ảnh mẫu khung thành công!');
                             } catch (err) {
                               console.error(err);
-                              showToast('Lỗi khi tải ảnh lên Storage', 'error');
+                              showToast('Lỗi khi nén ảnh!', 'error');
                             } finally {
                               setUploadingImage(false);
                             }
@@ -2156,7 +2157,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   }}
                                   className="bg-neutral-800 text-white px-2 py-0.5 rounded text-xs w-28 mr-2"
                                 />
-                                <span className="text-[10px] text-neutral-400 truncate hidden sm:inline">{img.url}</span>
+                                <span className="text-[10px] text-neutral-400 truncate hidden sm:inline">Chuỗi ảnh nén Base64</span>
                               </div>
                             </div>
                             <button
@@ -2173,7 +2174,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         ))
                       ) : (
                         <p className="text-xs text-neutral-500 italic py-2 text-center">
-                          Chưa có ảnh nào. Bấm nút <strong>"Tải Ảnh Mới Lên"</strong> để chọn ảnh từ máy hoặc chụp từ điện thoại tải lên Firebase Storage.
+                          Chưa có ảnh nào. Bấm nút <strong>"Tải Ảnh Mới Lên"</strong> để chọn ảnh từ máy hoặc chụp từ điện thoại (tự động nén lưu trực tiếp vào Firestore).
                         </p>
                       )}
                     </div>
@@ -2234,22 +2235,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await saveRealPhotos(localRealPhotos);
-                    showToast('Đã lưu danh sách Ảnh Thực Tế lên Firestore thành công!');
-                  } catch (e) {
-                    showToast('Lỗi khi lưu danh sách ảnh thực tế!', 'error');
-                  }
-                }}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50 shrink-0"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Đang lưu...' : 'Lưu Danh Sách Ảnh Thực Tế'}</span>
-              </button>
+              <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm('Bạn có chắc chắn muốn XÓA SẠCH toàn bộ ảnh thực tế khỏi hệ thống?')) {
+                      setLocalRealPhotos([]);
+                      if (typeof window !== 'undefined') {
+                        localStorage.removeItem('hung_decor_real_photos');
+                      }
+                      try {
+                        await saveRealPhotos([]);
+                        showToast('Đã xóa sạch toàn bộ ảnh thực tế trên Firestore thành công!');
+                      } catch (e) {
+                        showToast('Lỗi khi xóa ảnh trên Firestore', 'error');
+                      }
+                    }
+                  }}
+                  disabled={isSaving || localRealPhotos.length === 0}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 font-bold text-xs sm:text-sm transition-all shadow-md cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Xóa Hết Ảnh Mẫu</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await saveRealPhotos(localRealPhotos);
+                      showToast('Đã lưu danh sách Ảnh Thực Tế lên Firestore thành công!');
+                    } catch (e) {
+                      showToast('Lỗi khi lưu danh sách ảnh thực tế!', 'error');
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSaving ? 'Đang lưu...' : 'Lưu Danh Sách Ảnh Thực Tế'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Form Thêm Ảnh Mới */}
@@ -2305,17 +2331,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setNewPhotoUrl(event.target.result as string);
-                              showToast('Đã nạp file ảnh thành công!');
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const base64Url = await compressImageFile(file, 1200, 1200, 0.75);
+                            setNewPhotoUrl(base64Url);
+                            showToast('Đã nén & nạp file ảnh thành công!');
+                          } catch (err) {
+                            console.error(err);
+                            showToast('Lỗi khi nén ảnh!', 'error');
+                          }
                         }}
                       />
                     </label>
@@ -2447,13 +2473,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Xóa ảnh "${photo.title}" khỏi danh sách?`)) {
-                              setLocalRealPhotos(prev => prev.filter((_, i) => i !== idx));
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (window.confirm('Bạn có chắc muốn xóa ảnh này?')) {
+                              const photoId = photo.id;
+                              setLocalRealPhotos(prev => prev.filter((p, i) => photoId ? p.id !== photoId : i !== idx));
+                              showToast('Đã xóa ảnh khỏi danh sách!');
                             }
                           }}
-                          className="p-1 text-neutral-500 hover:text-red-400 hover:bg-neutral-900 rounded transition-colors cursor-pointer"
-                          title="Xóa ảnh này"
+                          className="relative z-20 inline-flex items-center justify-center p-2 text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 border border-red-500/30 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+                          title="Xóa ngay ảnh này"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

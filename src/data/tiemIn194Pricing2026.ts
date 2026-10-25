@@ -257,41 +257,4 @@ export const b2bShopInfo2026 = {
   workingHours: '08:00 - 20:00 từ thứ 2 đến thứ 7 hàng tuần',
 };
 
-export const defaultRealGalleryPhotos: RealGalleryPhoto[] = [
-  {
-    id: 'gal-1',
-    url: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop',
-    title: 'Ảnh Cưới Phóng Cỡ 60x90cm - Khung HT10 Trắng Hàn Quốc',
-    caption: 'Mika HD Gương 8K bóng mịn sắc nét, vào khung HT10 K4 trắng thanh lịch cho studio cưới.'
-  },
-  {
-    id: 'gal-2',
-    url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800&auto=format&fit=crop',
-    title: 'Ảnh Gia Đình Kỷ Niệm 70x110cm - Khung Nhôm Titan C Vàng Hồng',
-    caption: 'Mika Phổ Thông bề thế, viền nhôm Titan C ánh hồng sang trọng treo phòng khách.'
-  },
-  {
-    id: 'gal-3',
-    url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop',
-    title: 'Ảnh Chân Dung Nghệ Thuật 40x60cm - Gỗ Lụa Bo Viền',
-    caption: 'In Lab siêu mịn phủ lụa mờ chống chói, bo viền nâu mộc ấm áp.'
-  },
-  {
-    id: 'gal-4',
-    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
-    title: 'Ảnh Thời Trang Studio 50x75cm - Khung Nhôm Titan M Đen Mate',
-    caption: 'Mika HD Gương viền nhôm vuông vức, tông đen huyền bí cho không gian hiện đại.'
-  },
-  {
-    id: 'gal-5',
-    url: 'https://images.unsplash.com/photo-1581952976147-5a2d15560349?q=80&w=800&auto=format&fit=crop',
-    title: 'Album - Photobook Cưới Mở Cổng 30x30cm',
-    caption: 'Bìa mika tràn viền, ruột giấy ruột nhựa phẳng 180 độ màu sắc trung thực.'
-  },
-  {
-    id: 'gal-6',
-    url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=800&auto=format&fit=crop',
-    title: 'Ảnh Em Bé Sinh Nhật 35x50cm - Khung HT10 Gỗ Nhạt K6',
-    caption: 'Góc chụp trong trẻo, màu gỗ tự nhiên ấm áp hợp không gian phòng ngủ bé.'
-  }
-];
+export const defaultRealGalleryPhotos: RealGalleryPhoto[] = [];

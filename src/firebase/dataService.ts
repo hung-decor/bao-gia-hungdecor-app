@@ -1,6 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from './config';
+import { db } from './config';
 import { 
   InEpMikaPriceRow, 
   DongKhungPriceRow, 
@@ -165,7 +164,7 @@ export async function fetchRealPhotosFromFirestore(): Promise<{ realPhotos: Real
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      if (Array.isArray(d.photosList) && d.photosList.length > 0) {
+      if (Array.isArray(d.photosList)) {
         return {
           realPhotos: d.photosList,
           updatedAt: d.updatedAt || undefined,
@@ -174,10 +173,10 @@ export async function fetchRealPhotosFromFirestore(): Promise<{ realPhotos: Real
     }
     if (typeof window !== 'undefined') {
       const local = localStorage.getItem('hung_decor_real_photos');
-      if (local) {
+      if (local !== null) {
         try {
           const parsed = JSON.parse(local);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             return { realPhotos: parsed };
           }
         } catch (e) {
@@ -707,33 +706,68 @@ export async function seedAllDataToFirestore(): Promise<boolean> {
   return true;
 }
 
-// 8. Upload Frame Image to Firebase Storage
+// Helper: Compress and resize image file to Base64 (No Firebase Storage needed)
+export function compressImageFile(
+  file: File,
+  maxWidth: number = 1200,
+  maxHeight: number = 1200,
+  quality: number = 0.75
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(base64);
+      };
+      img.onerror = () => {
+        resolve(e.target?.result as string);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
+// 8. Upload Frame Image (Compressed Base64 directly into document, bypass Storage)
 export async function uploadFrameImageToStorage(
   file: File, 
-  frameCode: string,
-  onProgress?: (progress: number) => void
+  _frameCode?: string,
+  _onProgress?: (progress: number) => void
 ): Promise<string> {
-  // Sanitize filename
-  const cleanCode = frameCode.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-  const timestamp = Date.now();
-  const extension = file.name.split('.').pop() || 'jpg';
-  const storagePath = `frames/${cleanCode}/${timestamp}_${cleanCode}.${extension}`;
-  
-  const storageRef = ref(storage, storagePath);
-  
-  // Upload file
-  const snapshot = await uploadBytes(storageRef, file, {
-    contentType: file.type || 'image/jpeg',
-    customMetadata: {
-      frameCode: frameCode,
-      uploadedAt: new Date().toISOString(),
-      shop: 'Hùng Decor'
-    }
-  });
-  
-  // Get public download URL
-  const downloadUrl = await getDownloadURL(snapshot.ref);
-  return downloadUrl;
+  return await compressImageFile(file, 1200, 1200, 0.75);
 }
 
 // SKU SYSTEM & HUNG DECOR CATALOG PERSISTENCE
