@@ -142,18 +142,15 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
         <div className="bg-white rounded-2xl border border-[#E7E2DA] overflow-hidden shadow-xs w-full max-w-full relative">
           
           {/* DEDICATED HIGH-VISIBILITY FIXED BANNER FOR MOBILE ONLY */}
-          <div className="md:hidden bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white py-2.5 px-3 flex items-center justify-between shadow-sm border-b border-red-700">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className="text-xl text-yellow-300 inline-block animate-swipe-hand-infinite font-bold shrink-0 drop-shadow-xs">
+          <div className="md:hidden bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white py-2 px-3 flex items-center justify-center shadow-sm border-b border-red-700">
+            <div className="flex items-center gap-1.5 justify-center">
+              <span className="text-lg text-yellow-300 inline-block animate-swipe-hand-infinite font-bold shrink-0 drop-shadow-xs">
                 👈
               </span>
-              <span className="text-xs sm:text-sm font-black tracking-tight text-white uppercase drop-shadow-xs whitespace-nowrap">
+              <span className="text-[11px] sm:text-xs font-black tracking-tight text-white uppercase drop-shadow-xs whitespace-nowrap">
                 Vuốt sang trái để xem thêm các mẫu khung
               </span>
             </div>
-            <span className="font-mono font-extrabold text-[10px] text-amber-200 bg-black/25 px-2 py-0.5 rounded-md shrink-0 border border-white/20 ml-1">
-              Đơn vị: VNĐ
-            </span>
           </div>
 
           {/* DESKTOP TOP BAR */}
