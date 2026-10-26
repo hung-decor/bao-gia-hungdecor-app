@@ -151,12 +151,7 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh cụ ông cụ bà, ảnh phục chế truyền thống, ảnh gia đình, chân dung studio cỡ vừa và nhỏ.',
     variants: 'Cánh gián viền vàng, Vân gỗ đậm, Đen trơn, Trắng sáng',
     hasRealPhotos: true,
-    images: [
-      { id: 'img_kx_1', name: 'Khung KX: Cánh gián viền vàng (3cm)', url: '/images/frames/khung-k0.jpg', colorHex: '#4A2A16', tag: 'KX Cánh gián' },
-      { id: 'img_kx_2', name: 'Khung KX: Vân gỗ đậm (2cm)', url: '/images/frames/khung-k1.jpg', colorHex: '#5C381E', tag: 'KX Vân gỗ' },
-      { id: 'img_kx_3', name: 'Khung KX: Đen trơn (2cm)', url: '/images/frames/khung-k2.jpg', colorHex: '#1F1D1B', tag: 'KX Đen trơn' },
-      { id: 'img_kx_4', name: 'Khung KX: Trắng sáng (2cm)', url: '/images/frames/khung-k3.jpg', colorHex: '#FFFFFF', tag: 'KX Trắng' }
-    ],
+    images: [],
     notes: [
       { id: 'note_kx_1', text: 'Bản rộng 2.0cm - 3.0cm gia công chắc chắn chống cong vênh' },
       { id: 'note_kx_2', text: 'Tối ưu cho ảnh để bàn và ảnh treo tường đến cỡ 40x60' }
@@ -172,12 +167,7 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh cưới phong cách Hàn Quốc, ảnh thời trang, ảnh gia đình ấm cúng và phối cùng dòng ảnh 4K cao cấp.',
     variants: 'Trắng tinh tế, Đen huyền bí, Caffe trầm, Gỗ nhạt tự nhiên',
     hasRealPhotos: true,
-    images: [
-      { id: 'img_ht10_1', name: 'Khung HT10: Trắng Hàn Quốc', url: '/images/frames/khung-k4.JPG', colorHex: '#FFFFFF', tag: 'HT10 Trắng' },
-      { id: 'img_ht10_2', name: 'Khung HT10: Đen Hàn Quốc', url: '/images/frames/khung-k5.JPG', colorHex: '#1F1E1D', tag: 'HT10 Đen' },
-      { id: 'img_ht10_3', name: 'Khung HT10: Caffe trầm', url: '/images/frames/khung-k6-caffe.JPG', colorHex: '#3F281D', tag: 'HT10 Caffe' },
-      { id: 'img_ht10_4', name: 'Khung HT10: Gỗ nhạt tự nhiên', url: '/images/frames/khung-k6-nhat1.jpg', colorHex: '#A8815F', tag: 'HT10 Gỗ nhạt' }
-    ],
+    images: [],
     notes: [
       { id: 'note_ht10_1', text: 'Thành khung cao 3.5cm tạo hiệu ứng khối 3D sâu và sang trọng' },
       { id: 'note_ht10_2', text: 'Mặt viền 1.0cm thanh thoát, kết cấu xương gỗ gia cố chịu lực cao' }
@@ -193,9 +183,7 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh đại gia đình nhiều thế hệ, ảnh chân dung truyền thống trang trọng, tranh nghệ thuật khổ lớn.',
     variants: 'Cánh gián vân gỗ điểm viền chỉ đen (Bản rộng 5.5cm)',
     hasRealPhotos: true,
-    images: [
-      { id: 'img_k12_1', name: 'Khung K12: Cánh gián chỉ đen (Bản 5.5cm)', url: '/images/frames/khung-k10.JPG', colorHex: '#4A2A1A', tag: 'Khung K12' }
-    ],
+    images: [],
     notes: [
       { id: 'note_k12_1', text: 'Bản rộng 5.5cm bề thế, giúp tăng khoảng 10cm kích thước phủ bì' },
       { id: 'note_k12_2', text: 'Gia cố hậu chống ẩm mốc cho ảnh phóng đại gia đình' }
@@ -211,9 +199,7 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh đại gia đình, tranh treo phòng khách lớn, ảnh vinh danh và ảnh truyền thống cỡ đại.',
     variants: 'Cánh gián cổ điển chạy chỉ đen & rãnh khuyết chìm (Bản đại 10cm)',
     hasRealPhotos: true,
-    images: [
-      { id: 'img_b10_1', name: 'Khung Bản 10cm: Cánh gián chỉ đen', url: '/images/frames/khung-k11.jpg', colorHex: '#4E2712', tag: 'Khung Bản 10cm' }
-    ],
+    images: [],
     notes: [
       { id: 'note_b10_1', text: 'Bản đại 10cm siêu chắc, tăng khoảng 20cm kích thước phủ bì ảnh' },
       { id: 'note_b10_2', text: 'Hệ khung gỗ đầm nặng, phù hợp kích thước từ 60x90 trở lên' }
@@ -229,10 +215,7 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh thời trang, ảnh cưới Minimalist, ảnh chân dung nghệ thuật, ảnh sinh nhật và gia đình trẻ.',
     variants: 'Titan M Đen Mate, Titan M Bạc Mate',
     hasRealPhotos: true,
-    images: [
-      { id: 'img_titan1_1', name: 'Khung nhôm Titan M: Đen Mate', url: '/images/frames/khung-titan1-den.JPG', colorHex: '#181716', tag: 'Titan M Đen' },
-      { id: 'img_titan1_2', name: 'Khung nhôm Titan M: Bạc Mate', url: '/images/frames/khung-titan1-bac.JPG', colorHex: '#DCDDE1', tag: 'Titan M Bạc' }
-    ],
+    images: [],
     notes: [
       { id: 'note_titan1_1', text: 'Hợp kim nhôm nguyên khối siêu nhẹ, chống rỉ sét và bay màu' },
       { id: 'note_titan1_2', text: 'Góc bo ghép 45 độ chuẩn xác công nghệ CNC' }
@@ -248,10 +231,7 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh cưới sang trọng cao cấp, ảnh gia đình tân cổ điển và các tác phẩm trưng bày triển lãm.',
     variants: 'Titan C Vàng hồng bóng, Titan C Xanh rêu bóng',
     hasRealPhotos: true,
-    images: [
-      { id: 'img_titan2_1', name: 'Khung nhôm Titan C: Vàng hồng bóng', url: '/images/frames/khung-titan2-hong.jpg', colorHex: '#B87D72', tag: 'Titan C Hồng' },
-      { id: 'img_titan2_2', name: 'Khung nhôm Titan C: Xanh rêu bóng', url: '/images/frames/khung-titan2-xanh.JPG', colorHex: '#3B5245', tag: 'Titan C Xanh' }
-    ],
+    images: [],
     notes: [
       { id: 'note_titan2_1', text: 'Bản mặt chính diện 2.0cm phủ bóng công nghệ mạ điện cao cấp' },
       { id: 'note_titan2_2', text: 'Khả năng chịu lực cao, phù hợp cho mọi kích thước ảnh phóng' }
