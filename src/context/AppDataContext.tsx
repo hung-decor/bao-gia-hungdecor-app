@@ -22,6 +22,8 @@ import {
   defaultTabLabels,
   defaultColumnLabels,
   defaultMaterialColumnKeys,
+  getAllMaterialTabs,
+  getMaterialColumns,
   fetchPricingFromFirestore,
   savePricingToFirestore,
   fetchFreelancePricingFromFirestore,
@@ -57,6 +59,8 @@ export interface AppDataContextType {
   saveFreelancePricing: (newPricing?: FullPricingState) => Promise<boolean>;
   savePricing: (newPricing?: FullPricingState) => Promise<boolean>; // Compatibility alias for saveStudioPricing
   saveAllPricing: (newStudio?: FullPricingState, newFreelance?: FullPricingState) => Promise<boolean>;
+  deleteMaterialColumn: (materialTabId: string, colKey: string) => void;
+  addMaterialColumn: (materialTabId: string, colKey: string) => void;
   
   // Frames
   frames: FrameSpecItem[];
@@ -364,6 +368,70 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
+  const deleteMaterialColumn = (materialTabId: string, colKey: string) => {
+    const applyDelete = (prev: FullPricingState): FullPricingState => {
+      const allTabs = getAllMaterialTabs(prev);
+      const currentMatCols: Record<string, string[]> = {
+        ...(prev.materialColumnsMap || prev.materialColumnKeys || {})
+      };
+
+      allTabs.forEach(t => {
+        if (!currentMatCols[t.id]) {
+          currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+        } else {
+          currentMatCols[t.id] = [...currentMatCols[t.id]];
+        }
+      });
+
+      const currentList = currentMatCols[materialTabId] || getMaterialColumns(prev, materialTabId);
+      currentMatCols[materialTabId] = currentList.filter(k => k !== colKey);
+
+      return {
+        ...prev,
+        materialColumnKeys: currentMatCols,
+        materialColumnsMap: currentMatCols,
+      };
+    };
+
+    setStudioPricing(prev => applyDelete(prev));
+    setFreelancePricing(prev => applyDelete(prev));
+  };
+
+  const addMaterialColumn = (materialTabId: string, colKey: string) => {
+    const applyAdd = (prev: FullPricingState): FullPricingState => {
+      const allTabs = getAllMaterialTabs(prev);
+      const currentMatCols: Record<string, string[]> = {
+        ...(prev.materialColumnsMap || prev.materialColumnKeys || {})
+      };
+
+      allTabs.forEach(t => {
+        if (!currentMatCols[t.id]) {
+          currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+        } else {
+          currentMatCols[t.id] = [...currentMatCols[t.id]];
+        }
+      });
+
+      if (!currentMatCols[materialTabId]) {
+        currentMatCols[materialTabId] = [...getMaterialColumns(prev, materialTabId)];
+      } else {
+        currentMatCols[materialTabId] = [...currentMatCols[materialTabId]];
+      }
+      if (!currentMatCols[materialTabId].includes(colKey)) {
+        currentMatCols[materialTabId] = [...currentMatCols[materialTabId], colKey];
+      }
+
+      return {
+        ...prev,
+        materialColumnKeys: currentMatCols,
+        materialColumnsMap: currentMatCols,
+      };
+    };
+
+    setStudioPricing(prev => applyAdd(prev));
+    setFreelancePricing(prev => applyAdd(prev));
+  };
+
   const handleSaveShopInfo = async (newShopInfo?: B2BShopInfo): Promise<boolean> => {
     setIsSaving(true);
     const toSave = newShopInfo || shopInfo;
@@ -444,6 +512,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         saveFreelancePricing: handleSaveFreelancePricing,
         savePricing: handleSaveStudioPricing,
         saveAllPricing: handleSaveAllPricing,
+        deleteMaterialColumn,
+        addMaterialColumn,
         frames,
         setFrames,
         saveFrames: handleSaveFrames,

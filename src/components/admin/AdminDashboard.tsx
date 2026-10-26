@@ -73,6 +73,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     saveStudioPricing,
     saveFreelancePricing,
     saveAllPricing,
+    deleteMaterialColumn,
+    addMaterialColumn,
     frames,
     setFrames,
     saveFrames,
@@ -362,30 +364,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }
   }, [adminMaterialTabs, activeMaterialTabId]);
 
-  // Delete Material Tab Handler
+  // Delete Material Tab Handler (Instant, No blocking modal)
   const handleDeleteMaterialTab = (tabId: string, tabTitle: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa chất liệu "${tabTitle}" không?`)) {
-      updateActivePricing(prev => {
-        const isCustom = prev.customTabs?.some(ct => ct.id === tabId);
-        let updatedCustomTabs = prev.customTabs || [];
-        let updatedDeletedTabIds = prev.deletedTabIds || [];
+    updateActivePricing(prev => {
+      const isCustom = prev.customTabs?.some(ct => ct.id === tabId);
+      let updatedCustomTabs = prev.customTabs || [];
+      let updatedDeletedTabIds = prev.deletedTabIds || [];
 
-        if (isCustom) {
-          updatedCustomTabs = updatedCustomTabs.filter(ct => ct.id !== tabId);
-        } else {
-          if (!updatedDeletedTabIds.includes(tabId)) {
-            updatedDeletedTabIds = [...updatedDeletedTabIds, tabId];
-          }
+      if (isCustom) {
+        updatedCustomTabs = updatedCustomTabs.filter(ct => ct.id !== tabId);
+      } else {
+        if (!updatedDeletedTabIds.includes(tabId)) {
+          updatedDeletedTabIds = [...updatedDeletedTabIds, tabId];
         }
+      }
 
-        return {
-          ...prev,
-          customTabs: updatedCustomTabs,
-          deletedTabIds: updatedDeletedTabIds
-        };
-      }, true);
-      showToast(`Đã xóa chất liệu "${tabTitle}"! Hãy nhấn nút Lưu Bảng Giá để hoàn tất.`);
-    }
+      return {
+        ...prev,
+        customTabs: updatedCustomTabs,
+        deletedTabIds: updatedDeletedTabIds
+      };
+    }, true);
+    showToast(`Đã xóa chất liệu "${tabTitle}"! Hãy nhấn nút Lưu Bảng Giá để hoàn tất.`);
   };
 
   // Add Material Tab Handler
@@ -579,6 +579,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           [colKey]: title
         },
         materialColumnKeys: currentMatCols,
+        materialColumnsMap: currentMatCols,
         frameColumnKeys: [...(prev.frameColumnKeys || defaultFrameColumnKeys), colKey],
         inEpColumnKeys: [...(prev.inEpColumnKeys || defaultInEpColumnKeys), colKey],
         goLua: selectedTargetTabIds.includes('go-lua') ? addColToRows(prev.goLua) : prev.goLua,
@@ -601,53 +602,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     showToast(`Đã thêm cột khung "${title}" vào ${selectedTargetTabIds.length} chất liệu đã chọn!`);
   };
 
-  // Delete frame column handler for a SPECIFIC material tab ONLY
-  const handleDeleteColumnFromMaterial = (materialTabId: string, colKey: string, colTitle: string) => {
+  // Delete frame column handler for a SPECIFIC material tab ONLY (Instant, No blocking modal)
+  const handleDeleteColumnFromMaterial = (materialTabId: string, colKey: string, colTitle?: string) => {
     const currentTab = adminMaterialTabs.find(t => t.id === materialTabId);
     const tabName = currentTab?.title || materialTabId;
+    const title = colTitle || activePricing.columnLabels?.[colKey] || colKey;
 
-    if (window.confirm(`Bạn có chắc muốn xóa cột "${colTitle}" khỏi riêng chất liệu "${tabName}" không?\n(Cột này ở các chất liệu khác như Mika HD Gương... vẫn được giữ nguyên)`)) {
-      const applyDelete = (prev: FullPricingState): FullPricingState => {
-        const allTabs = getAllMaterialTabs(prev);
-        const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
-
-        // Ensure all tabs have their current column lists initialized
-        allTabs.forEach(t => {
-          if (!currentMatCols[t.id]) {
-            currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
-          }
-        });
-
-        // Remove colKey specifically from materialTabId
-        currentMatCols[materialTabId] = (currentMatCols[materialTabId] || []).filter(k => k !== colKey);
-
-        return {
-          ...prev,
-          materialColumnKeys: currentMatCols,
-        };
+    const applyDelete = (prev: FullPricingState): FullPricingState => {
+      const allTabs = getAllMaterialTabs(prev);
+      const currentMatCols: Record<string, string[]> = {
+        ...(prev.materialColumnsMap || prev.materialColumnKeys || {})
       };
 
-      setLocalStudioPricing(prev => applyDelete(prev));
-      setLocalFreelancePricing(prev => applyDelete(prev));
+      // Ensure all tabs have their current column lists initialized
+      allTabs.forEach(t => {
+        if (!currentMatCols[t.id]) {
+          currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+        } else {
+          currentMatCols[t.id] = [...currentMatCols[t.id]];
+        }
+      });
 
-      showToast(`Đã xóa cột "${colTitle}" khỏi riêng "${tabName}" thành công!`);
-    }
+      // Remove colKey specifically from materialTabId
+      const currentList = currentMatCols[materialTabId] || getMaterialColumns(prev, materialTabId);
+      currentMatCols[materialTabId] = currentList.filter(k => k !== colKey);
+
+      return {
+        ...prev,
+        materialColumnKeys: currentMatCols,
+        materialColumnsMap: currentMatCols,
+      };
+    };
+
+    setLocalStudioPricing(prev => applyDelete(prev));
+    setLocalFreelancePricing(prev => applyDelete(prev));
+    deleteMaterialColumn(materialTabId, colKey);
+
+    showToast(`Đã xóa cột "${title}" khỏi riêng "${tabName}"! Hãy bấm "Lưu Bảng Giá" để lưu.`);
   };
 
   // Add an existing column to the current material tab
   const handleAddExistingColumnToMaterial = (materialTabId: string, colKey: string) => {
     const applyAdd = (prev: FullPricingState): FullPricingState => {
       const allTabs = getAllMaterialTabs(prev);
-      const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
+      const currentMatCols: Record<string, string[]> = {
+        ...(prev.materialColumnsMap || prev.materialColumnKeys || {})
+      };
 
       allTabs.forEach(t => {
         if (!currentMatCols[t.id]) {
           currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+        } else {
+          currentMatCols[t.id] = [...currentMatCols[t.id]];
         }
       });
 
       if (!currentMatCols[materialTabId]) {
-        currentMatCols[materialTabId] = [];
+        currentMatCols[materialTabId] = [...getMaterialColumns(prev, materialTabId)];
+      } else {
+        currentMatCols[materialTabId] = [...currentMatCols[materialTabId]];
       }
       if (!currentMatCols[materialTabId].includes(colKey)) {
         currentMatCols[materialTabId] = [...currentMatCols[materialTabId], colKey];
@@ -656,11 +669,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       return {
         ...prev,
         materialColumnKeys: currentMatCols,
+        materialColumnsMap: currentMatCols,
       };
     };
 
     setLocalStudioPricing(prev => applyAdd(prev));
     setLocalFreelancePricing(prev => applyAdd(prev));
+    addMaterialColumn(materialTabId, colKey);
 
     const colTitle = activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
     showToast(`Đã thêm lại cột "${colTitle}" vào chất liệu này!`);
@@ -668,48 +683,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   // Optional: Global delete frame column handler
   const handleDeleteColumn = (colKey: string, colTitle: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn XÓA BỎ HOÀN TOÀN cột "${colTitle}" khỏi TẤT CẢ các bảng giá không?`)) {
-      const applyDeleteCol = (prev: FullPricingState): FullPricingState => {
-        const frameKeys = (prev.frameColumnKeys || defaultFrameColumnKeys).filter(k => k !== colKey);
-        const inEpKeys = (prev.inEpColumnKeys || defaultInEpColumnKeys).filter(k => k !== colKey);
+    const applyDeleteCol = (prev: FullPricingState): FullPricingState => {
+      const frameKeys = (prev.frameColumnKeys || defaultFrameColumnKeys).filter(k => k !== colKey);
+      const inEpKeys = (prev.inEpColumnKeys || defaultInEpColumnKeys).filter(k => k !== colKey);
 
-        const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
-        Object.keys(currentMatCols).forEach(tid => {
-          currentMatCols[tid] = currentMatCols[tid].filter(k => k !== colKey);
-        });
-
-        const removeColFromRows = (rows: any[]) => (rows || []).map(r => {
-          const copy = { ...r };
-          delete copy[colKey];
-          return copy;
-        });
-
-        const newColLabels = { ...(prev.columnLabels || defaultColumnLabels) };
-        delete newColLabels[colKey];
-
-        return {
-          ...prev,
-          columnLabels: newColLabels,
-          materialColumnKeys: currentMatCols,
-          frameColumnKeys: frameKeys,
-          inEpColumnKeys: inEpKeys,
-          goLua: removeColFromRows(prev.goLua),
-          hdGuong: removeColFromRows(prev.hdGuong),
-          mikaPhoThong: removeColFromRows(prev.mikaPhoThong),
-          inEpMika: removeColFromRows(prev.inEpMika),
-          anh4K: removeColFromRows(prev.anh4K),
-          customTabs: (prev.customTabs || []).map(ct => ({
-            ...ct,
-            rows: removeColFromRows(ct.rows)
-          }))
-        };
+      const currentMatCols: Record<string, string[]> = {
+        ...(prev.materialColumnsMap || prev.materialColumnKeys || {})
       };
+      Object.keys(currentMatCols).forEach(tid => {
+        currentMatCols[tid] = (currentMatCols[tid] || []).filter(k => k !== colKey);
+      });
 
-      setLocalStudioPricing(prev => applyDeleteCol(prev));
-      setLocalFreelancePricing(prev => applyDeleteCol(prev));
+      const removeColFromRows = (rows: any[]) => (rows || []).map(r => {
+        const copy = { ...r };
+        delete copy[colKey];
+        return copy;
+      });
 
-      showToast(`Đã xóa cột "${colTitle}" khỏi tất cả các bảng thành công!`);
-    }
+      const newColLabels = { ...(prev.columnLabels || defaultColumnLabels) };
+      delete newColLabels[colKey];
+
+      return {
+        ...prev,
+        columnLabels: newColLabels,
+        materialColumnKeys: currentMatCols,
+        materialColumnsMap: currentMatCols,
+        frameColumnKeys: frameKeys,
+        inEpColumnKeys: inEpKeys,
+        goLua: removeColFromRows(prev.goLua),
+        hdGuong: removeColFromRows(prev.hdGuong),
+        mikaPhoThong: removeColFromRows(prev.mikaPhoThong),
+        inEpMika: removeColFromRows(prev.inEpMika),
+        anh4K: removeColFromRows(prev.anh4K),
+        customTabs: (prev.customTabs || []).map(ct => ({
+          ...ct,
+          rows: removeColFromRows(ct.rows)
+        }))
+      };
+    };
+
+    setLocalStudioPricing(prev => applyDeleteCol(prev));
+    setLocalFreelancePricing(prev => applyDeleteCol(prev));
+
+    showToast(`Đã xóa cột "${colTitle}" khỏi tất cả các bảng thành công!`);
   };
 
   // Update SKU for a row cell
@@ -1335,8 +1351,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                 </label>
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteColumnFromMaterial(activeMaterialTabId, colKey, currentVal)}
-                                  className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDeleteColumnFromMaterial(activeMaterialTabId, colKey, currentVal);
+                                  }}
+                                  className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
                                   title={`Xóa cột "${currentVal}" khỏi riêng "${activeMatTitle}"`}
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -1487,8 +1507,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <span className="truncate">{colTitle}</span>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteColumnFromMaterial('in-ep-mika', colKey, colTitle)}
-                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteColumnFromMaterial('in-ep-mika', colKey, colTitle);
+                                      }}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
                                       title={`Xóa cột "${colTitle}" khỏi tab In Ép`}
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -1664,8 +1688,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <span className="truncate">{colTitle}</span>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteColumnFromMaterial('go-lua', colKey, colTitle)}
-                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteColumnFromMaterial('go-lua', colKey, colTitle);
+                                      }}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
                                       title={`Xóa cột "${colTitle}" khỏi riêng tab Gỗ Lụa Bo Viền`}
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -1829,8 +1857,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <span className="truncate">{colTitle}</span>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteColumnFromMaterial(activeItem.id, colKey, colTitle)}
-                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteColumnFromMaterial(activeItem.id, colKey, colTitle);
+                                      }}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
                                       title={`Xóa cột "${colTitle}" khỏi riêng "${activeItem.title}"`}
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -1978,8 +2010,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <span className="truncate">{colTitle}</span>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteColumnFromMaterial('anh-4k', colKey, colTitle)}
-                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteColumnFromMaterial('anh-4k', colKey, colTitle);
+                                      }}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
                                       title={`Xóa cột "${colTitle}" khỏi riêng tab Album`}
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -2133,14 +2169,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               <th key={colKey} className="p-2.5">
                                 <div className="flex items-center justify-between gap-1 group">
                                   <span className="truncate">{colTitle}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteColumnFromMaterial(activeItem.id, colKey, colTitle)}
-                                    className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
-                                    title={`Xóa cột "${colTitle}" khỏi riêng "${activeItem.title}"`}
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteColumnFromMaterial(activeItem.id, colKey, colTitle);
+                                      }}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
+                                      title={`Xóa cột "${colTitle}" khỏi riêng "${activeItem.title}"`}
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                               </th>
                             );
