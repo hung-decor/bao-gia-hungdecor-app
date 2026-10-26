@@ -20,11 +20,13 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) =
             <div className="font-serif-display text-xl font-bold text-white tracking-tight flex items-center gap-2">
               <span>Hùng <span className="text-[#FF0000] font-black">Decor</span></span>
               <span className="text-[10px] font-mono text-[#E7C184] bg-neutral-800 px-2 py-0.5 rounded">
-                B2B STUDIO LAB
+                {isFreelance ? 'FINE ART PRINT LAB' : 'B2B STUDIO LAB'}
               </span>
             </div>
             <p className="text-xs text-neutral-400 leading-relaxed max-w-md">
-              Xưởng in chuyên sâu phục vụ thợ ảnh tự do, studio cưới và phòng tranh nghệ thuật. Hệ thống máy in Pigment UltraChrome 12 màu chuẩn Lab, profile cân màu X-Rite i1Pro.
+              {isFreelance
+                ? 'Xưởng in và gia công khung tranh ảnh nghệ thuật cao cấp. Hệ thống máy in Pigment UltraChrome 12 màu chuẩn Lab, profile cân màu X-Rite i1Pro sắc nét.'
+                : 'Xưởng in chuyên sâu phục vụ đối tác nhiếp ảnh, studio cưới và phòng tranh nghệ thuật. Hệ thống máy in Pigment UltraChrome 12 màu chuẩn Lab, profile cân màu X-Rite i1Pro.'}
             </p>
             <div className="text-[11px] font-mono text-neutral-500 pt-1">
               Dung sai kích thước &lt; 0.5mm · Kiểm định màu Delta E &lt; 1.5
@@ -34,7 +36,7 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) =
           {/* Contact details */}
           <div className="md:col-span-5 space-y-2">
             <div className="font-semibold text-white uppercase tracking-wider text-[11px]">
-              Kênh Tiếp Nhận File Studio
+              {isFreelance ? 'Kênh Tư Vấn & Tiếp Nhận File In' : 'Kênh Tiếp Nhận File Studio'}
             </div>
             <div className="space-y-2 text-xs text-neutral-300">
               <div className="flex items-center gap-2">
@@ -44,12 +46,13 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) =
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-3.5 h-3.5 text-[#0068FF] shrink-0" />
                 <a
-                  href={`https://zalo.me/${shopInfo.zaloTho.replace(/\D/g, '')}`}
+                  href="https://zalo.me/0985600073"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:underline text-[#0068FF]"
                 >
-                  Zalo Thợ Nhận File: <strong className="text-[#0068FF] font-mono font-bold">{shopInfo.zaloTho}</strong>
+                  {isFreelance ? 'Zalo Tư Vấn & Nhận File: ' : 'Zalo Thợ Nhận File: '}
+                  <strong className="text-[#0068FF] font-mono font-bold">0985600073</strong>
                 </a>
               </div>
               <div className="flex items-start gap-2">
@@ -67,7 +70,7 @@ export const B2BFooter: React.FC<B2BFooterProps> = ({ shopInfo, onOpenAdmin }) =
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-500 gap-2 w-full max-w-full">
           <div>
-            © {new Date().getFullYear()} Hùng <span className="text-[#FF0000] font-black">Decor</span> - Xưởng In & Gia Công B2B Dành Cho Thợ Ảnh & Studio.
+            © {new Date().getFullYear()} Hùng <span className="text-[#FF0000] font-black">Decor</span> - {isFreelance ? 'Bảng Báo Giá Dịch Vụ In Ấn & Đóng Khung Cao Cấp.' : 'Xưởng In & Gia Công B2B Dành Cho Thợ Ảnh & Studio.'}
           </div>
           
           <div className="flex items-center gap-4">

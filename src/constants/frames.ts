@@ -20,6 +20,19 @@ export interface FrameConstantItem {
 
 export const FRAMES: FrameConstantItem[] = [
   {
+    id: 'boVien',
+    code: 'Bo Viền',
+    name: 'Bo Viền (Gia Công Viền Trực Tiếp Mép Ảnh)',
+    imageUrl: '',
+    image: '',
+    dimensions: 'Viền bọc tinh tế ôm khít mép ảnh',
+    description: 'Quy cách Bo viền chuyên dụng của xưởng Hùng Decor: Viền bọc ôm sát viền mép ảnh Gỗ Lụa hoặc Mika, giúp bảo vệ chống sứt mẻ va đập, tạo viền hoàn thiện gọn gàng, thanh thoát mà không cần lắp khung ngoài.',
+    suitableFor: 'Ảnh Mika, Ảnh Gỗ Lụa để bàn, ảnh treo tường tối giản không dùng khung ngoài.',
+    variants: 'Viền trắng, viền đen, viền vân gỗ',
+    hasRealPhotos: true,
+    images: []
+  },
+  {
     id: 'kx',
     code: 'Khung KX',
     name: 'Khung KX (Bản 2cm - 3cm Chống Cong Vênh)',
@@ -45,7 +58,7 @@ export const FRAMES: FrameConstantItem[] = [
     image: '/images/frames/khung-k4.JPG',
     dimensions: 'Thành cao 3.5 cm • Bản mặt chính diện 1.0 cm',
     description: 'Hệ Khung HT10 cao cấp xưởng Hùng Decor: Dạng khung hộp phong cách Hàn Quốc với thành khung cao 3.5cm tạo chiều sâu 3D sang trọng, bản mặt nhìn chính diện chỉ 1.0cm thanh mảnh, hiện đại mà cực kỳ đầm chắc. Gồm 4 tông màu: Trắng bóng nhẹ, Đen sang trọng, Vân gỗ Caffe trầm và Gỗ nhạt tự nhiên.',
-    suitableFor: 'Ảnh cưới phong cách Hàn Quốc, ảnh thời trang, ảnh gia đình ấm cúng và phối cùng dòng ảnh 4K cao cấp.',
+    suitableFor: 'Ảnh cưới phong cách Hàn Quốc, ảnh thời trang, ảnh gia đình ấm cúng và phối cùng dòng ảnh Mika cao cấp.',
     variants: 'Trắng tinh tế, Đen huyền bí, Caffe trầm, Gỗ nhạt tự nhiên',
     hasRealPhotos: true,
     images: [
@@ -71,6 +84,45 @@ export const FRAMES: FrameConstantItem[] = [
     ]
   },
   {
+    id: 'b25',
+    code: 'Bản khung 2.5cm',
+    name: 'Bản Khung 2.5cm (Viền Thanh Lịch Hiện Đại)',
+    imageUrl: '',
+    image: '',
+    dimensions: 'Bản rộng 2.5 cm • Thiết kế thanh thoát',
+    description: 'Hệ Bản khung 2.5cm của xưởng Hùng Decor: Độ rộng viền 2.5cm cân đối, mang lại vẻ đẹp thanh lịch, gọn gàng và chống cong vênh tối ưu cho dòng Ảnh Mika.',
+    suitableFor: 'Ảnh chân dung, ảnh cưới hiện đại, ảnh gia đình cỡ vừa và nhỏ.',
+    variants: 'Đen, Trắng, Vân gỗ tự nhiên, Cánh gián',
+    hasRealPhotos: true,
+    images: []
+  },
+  {
+    id: 'b4',
+    code: 'Bản khung 4cm',
+    name: 'Bản Khung 4cm (Viền Cứng Cáp Sang Trọng)',
+    imageUrl: '',
+    image: '',
+    dimensions: 'Bản rộng 4.0 cm • Kết cấu vững chãi',
+    description: 'Hệ Bản khung 4cm của xưởng Hùng Decor: Bản phào rộng 4.0cm tạo điểm nhấn sang trọng, đầm chắc cho bức ảnh mà vẫn giữ nét tinh tế cho không gian trưng bày.',
+    suitableFor: 'Ảnh cưới cổng, ảnh gia đình treo phòng khách, ảnh thờ trang trọng.',
+    variants: 'Cánh gián, Vân gỗ trầm, Trắng viền vàng, Đen hiện đại',
+    hasRealPhotos: true,
+    images: []
+  },
+  {
+    id: 'b8',
+    code: 'Bản khung 8cm',
+    name: 'Bản Khung 8cm (Bản Lớn Bề Thế Cao Cấp)',
+    imageUrl: '',
+    image: '',
+    dimensions: 'Bản rộng 8.0 cm • Tăng ~15cm phủ bì mỗi chiều',
+    description: 'Hệ Bản khung 8cm của xưởng Hùng Decor: Phào khung bản lớn 8.0cm bề thế, tôn vinh chiều sâu và sự uy nghi cho các tác phẩm Ảnh Mika khổ lớn.',
+    suitableFor: 'Ảnh đại gia đình, ảnh phóng lớn phòng khách, sảnh tiệc và hội trường.',
+    variants: 'Cánh gián cổ điển, Vân gỗ cao cấp, Hoa văn tân cổ điển',
+    hasRealPhotos: true,
+    images: []
+  },
+  {
     id: 'b10',
     code: 'Khung bản 10cm',
     name: 'Khung Bản 10cm (Bản Đại Cổ Điển Bề Thế)',
@@ -86,70 +138,57 @@ export const FRAMES: FrameConstantItem[] = [
     ]
   },
   {
-    id: 'titan1',
+    id: 'ttm',
     code: 'Khung nhôm Titan M',
-    name: 'Khung Nhôm Titan M (Siêu Mỏng Đen & Bạc Mate)',
-    imageUrl: '/images/frames/khung-titan1-den.JPG',
-    image: '/images/frames/khung-titan1-den.JPG',
-    dimensions: 'Viền nhôm siêu mỏng • Bản mặt thanh mảnh vuông vức',
-    description: 'Hệ Khung Nhôm Titan M của Hùng Decor: Chất liệu hợp kim nhôm Anode nguyên khối với viền siêu mỏng, phong cách tối giản thanh lịch, vuông vức, chống oxy hóa vĩnh viễn. Hiện có 2 màu: Bạc Mate và Đen Mate.',
-    suitableFor: 'Ảnh thời trang, ảnh cưới Minimalist, ảnh chân dung nghệ thuật, ảnh sinh nhật và gia đình trẻ.',
-    variants: 'Titan M Đen Mate, Titan M Bạc Mate',
-    hasRealPhotos: true,
-    images: [
-      { id: 'img_titan1_1', name: 'Khung nhôm Titan M: Đen Mate', url: '/images/frames/khung-titan1-den.JPG', colorHex: '#181716', tag: 'Titan M Đen' },
-      { id: 'img_titan1_2', name: 'Khung nhôm Titan M: Bạc Mate', url: '/images/frames/khung-titan1-bac.JPG', colorHex: '#DCDDE1', tag: 'Titan M Bạc' }
-    ]
-  },
-  {
-    id: 'titan2',
-    code: 'Khung nhôm Titan C',
-    name: 'Khung Nhôm Titan C (Bản 2cm Vàng Hồng & Xanh Rêu)',
-    imageUrl: '/images/frames/khung-titan2-hong.jpg',
-    image: '/images/frames/khung-titan2-hong.jpg',
-    dimensions: 'Bản mặt chính diện 2.0 cm • Cấu trúc đầm chắc',
-    description: 'Hệ Khung Nhôm Titan C của Hùng Decor: Dòng khung hợp kim kim loại cao cấp với bản mặt chính diện rộng 2.0cm tạo cảm giác vững chãi, thời thượng. Hai gam màu phủ bóng sang trọng: Vàng Hồng bóng (Rose Gold) và Xanh Rêu bóng cổ điển.',
-    suitableFor: 'Ảnh cưới sang trọng cao cấp, ảnh gia đình tân cổ điển và các tác phẩm trưng bày triển lãm.',
-    variants: 'Titan C Vàng hồng bóng, Titan C Xanh rêu bóng',
-    hasRealPhotos: true,
-    images: [
-      { id: 'img_titan2_1', name: 'Khung nhôm Titan C: Vàng hồng bóng', url: '/images/frames/khung-titan2-hong.jpg', colorHex: '#B87D72', tag: 'Titan C Hồng' },
-      { id: 'img_titan2_2', name: 'Khung nhôm Titan C: Xanh rêu bóng', url: '/images/frames/khung-titan2-xanh.JPG', colorHex: '#3B5245', tag: 'Titan C Xanh' }
-    ]
-  },
-  {
-    id: 'boVien',
-    code: 'Bo Viền',
-    name: 'Bo Viền (Gia Công Viền Trực Tiếp Mép Ảnh)',
+    name: 'Khung Nhôm Titan M (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
     imageUrl: '',
     image: '',
-    dimensions: 'Viền bọc tinh tế ôm khít mép ảnh',
-    description: 'Quy cách Bo viền chuyên dụng của xưởng Hùng Decor: Viền bọc ôm sát viền mép ảnh Gỗ Lụa hoặc Mika, giúp bảo vệ chống sứt mẻ va đập, tạo viền hoàn thiện gọn gàng, thanh thoát mà không cần lắp khung ngoài.',
-    suitableFor: 'Ảnh Gỗ Lụa để bàn, ảnh treo tường tối giản không dùng khung ngoài.',
-    variants: 'Viền trắng, viền đen, viền vân gỗ',
-    hasRealPhotos: true,
+    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
+    description: 'Hệ Khung nhôm Titan M chính hãng tại xưởng Hùng Decor: Kết cấu hợp kim nhôm định hình cao cấp, bề mặt hoàn thiện tinh xảo, vuông vức và chống cong vênh, chuyên dụng cho dòng Ảnh Mika cao cấp.',
+    suitableFor: 'Ảnh Mika cao cấp, ảnh cưới hiện đại, ảnh chân dung nghệ thuật và ảnh trưng bày phòng khách.',
+    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
+    hasRealPhotos: false,
+    images: []
+  },
+  {
+    id: 'ttc',
+    code: 'Khung nhôm Titan C',
+    name: 'Khung Nhôm Titan C (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
+    imageUrl: '',
+    image: '',
+    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
+    description: 'Hệ Khung nhôm Titan C chính hãng tại xưởng Hùng Decor: Thiết kế viền nhôm hợp kim cứng cáp, sang trọng, gia công góc ghép chuẩn xác tại xưởng Hùng Decor.',
+    suitableFor: 'Ảnh Mika cổng cưới, ảnh gia đình và các tác phẩm ảnh phóng lớn sang trọng.',
+    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
+    hasRealPhotos: false,
     images: []
   }
 ];
 
 export const EXACT_FRAME_PATHS: Record<string, string> = {
+  'boVien': '',
+  'Bo Viền': '',
   'kx': '/images/frames/khung-k0.jpg',
   'Khung KX': '/images/frames/khung-k0.jpg',
   'ht10': '/images/frames/khung-k4.JPG',
   'Khung HT10': '/images/frames/khung-k4.JPG',
   'k12': '/images/frames/khung-k10.JPG',
   'Khung K12': '/images/frames/khung-k10.JPG',
+  'b25': '',
+  'Bản khung 2.5cm': '',
+  'b4': '',
+  'Bản khung 4cm': '',
+  'b8': '',
+  'Bản khung 8cm': '',
   'b10': '/images/frames/khung-k11.jpg',
   'Bản 10cm': '/images/frames/khung-k11.jpg',
   'Khung bản 10cm': '/images/frames/khung-k11.jpg',
-  'titan1': '/images/frames/khung-titan1-den.JPG',
-  'Titan M': '/images/frames/khung-titan1-den.JPG',
-  'Khung nhôm Titan M': '/images/frames/khung-titan1-den.JPG',
-  'titan2': '/images/frames/khung-titan2-hong.jpg',
-  'Titan C': '/images/frames/khung-titan2-hong.jpg',
-  'Khung nhôm Titan C': '/images/frames/khung-titan2-hong.jpg',
-  'boVien': '',
-  'Bo Viền': ''
+  'ttm': '',
+  'Titan M': '',
+  'Khung nhôm Titan M': '',
+  'ttc': '',
+  'Titan C': '',
+  'Khung nhôm Titan C': ''
 };
 
 export function getFrameImageSrc(urlOrCode: string): string {

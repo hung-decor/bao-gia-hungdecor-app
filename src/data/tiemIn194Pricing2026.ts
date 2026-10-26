@@ -23,66 +23,66 @@ export const inEpMikaPricingData: InEpMikaPriceRow[] = [
 // Backwards compatibility alias
 export const boVienPricingData = inEpMikaPricingData;
 
-// 2. GỖ LỤA ĐÓNG KHUNG & IN ẢNH LAB (TAB 1)
+// 2. GỖ LỤA ĐÓNG KHUNG & IN ẢNH LAB (TAB 5)
 // Cột Bo viền lụa của xưởng, các cột khung khác để trống '-'
 export const goLuaDongKhungData: DongKhungPriceRow[] = [
-  { size: '13x18', boVien: 18000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '15x21', boVien: 20000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '20x30', boVien: 30000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '25x38', boVien: null, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '30x45', boVien: 50000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '35x50', boVien: 70000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '40x60', boVien: 90000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '50x75', boVien: 120000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '60x90', boVien: 160000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '60x120', boVien: null, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '70x110', boVien: 270000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '80x120', boVien: 350000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '90x140', boVien: 500000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '100x150', boVien: null, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '100x180', boVien: null, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null }
+  { size: '13x18', boVien: 18000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '15x21', boVien: 20000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '20x30', boVien: 30000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '25x38', boVien: null, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '30x45', boVien: 50000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '35x50', boVien: 70000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '40x60', boVien: 90000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '50x75', boVien: 120000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '60x90', boVien: 160000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '60x120', boVien: null, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '70x110', boVien: 270000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '80x120', boVien: 350000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '90x140', boVien: 500000, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '100x150', boVien: null, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null },
+  { size: '100x180', boVien: null, kx: null, ht10: null, k12: null, b10: null, ttm: null, ttc: null }
 ];
 
-// 3. MIKA PHỔ THÔNG ĐÓNG KHUNG (TAB 3)
-// Đầy đủ Bo viền, Khung KX, HT10, K12, Bản 10cm, Titan M, Titan C theo chuẩn xưởng Hùng Decor
+// 3. MIKA PHỔ THÔNG ĐÓNG KHUNG (TAB 1: 1. Ảnh Mika)
+// Đầy đủ Bo viền, Khung KX, HT10, K12, Bản 2.5cm, Bản 4cm, Bản 8cm, Bản 10cm, Titan M (ttm), Titan C (ttc)
 export const mikaPhoThongData: DongKhungPriceRow[] = [
-  { size: '13x18', boVien: 20000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
-  { size: '15x21', boVien: 27000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: 35000, titan2: 45000 },
-  { size: '20x30', boVien: 37000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: 80000, titan2: 70000 },
-  { size: '25x38', boVien: 60000, kx: null, ht10: 150000, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
-  { size: '30x45', boVien: 75000, kx: null, ht10: null, k12: 150000, b25: null, b4: null, b8: null, b10: null, titan1: 120000, titan2: 170000 },
-  { size: '35x50', boVien: 85000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
-  { size: '40x60', boVien: 105000, kx: 220000, ht10: 240000, k12: 170000, b25: null, b4: null, b8: null, b10: null, titan1: 140000, titan2: 240000 },
-  { size: '50x75', boVien: 130000, kx: 300000, ht10: 320000, k12: 230000, b25: null, b4: null, b8: null, b10: null, titan1: 190000, titan2: 270000 },
-  { size: '60x90', boVien: 190000, kx: 350000, ht10: 370000, k12: 300000, b25: null, b4: null, b8: null, b10: null, titan1: 240000, titan2: 320000 },
-  { size: '60x120', boVien: 320000, kx: null, ht10: null, k12: 400000, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: 450000 },
-  { size: '70x110', boVien: 300000, kx: 470000, ht10: 470000, k12: 360000, b25: null, b4: null, b8: null, b10: 652000, titan1: 430000, titan2: 470000 },
-  { size: '80x120', boVien: 460000, kx: 660000, ht10: 660000, k12: 510000, b25: null, b4: null, b8: null, b10: 844000, titan1: null, titan2: 660000 },
-  { size: '90x140', boVien: 560000, kx: 740000, ht10: 900000, k12: 700000, b25: null, b4: null, b8: null, b10: 992000, titan1: null, titan2: null },
-  { size: '100x150', boVien: null, kx: 1014000, ht10: 1082000, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
-  { size: '100x180', boVien: null, kx: null, ht10: 1780000, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null }
+  { size: '13x18', boVien: 20000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: null, ttc: null },
+  { size: '15x21', boVien: 27000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: 35000, ttc: 45000 },
+  { size: '20x30', boVien: 37000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: 80000, ttc: 70000 },
+  { size: '25x38', boVien: 60000, kx: null, ht10: 150000, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: null, ttc: null },
+  { size: '30x45', boVien: 75000, kx: null, ht10: null, k12: 150000, b25: null, b4: null, b8: null, b10: null, ttm: 120000, ttc: 170000 },
+  { size: '35x50', boVien: 85000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: null, ttc: null },
+  { size: '40x60', boVien: 105000, kx: 220000, ht10: 240000, k12: 170000, b25: null, b4: null, b8: null, b10: null, ttm: 140000, ttc: 240000 },
+  { size: '50x75', boVien: 130000, kx: 300000, ht10: 320000, k12: 230000, b25: null, b4: null, b8: null, b10: null, ttm: 190000, ttc: 270000 },
+  { size: '60x90', boVien: 190000, kx: 350000, ht10: 370000, k12: 300000, b25: null, b4: null, b8: null, b10: null, ttm: 240000, ttc: 320000 },
+  { size: '60x120', boVien: 320000, kx: null, ht10: null, k12: 400000, b25: null, b4: null, b8: null, b10: null, ttm: null, ttc: 450000 },
+  { size: '70x110', boVien: 300000, kx: 470000, ht10: 470000, k12: 360000, b25: null, b4: null, b8: null, b10: 652000, ttm: 430000, ttc: 470000 },
+  { size: '80x120', boVien: 460000, kx: 660000, ht10: 660000, k12: 510000, b25: null, b4: null, b8: null, b10: 844000, ttm: null, ttc: 660000 },
+  { size: '90x140', boVien: 560000, kx: 740000, ht10: 900000, k12: 700000, b25: null, b4: null, b8: null, b10: 992000, ttm: null, ttc: null },
+  { size: '100x150', boVien: null, kx: 1014000, ht10: 1082000, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: null, ttc: null },
+  { size: '100x180', boVien: null, kx: null, ht10: 1780000, k12: null, b25: null, b4: null, b8: null, b10: null, ttm: null, ttc: null }
 ];
 // Backwards compatibility alias
 export const micaPhoThongData = mikaPhoThongData;
 
 // 4. MIKA HD GƯƠNG 8K (TAB 2)
-// Giữ nguyên Bo viền, Titan M, Titan C; Các cột khung gỗ để trống '-'
+// Giữ nguyên Bo viền, Titan M (ttm), Titan C (ttc); Các cột khung gỗ để trống '-'
 export const hdGuongSieuBongKhungData: DongKhungPriceRow[] = [
-  { size: '13x18', boVien: 30000, kx: null, ht10: null, k12: null, b10: null, titan1: 45000, titan2: 55000 },
-  { size: '15x21', boVien: 35000, kx: null, ht10: null, k12: null, b10: null, titan1: 53000, titan2: 73000 },
-  { size: '20x30', boVien: 50000, kx: null, ht10: null, k12: null, b10: null, titan1: 68000, titan2: 88000 },
-  { size: '25x38', boVien: 75000, kx: null, ht10: null, k12: null, b10: null, titan1: 105000, titan2: 130000 },
-  { size: '30x45', boVien: 90000, kx: null, ht10: null, k12: null, b10: null, titan1: 140000, titan2: 170000 },
-  { size: '35x50', boVien: 110000, kx: null, ht10: null, k12: null, b10: null, titan1: 155000, titan2: 190000 },
-  { size: '40x60', boVien: 140000, kx: null, ht10: null, k12: null, b10: null, titan1: 185000, titan2: 225000 },
-  { size: '50x75', boVien: 160000, kx: null, ht10: null, k12: null, b10: null, titan1: 245000, titan2: 295000 },
-  { size: '60x90', boVien: 260000, kx: null, ht10: null, k12: null, b10: null, titan1: 290000, titan2: 340000 },
-  { size: '60x120', boVien: 360000, kx: null, ht10: null, k12: null, b10: null, titan1: 505000, titan2: 545000 },
-  { size: '70x110', boVien: 360000, kx: null, ht10: null, k12: null, b10: null, titan1: 505000, titan2: 545000 },
-  { size: '80x120', boVien: 580000, kx: null, ht10: null, k12: null, b10: null, titan1: 640000, titan2: 720000 },
-  { size: '90x140', boVien: 680000, kx: null, ht10: null, k12: null, b10: null, titan1: 780000, titan2: 890000 },
-  { size: '100x150', boVien: 770000, kx: null, ht10: null, k12: null, b10: null, titan1: 970000, titan2: 1070000 },
-  { size: '100x180', boVien: 950000, kx: null, ht10: null, k12: null, b10: null, titan1: 1210000, titan2: 1320000 }
+  { size: '13x18', boVien: 30000, kx: null, ht10: null, k12: null, b10: null, ttm: 45000, ttc: 55000 },
+  { size: '15x21', boVien: 35000, kx: null, ht10: null, k12: null, b10: null, ttm: 53000, ttc: 73000 },
+  { size: '20x30', boVien: 50000, kx: null, ht10: null, k12: null, b10: null, ttm: 68000, ttc: 88000 },
+  { size: '25x38', boVien: 75000, kx: null, ht10: null, k12: null, b10: null, ttm: 105000, ttc: 130000 },
+  { size: '30x45', boVien: 90000, kx: null, ht10: null, k12: null, b10: null, ttm: 140000, ttc: 170000 },
+  { size: '35x50', boVien: 110000, kx: null, ht10: null, k12: null, b10: null, ttm: 155000, ttc: 190000 },
+  { size: '40x60', boVien: 140000, kx: null, ht10: null, k12: null, b10: null, ttm: 185000, ttc: 225000 },
+  { size: '50x75', boVien: 160000, kx: null, ht10: null, k12: null, b10: null, ttm: 245000, ttc: 295000 },
+  { size: '60x90', boVien: 260000, kx: null, ht10: null, k12: null, b10: null, ttm: 290000, ttc: 340000 },
+  { size: '60x120', boVien: 360000, kx: null, ht10: null, k12: null, b10: null, ttm: 505000, ttc: 545000 },
+  { size: '70x110', boVien: 360000, kx: null, ht10: null, k12: null, b10: null, ttm: 505000, ttc: 545000 },
+  { size: '80x120', boVien: 580000, kx: null, ht10: null, k12: null, b10: null, ttm: 640000, ttc: 720000 },
+  { size: '90x140', boVien: 680000, kx: null, ht10: null, k12: null, b10: null, ttm: 780000, ttc: 890000 },
+  { size: '100x150', boVien: 770000, kx: null, ht10: null, k12: null, b10: null, ttm: 970000, ttc: 1070000 },
+  { size: '100x180', boVien: 950000, kx: null, ht10: null, k12: null, b10: null, ttm: 1210000, ttc: 1320000 }
 ];
 // Backwards compatibility alias
 export const micaGuongHDKhungData = hdGuongSieuBongKhungData;
@@ -92,55 +92,39 @@ export interface AlbumPriceRow {
   size: string;
   donGia: number | null;
   k4_k6?: number | null; // Compatibility alias
-  titan2?: number | null; // Compatibility alias
   skus?: { [colKey: string]: string };
 }
 
-// 5. ALBUM - PHOTOBOOK (TAB 5)
+// 5. ALBUM - PHOTOBOOK (TAB 3)
 export const albumPricingData: AlbumPriceRow[] = [
-  { size: '15x21', donGia: 250000, k4_k6: 250000, titan2: 250000 },
-  { size: '20x20', donGia: 350000, k4_k6: 350000, titan2: 350000 },
-  { size: '25x25', donGia: 408000, k4_k6: 408000, titan2: 408000 },
-  { size: '25x35', donGia: 590000, k4_k6: 590000, titan2: 590000 },
-  { size: '30x30', donGia: 650000, k4_k6: 650000, titan2: 650000 },
-  { size: 'Thêm trang/tờ', donGia: 37000, k4_k6: 37000, titan2: 37000 }
+  { size: '15x21', donGia: 250000, k4_k6: 250000 },
+  { size: '20x20', donGia: 350000, k4_k6: 350000 },
+  { size: '25x25', donGia: 408000, k4_k6: 408000 },
+  { size: '25x35', donGia: 590000, k4_k6: 590000 },
+  { size: '30x30', donGia: 650000, k4_k6: 650000 },
+  { size: 'Thêm trang/tờ', donGia: 37000, k4_k6: 37000 }
 ];
 
 // Backwards compatibility alias
 export const anh4KPricingData = albumPricingData as any;
 
-// Chú thích quy cách khung xưởng Hùng Decor 2026
+// Danh mục 10 mẫu khung thuộc Tab 1. Ảnh Mika của xưởng Hùng Decor 2026:
+// (Bo Viền, Khung KX, Khung HT10, Khung K12, Bản khung 2.5cm, Bản khung 4cm, Bản khung 8cm, Khung bản 10cm, Khung nhôm Titan M, Khung nhôm Titan C)
 export const frameReferenceGuide: FrameSpecItem[] = [
-  {
-    id: 'frame_album',
-    code: 'Album - Photobook',
-    name: 'Album - Photobook (Mặt Mika 8K & Bìa Da/Mika Cao Cấp)',
-    dimensions: 'Kích thước đa dạng • Mở phẳng 180 độ',
-    description: 'Dòng Album - Photobook cao cấp xưởng Hùng Decor: Công nghệ in Lab Mới sắc nét, mở phẳng 180 độ không cong vênh, chống ẩm mốc. Đa dạng kích thước 15x21, 20x20, 25x25, 25x35, 30x30.',
-    suitableFor: 'Album cưới cao cấp, Album phóng sự cưới, Album em bé, Photobook gia đình và du lịch.',
-    variants: 'Bìa Mika 8K, Bìa Da cao cấp, Bìa Gỗ lụa',
-    hasRealPhotos: true,
-    images: [],
-    notes: [
-      { id: 'note_album_1', text: 'Trang in mở phẳng 180 độ sắc nét công nghệ in Lab' },
-      { id: 'note_album_2', text: 'Gia công đóng cuốn chắc chắn chống ẩm bền bỉ' }
-    ],
-    displayOrder: 0
-  },
   {
     id: 'frame_boVien',
     code: 'Bo Viền',
     name: 'Bo Viền (Gia Công Viền Trực Tiếp Mép Ảnh)',
     dimensions: 'Viền bọc tinh tế ôm khít mép ảnh',
     description: 'Quy cách Bo viền chuyên dụng của xưởng Hùng Decor: Viền bọc ôm sát viền mép ảnh Gỗ Lụa hoặc Mika, giúp bảo vệ chống sứt mẻ va đập, tạo viền hoàn thiện gọn gàng, thanh thoát mà không cần lắp khung ngoài.',
-    suitableFor: 'Ảnh Gỗ Lụa để bàn, ảnh treo tường tối giản không dùng khung ngoài.',
+    suitableFor: 'Ảnh Mika, Ảnh Gỗ Lụa để bàn, ảnh treo tường tối giản không dùng khung ngoài.',
     variants: 'Viền trắng, viền đen, viền vân gỗ',
     hasRealPhotos: true,
     images: [],
     notes: [
       { id: 'note_boVien_1', text: 'Bảo vệ cạnh ảnh chống sứt mép, độ bền cao' }
     ],
-    displayOrder: 1
+    displayOrder: 0
   },
   {
     id: 'frame_kx',
@@ -151,12 +135,17 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh cụ ông cụ bà, ảnh phục chế truyền thống, ảnh gia đình, chân dung studio cỡ vừa và nhỏ.',
     variants: 'Cánh gián viền vàng, Vân gỗ đậm, Đen trơn, Trắng sáng',
     hasRealPhotos: true,
-    images: [],
+    images: [
+      { id: 'img_kx_1', name: 'Khung KX: Cánh gián viền vàng (3cm)', url: '/images/frames/khung-k0.jpg', colorHex: '#4A2A16', tag: 'KX Cánh gián' },
+      { id: 'img_kx_2', name: 'Khung KX: Vân gỗ đậm (2cm)', url: '/images/frames/khung-k1.jpg', colorHex: '#5C381E', tag: 'KX Vân gỗ' },
+      { id: 'img_kx_3', name: 'Khung KX: Đen trơn (2cm)', url: '/images/frames/khung-k2.jpg', colorHex: '#1F1D1B', tag: 'KX Đen trơn' },
+      { id: 'img_kx_4', name: 'Khung KX: Trắng sáng (2cm)', url: '/images/frames/khung-k3.jpg', colorHex: '#FFFFFF', tag: 'KX Trắng' }
+    ],
     notes: [
       { id: 'note_kx_1', text: 'Bản rộng 2.0cm - 3.0cm gia công chắc chắn chống cong vênh' },
       { id: 'note_kx_2', text: 'Tối ưu cho ảnh để bàn và ảnh treo tường đến cỡ 40x60' }
     ],
-    displayOrder: 2
+    displayOrder: 1
   },
   {
     id: 'frame_ht10',
@@ -164,15 +153,20 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     name: 'Khung HT10 (Khung Hộp Kiểu Hàn Quốc Cao Cấp)',
     dimensions: 'Thành cao 3.5 cm • Bản mặt chính diện 1.0 cm',
     description: 'Hệ Khung HT10 cao cấp xưởng Hùng Decor: Dạng khung hộp phong cách Hàn Quốc với thành khung cao 3.5cm tạo chiều sâu 3D sang trọng, bản mặt nhìn chính diện chỉ 1.0cm thanh mảnh, hiện đại mà cực kỳ đầm chắc. Gồm 4 tông màu: Trắng bóng nhẹ, Đen sang trọng, Vân gỗ Caffe trầm và Gỗ nhạt tự nhiên.',
-    suitableFor: 'Ảnh cưới phong cách Hàn Quốc, ảnh thời trang, ảnh gia đình ấm cúng và phối cùng dòng ảnh 4K cao cấp.',
+    suitableFor: 'Ảnh cưới phong cách Hàn Quốc, ảnh thời trang, ảnh gia đình ấm cúng và phối cùng dòng ảnh Mika cao cấp.',
     variants: 'Trắng tinh tế, Đen huyền bí, Caffe trầm, Gỗ nhạt tự nhiên',
     hasRealPhotos: true,
-    images: [],
+    images: [
+      { id: 'img_ht10_1', name: 'Khung HT10: Trắng Hàn Quốc', url: '/images/frames/khung-k4.JPG', colorHex: '#FFFFFF', tag: 'HT10 Trắng' },
+      { id: 'img_ht10_2', name: 'Khung HT10: Đen Hàn Quốc', url: '/images/frames/khung-k5.JPG', colorHex: '#1F1E1D', tag: 'HT10 Đen' },
+      { id: 'img_ht10_3', name: 'Khung HT10: Caffe trầm', url: '/images/frames/khung-k6-caffe.JPG', colorHex: '#3F281D', tag: 'HT10 Caffe' },
+      { id: 'img_ht10_4', name: 'Khung HT10: Gỗ nhạt tự nhiên', url: '/images/frames/khung-k6-nhat1.jpg', colorHex: '#A8815F', tag: 'HT10 Gỗ nhạt' }
+    ],
     notes: [
       { id: 'note_ht10_1', text: 'Thành khung cao 3.5cm tạo hiệu ứng khối 3D sâu và sang trọng' },
       { id: 'note_ht10_2', text: 'Mặt viền 1.0cm thanh thoát, kết cấu xương gỗ gia cố chịu lực cao' }
     ],
-    displayOrder: 3
+    displayOrder: 2
   },
   {
     id: 'frame_k12',
@@ -183,12 +177,59 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh đại gia đình nhiều thế hệ, ảnh chân dung truyền thống trang trọng, tranh nghệ thuật khổ lớn.',
     variants: 'Cánh gián vân gỗ điểm viền chỉ đen (Bản rộng 5.5cm)',
     hasRealPhotos: true,
-    images: [],
+    images: [
+      { id: 'img_k12_1', name: 'Khung K12: Cánh gián chỉ đen (Bản 5.5cm)', url: '/images/frames/khung-k10.JPG', colorHex: '#4A2A1A', tag: 'Khung K12' }
+    ],
     notes: [
       { id: 'note_k12_1', text: 'Bản rộng 5.5cm bề thế, giúp tăng khoảng 10cm kích thước phủ bì' },
       { id: 'note_k12_2', text: 'Gia cố hậu chống ẩm mốc cho ảnh phóng đại gia đình' }
     ],
+    displayOrder: 3
+  },
+  {
+    id: 'frame_b25',
+    code: 'Bản khung 2.5cm',
+    name: 'Bản Khung 2.5cm (Viền Thanh Lịch Hiện Đại)',
+    dimensions: 'Bản rộng 2.5 cm • Thiết kế thanh thoát',
+    description: 'Hệ Bản khung 2.5cm của xưởng Hùng Decor: Độ rộng viền 2.5cm cân đối, mang lại vẻ đẹp thanh lịch, gọn gàng và chống cong vênh tối ưu cho dòng Ảnh Mika.',
+    suitableFor: 'Ảnh chân dung, ảnh cưới hiện đại, ảnh gia đình cỡ vừa và nhỏ.',
+    variants: 'Đen, Trắng, Vân gỗ tự nhiên, Cánh gián',
+    hasRealPhotos: true,
+    images: [],
+    notes: [
+      { id: 'note_b25_1', text: 'Bản rộng 2.5cm gọn gàng, thanh thoát cho mọi không gian' }
+    ],
     displayOrder: 4
+  },
+  {
+    id: 'frame_b4',
+    code: 'Bản khung 4cm',
+    name: 'Bản Khung 4cm (Viền Cứng Cáp Sang Trọng)',
+    dimensions: 'Bản rộng 4.0 cm • Kết cấu vững chãi',
+    description: 'Hệ Bản khung 4cm của xưởng Hùng Decor: Bản phào rộng 4.0cm tạo điểm nhấn sang trọng, đầm chắc cho bức ảnh mà vẫn giữ nét tinh tế cho không gian trưng bày.',
+    suitableFor: 'Ảnh cưới cổng, ảnh gia đình treo phòng khách, ảnh thờ trang trọng.',
+    variants: 'Cánh gián, Vân gỗ trầm, Trắng viền vàng, Đen hiện đại',
+    hasRealPhotos: true,
+    images: [],
+    notes: [
+      { id: 'note_b4_1', text: 'Bản rộng 4.0cm đầm chắc, chịu lực tốt cho ảnh treo tường' }
+    ],
+    displayOrder: 5
+  },
+  {
+    id: 'frame_b8',
+    code: 'Bản khung 8cm',
+    name: 'Bản Khung 8cm (Bản Lớn Bề Thế Cao Cấp)',
+    dimensions: 'Bản rộng 8.0 cm • Tăng ~15cm phủ bì mỗi chiều',
+    description: 'Hệ Bản khung 8cm của xưởng Hùng Decor: Phào khung bản lớn 8.0cm bề thế, tôn vinh chiều sâu và sự uy nghi cho các tác phẩm Ảnh Mika khổ lớn.',
+    suitableFor: 'Ảnh đại gia đình, ảnh phóng lớn phòng khách, sảnh tiệc và hội trường.',
+    variants: 'Cánh gián cổ điển, Vân gỗ cao cấp, Hoa văn tân cổ điển',
+    hasRealPhotos: true,
+    images: [],
+    notes: [
+      { id: 'note_b8_1', text: 'Bản phào 8.0cm bề thế, phù hợp cho ảnh phóng kích thước lớn' }
+    ],
+    displayOrder: 6
   },
   {
     id: 'frame_b10',
@@ -199,52 +240,52 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     suitableFor: 'Ảnh đại gia đình, tranh treo phòng khách lớn, ảnh vinh danh và ảnh truyền thống cỡ đại.',
     variants: 'Cánh gián cổ điển chạy chỉ đen & rãnh khuyết chìm (Bản đại 10cm)',
     hasRealPhotos: true,
-    images: [],
+    images: [
+      { id: 'img_b10_1', name: 'Khung Bản 10cm: Cánh gián chỉ đen', url: '/images/frames/khung-k11.jpg', colorHex: '#4E2712', tag: 'Khung Bản 10cm' }
+    ],
     notes: [
       { id: 'note_b10_1', text: 'Bản đại 10cm siêu chắc, tăng khoảng 20cm kích thước phủ bì ảnh' },
       { id: 'note_b10_2', text: 'Hệ khung gỗ đầm nặng, phù hợp kích thước từ 60x90 trở lên' }
     ],
-    displayOrder: 5
-  },
-  {
-    id: 'frame_titan1',
-    code: 'Khung nhôm Titan M',
-    name: 'Khung Nhôm Titan M (Siêu Mỏng Đen & Bạc Mate)',
-    dimensions: 'Viền nhôm siêu mỏng • Bản mặt thanh mảnh vuông vức',
-    description: 'Hệ Khung Nhôm Titan M của Hùng Decor: Chất liệu hợp kim nhôm Anode nguyên khối với viền siêu mỏng, phong cách tối giản thanh lịch, vuông vức, chống oxy hóa vĩnh viễn. Hiện có 2 màu: Bạc Mate và Đen Mate.',
-    suitableFor: 'Ảnh thời trang, ảnh cưới Minimalist, ảnh chân dung nghệ thuật, ảnh sinh nhật và gia đình trẻ.',
-    variants: 'Titan M Đen Mate, Titan M Bạc Mate',
-    hasRealPhotos: true,
-    images: [],
-    notes: [
-      { id: 'note_titan1_1', text: 'Hợp kim nhôm nguyên khối siêu nhẹ, chống rỉ sét và bay màu' },
-      { id: 'note_titan1_2', text: 'Góc bo ghép 45 độ chuẩn xác công nghệ CNC' }
-    ],
-    displayOrder: 6
-  },
-  {
-    id: 'frame_titan2',
-    code: 'Khung nhôm Titan C',
-    name: 'Khung Nhôm Titan C (Bản 2cm Vàng Hồng & Xanh Rêu)',
-    dimensions: 'Bản mặt chính diện 2.0 cm • Cấu trúc đầm chắc',
-    description: 'Hệ Khung Nhôm Titan C của Hùng Decor: Dòng khung hợp kim kim loại cao cấp với bản mặt chính diện rộng 2.0cm tạo cảm giác vững chãi, thời thượng. Hai gam màu phủ bóng sang trọng: Vàng Hồng bóng (Rose Gold) và Xanh Rêu bóng cổ điển.',
-    suitableFor: 'Ảnh cưới sang trọng cao cấp, ảnh gia đình tân cổ điển và các tác phẩm trưng bày triển lãm.',
-    variants: 'Titan C Vàng hồng bóng, Titan C Xanh rêu bóng',
-    hasRealPhotos: true,
-    images: [],
-    notes: [
-      { id: 'note_titan2_1', text: 'Bản mặt chính diện 2.0cm phủ bóng công nghệ mạ điện cao cấp' },
-      { id: 'note_titan2_2', text: 'Khả năng chịu lực cao, phù hợp cho mọi kích thước ảnh phóng' }
-    ],
     displayOrder: 7
+  },
+  {
+    id: 'frame_ttm',
+    code: 'Khung nhôm Titan M',
+    name: 'Khung Nhôm Titan M (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
+    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
+    description: 'Hệ Khung nhôm Titan M chính hãng tại xưởng Hùng Decor: Kết cấu hợp kim nhôm định hình cao cấp, bề mặt hoàn thiện tinh xảo, vuông vức và chống cong vênh, chuyên dụng cho dòng Ảnh Mika cao cấp.',
+    suitableFor: 'Ảnh Mika cao cấp, ảnh cưới hiện đại, ảnh chân dung nghệ thuật và ảnh trưng bày phòng khách.',
+    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
+    hasRealPhotos: false,
+    images: [],
+    notes: [
+      { id: 'note_ttm_1', text: 'Hệ khung hợp kim nhôm cao cấp gia công tại xưởng Hùng Decor' }
+    ],
+    displayOrder: 8
+  },
+  {
+    id: 'frame_ttc',
+    code: 'Khung nhôm Titan C',
+    name: 'Khung Nhôm Titan C (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
+    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
+    description: 'Hệ Khung nhôm Titan C chính hãng tại xưởng Hùng Decor: Thiết kế viền nhôm hợp kim cứng cáp, sang trọng, gia công góc ghép chuẩn xác tại xưởng Hùng Decor.',
+    suitableFor: 'Ảnh Mika cổng cưới, ảnh gia đình và các tác phẩm ảnh phóng lớn sang trọng.',
+    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
+    hasRealPhotos: false,
+    images: [],
+    notes: [
+      { id: 'note_ttc_1', text: 'Kết cấu khung nhôm hợp kim đầm chắc, chịu lực cao cho mọi cỡ ảnh' }
+    ],
+    displayOrder: 9
   }
 ];
 
 export const b2bShopInfo2026 = {
   name: 'Hùng Decor',
   subTitle: 'Xưởng In Lab & Gia Công Khung Ảnh B2B Cho Studio & Thợ Ảnh',
-  hotlineTech: '0967827194',
-  zaloTho: '0967827194',
+  hotlineTech: '0985600073',
+  zaloTho: '0985600073',
   address: 'Ql1a, Quỳnh Lưu, Nghệ An',
   workingHours: '08:00 - 20:00 từ thứ 2 đến thứ 7 hàng tuần',
 };

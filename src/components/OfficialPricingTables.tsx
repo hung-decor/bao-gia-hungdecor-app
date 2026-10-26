@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAppData } from '../context/AppDataContext';
-import { usePriceMultiplier, applyMultiplier } from '../hooks/usePriceMultiplier';
-import { MaterialTabId } from '../types';
+import { usePriceMultiplier, applyMultiplier, useIsFreelanceMode } from '../hooks/usePriceMultiplier';
 import { Search } from 'lucide-react';
 import { getAllMaterialTabs, getMaterialColumns } from '../firebase/dataService';
 
@@ -14,7 +13,8 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   zaloTho
 }) => {
   const { pricing } = useAppData();
-  const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing), [pricing]);
+  const isRetailView = useIsFreelanceMode();
+  const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing, isRetailView), [pricing, isRetailView]);
   const [activeTab, setActiveTab] = useState<string>(() => allMaterialTabs[0]?.id || 'mika-pho-thong');
   const [searchSize, setSearchSize] = useState<string>('');
   const multiplier = usePriceMultiplier();
@@ -36,8 +36,8 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
       b4: pricing.columnLabels?.b4 || 'Bản khung 4cm',
       b8: pricing.columnLabels?.b8 || 'Bản khung 8cm',
       b10: pricing.columnLabels?.b10 || 'Khung bản 10cm',
-      titan1: pricing.columnLabels?.titan1 || 'Khung nhôm Titan M',
-      titan2: pricing.columnLabels?.titan2 || 'Khung nhôm Titan C',
+      ttm: pricing.columnLabels?.ttm || 'Khung nhôm Titan M',
+      ttc: pricing.columnLabels?.ttc || 'Khung nhôm Titan C',
       // Legacy fallback keys
       k0_k3: pricing.columnLabels?.k0_k3 || 'Khung KX',
       k4_k6: pricing.columnLabels?.k4_k6 || 'Khung HT10',
@@ -51,9 +51,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
     };
   }, [pricing.columnLabels]);
 
-  const formatPrice = (val: number | null) => {
-    if (val === null || val === undefined) return <span className="text-neutral-300">-</span>;
-    return <span className="font-mono tabular-nums">{val.toLocaleString('vi-VN')} đ</span>;
+  const isBoVienCol = (colKey: string) => {
+    if (colKey === 'boVien') return true;
+    const label = String(colLabels[colKey as keyof typeof colLabels] || pricing.columnLabels?.[colKey] || colKey || '').toLowerCase();
+    return label.includes('bo viền') || label.includes('bo vien');
+  };
+
+  const formatPrice = (val: number | null, isBoVien: boolean = false) => {
+    if (val === null || val === undefined) {
+      return <span className={isBoVien ? 'text-[#DC2626]/60 font-bold' : 'text-neutral-300'}>-</span>;
+    }
+    return (
+      <span className={`font-mono tabular-nums ${isBoVien ? 'text-[#DC2626] font-extrabold' : ''}`}>
+        {val.toLocaleString('vi-VN')} đ
+      </span>
+    );
   };
 
   const isHighlighted = (size: string) => {
@@ -68,10 +80,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   const activeTabItem = useMemo(() => {
     return allMaterialTabs.find((t: any) => t.id === activeTab) || allMaterialTabs[0];
   }, [allMaterialTabs, activeTab]);
-
-  const activeColumnsCount = useMemo(() => {
-    return activeTabItem ? getMaterialColumns(pricing, activeTabItem.id).length : 0;
-  }, [pricing, activeTabItem]);
 
   return (
     <section id="bang-gia-chi-tiet" className="py-6 md:py-12 bg-[#FAF9F5] w-full max-w-full overflow-hidden">
@@ -93,13 +101,17 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 w-full max-w-full">
             <div>
               <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#936B34]">
-                Bảng Giá Chi Tiết 2026
+                {isRetailView ? 'Bảng Báo Giá Chính Thức 2026' : 'Bảng Giá Chi Tiết 2026'}
               </div>
               <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-[#1C1917] tracking-tight">
-                Toàn Bộ Bảng Giá Sỉ Theo Chất Liệu
+                {isRetailView ? 'Bảng Báo Giá Dịch Vụ Hùng Decor' : 'Toàn Bộ Bảng Giá Sỉ Theo Chất Liệu'}
               </h2>
               <p className="text-xs text-[#57534E] mt-0.5">
-                Dữ liệu gốc từ xưởng Hùng <span className="text-[#FF0000] font-bold">Decor</span>
+                {isRetailView ? (
+                  <>Chất lượng hoàn thiện sắc nét chuẩn Lab tại xưởng Hùng <span className="text-[#FF0000] font-bold">Decor</span></>
+                ) : (
+                  <>Dữ liệu gốc từ xưởng Hùng <span className="text-[#FF0000] font-bold">Decor</span></>
+                )}
               </p>
             </div>
 
@@ -117,13 +129,17 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
           </div>
 
           {/* Dynamic Material Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 w-full max-w-full">
+          <div className={`grid gap-2 w-full max-w-full ${
+            allMaterialTabs.length === 2
+              ? 'grid-cols-2 max-w-lg'
+              : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+          }`}>
             {allMaterialTabs.map((tab: any, idx: number) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`min-h-[44px] py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center text-center leading-snug max-w-full ${
-                  idx === 4 ? 'col-span-2 sm:col-span-1' : ''
+                  allMaterialTabs.length > 2 && idx === 4 ? 'col-span-2 sm:col-span-1' : ''
                 } ${
                   activeTab === tab.id
                     ? 'bg-[#1C1917] text-white shadow-xs'
@@ -169,11 +185,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <th className="py-3 px-3.5 text-center font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap w-32 min-w-[120px]">
                         Cỡ Ảnh
                       </th>
-                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                        <th key={k} className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[140px] w-44">
-                          {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
-                        </th>
-                      ))}
+                      {getMaterialColumns(pricing, activeTabItem.id).map(k => {
+                        const boVien = isBoVienCol(k);
+                        return (
+                          <th
+                            key={k}
+                            className={`py-3 px-3 text-center whitespace-nowrap min-w-[140px] w-44 ${
+                              boVien
+                                ? 'text-[#DC2626] font-extrabold text-[1.15em]'
+                                : 'font-bold text-[#1C1917]'
+                            }`}
+                          >
+                            {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
@@ -182,11 +208,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                         <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
                         </td>
-                        {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                          <td key={k} className="py-2.5 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap">
-                            {formatPrice(applyMultiplier(row[k], multiplier))}
-                          </td>
-                        ))}
+                        {getMaterialColumns(pricing, activeTabItem.id).map(k => {
+                          const boVien = isBoVienCol(k);
+                          return (
+                            <td
+                              key={k}
+                              className={`py-2.5 px-3 text-center whitespace-nowrap ${
+                                boVien
+                                  ? 'text-[#DC2626] font-extrabold text-[1.15em]'
+                                  : 'font-bold text-[#1C1917]'
+                              }`}
+                            >
+                              {formatPrice(applyMultiplier(row[k], multiplier), boVien)}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -202,11 +238,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <th className="py-3 px-3.5 text-center font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap w-32 min-w-[120px]">
                         Cỡ Ảnh
                       </th>
-                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                        <th key={k} className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[130px] w-40">
-                          {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
-                        </th>
-                      ))}
+                      {getMaterialColumns(pricing, activeTabItem.id).map(k => {
+                        const boVien = isBoVienCol(k);
+                        return (
+                          <th
+                            key={k}
+                            className={`py-3 px-3 text-center whitespace-nowrap min-w-[130px] w-40 ${
+                              boVien
+                                ? 'text-[#DC2626] font-extrabold text-[1.15em]'
+                                : 'font-bold text-[#1C1917]'
+                            }`}
+                          >
+                            {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
@@ -215,11 +261,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                         <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
                         </td>
-                        {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                          <td key={k} className="py-2.5 px-3 text-center font-semibold text-[#1C1917] whitespace-nowrap">
-                            {formatPrice(applyMultiplier(row[k], multiplier))}
-                          </td>
-                        ))}
+                        {getMaterialColumns(pricing, activeTabItem.id).map(k => {
+                          const boVien = isBoVienCol(k);
+                          return (
+                            <td
+                              key={k}
+                              className={`py-2.5 px-3 text-center whitespace-nowrap ${
+                                boVien
+                                  ? 'text-[#DC2626] font-extrabold text-[1.15em]'
+                                  : 'font-semibold text-[#1C1917]'
+                              }`}
+                            >
+                              {formatPrice(applyMultiplier(row[k], multiplier), boVien)}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -243,11 +299,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                         <th className="py-3 px-3.5 text-center font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap w-32 min-w-[120px]">
                           Kích Thước
                         </th>
-                        {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                          <th key={k} className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[130px] w-40">
-                            {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
-                          </th>
-                        ))}
+                        {getMaterialColumns(pricing, activeTabItem.id).map(k => {
+                          const boVien = isBoVienCol(k);
+                          return (
+                            <th
+                              key={k}
+                              className={`py-3 px-3 text-center whitespace-nowrap min-w-[130px] w-40 ${
+                                boVien
+                                  ? 'text-[#DC2626] font-extrabold text-[1.15em]'
+                                  : 'font-bold text-[#1C1917]'
+                              }`}
+                            >
+                              {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F0EBE3]">
@@ -256,11 +322,21 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                           <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                             {row.size}
                           </td>
-                          {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                            <td key={k} className="py-2.5 px-3 text-center font-semibold text-[#1C1917] whitespace-nowrap">
-                              {formatPrice(applyMultiplier(row[k] ?? (k === 'inEpMikaCol' ? row.inEpMika : null), multiplier))}
-                            </td>
-                          ))}
+                          {getMaterialColumns(pricing, activeTabItem.id).map(k => {
+                            const boVien = isBoVienCol(k);
+                            return (
+                              <td
+                                key={k}
+                                className={`py-2.5 px-3 text-center whitespace-nowrap ${
+                                  boVien
+                                    ? 'text-[#DC2626] font-extrabold text-[1.15em]'
+                                    : 'font-semibold text-[#1C1917]'
+                                }`}
+                              >
+                                {formatPrice(applyMultiplier(row[k] ?? (k === 'inEpMikaCol' ? row.inEpMika : null), multiplier), boVien)}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageCircle, Phone, FileText } from 'lucide-react';
 import { B2BShopInfo } from '../types';
+import { useIsFreelanceMode } from '../hooks/usePriceMultiplier';
 
 interface B2BStickyMobileBarProps {
   shopInfo: B2BShopInfo;
@@ -11,6 +12,8 @@ export const B2BStickyMobileBar: React.FC<B2BStickyMobileBarProps> = ({
   shopInfo,
   onScrollToGuidelines
 }) => {
+  const isRetailView = useIsFreelanceMode();
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-2 sm:p-3 pointer-events-none md:hidden">
       <div className="max-w-md mx-auto bg-[#1C1917]/95 backdrop-blur-md rounded-2xl border border-white/15 px-3 py-1.5 shadow-2xl pointer-events-auto flex items-center justify-between gap-1.5">
@@ -25,16 +28,18 @@ export const B2BStickyMobileBar: React.FC<B2BStickyMobileBarProps> = ({
           <span className="text-[10px] font-semibold tracking-tight whitespace-nowrap">Hotline Kỹ Thuật</span>
         </a>
 
-        {/* Gửi File Zalo Thợ (Center primary) */}
+        {/* Gửi File Zalo (Center primary) */}
         <a
-          href={`https://zalo.me/${shopInfo.zaloTho.replace(/\D/g, '')}`}
+          href="https://zalo.me/0985600073"
           target="_blank"
           rel="noopener noreferrer"
           className="flex-[1.4] flex flex-col items-center justify-center py-1.5 px-2 rounded-xl bg-[#0068FF] text-white hover:bg-[#0052cc] transition-colors shadow-md"
-          aria-label="Gửi File Zalo Thợ"
+          aria-label="Nhắn Zalo Đặt In"
         >
           <MessageCircle className="w-4 h-4 text-white mb-0.5" />
-          <span className="text-[10px] font-bold tracking-tight whitespace-nowrap">Gửi File Zalo Thợ</span>
+          <span className="text-[10px] font-bold tracking-tight whitespace-nowrap">
+            {isRetailView ? 'Nhắn Zalo Đặt In' : 'Gửi File Zalo Thợ'}
+          </span>
         </a>
 
         {/* Quy Chuẩn File */}

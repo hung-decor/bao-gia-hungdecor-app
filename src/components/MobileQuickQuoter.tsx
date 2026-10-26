@@ -119,7 +119,7 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
     const frameLabel = `\n- Quy cách / Khung: ${currentFrameObj?.label}`;
     const priceStr = totalPrice !== null ? `${totalPrice.toLocaleString('vi-VN')} đ` : 'Liên hệ xưởng';
     const text = `Hùng Decor ơi, mình đặt file:\n- Size: ${selectedSize}\n- Loại: ${currentMaterialObj?.name}${frameLabel}\n- Giá sỉ: ${priceStr}\nNhờ xưởng kiểm tra file và báo giá nhé!`;
-    return `https://zalo.me/${zaloTho.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+    return `https://zalo.me/0985600073?text=${encodeURIComponent(text)}`;
   };
 
   return (

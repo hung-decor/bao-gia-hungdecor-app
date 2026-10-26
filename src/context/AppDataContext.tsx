@@ -29,10 +29,13 @@ import {
   fetchFreelancePricingFromFirestore,
   saveFreelancePricingToFirestore,
   generateDefaultFreelancePricing,
+  KHACH_LE_PRICING_VERSION,
+  sanitizePricingState,
   fetchFramesFromFirestore,
   saveFramesToFirestore,
   deleteFrameFromFirestore,
   isLegacy194Frame,
+  migrateAndEnsureMikaFrames,
   purgeLegacy194FramesFromFirestoreAndStorage,
   fetchRealPhotosFromFirestore,
   saveRealPhotosToFirestore,
@@ -118,28 +121,26 @@ const initialPricing: FullPricingState = {
 
 const normalizeFramesList = (list: FrameSpecItem[]): FrameSpecItem[] => {
   const source = list && list.length > 0 ? list : defaultFrames;
+  const migrated = migrateAndEnsureMikaFrames(source);
 
-  return source
-    .filter(f => !isLegacy194Frame(f))
-    .map((f, idx) => ({
-      ...f,
-      displayOrder: f.displayOrder ?? idx,
-      id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
-      images: (f.images || []).map((img, i) => ({
-        ...img,
-        id: img.id || `img_${idx}_${i}_${Date.now()}`
-      })),
-      notes: (f.notes || []).map((n: any, i: number) => ({
-        id: n?.id || `note_${idx}_${i}_${Date.now()}`,
-        text: typeof n === 'string' ? n : n?.text || ''
-      }))
+  return migrated.map((f, idx) => ({
+    ...f,
+    displayOrder: f.displayOrder ?? idx,
+    id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
+    images: (f.images || []).map((img, i) => ({
+      ...img,
+      id: img.id || `img_${idx}_${i}_${Date.now()}`
+    })),
+    notes: (f.notes || []).map((n: any, i: number) => ({
+      id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+      text: typeof n === 'string' ? n : n?.text || ''
     }))
-    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }));
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
-export const CACHE_VERSION = '2026_HUNG_DECOR_GOLUA_V10_CLEAN';
+export const CACHE_VERSION = '2026_HUNG_DECOR_TTM_TTC_V11';
 
 export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [studioPricing, setStudioPricing] = useState<FullPricingState>(initialPricing);
@@ -186,20 +187,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       let loadedStudio = initialPricing;
       if (pricingResult && pricingResult.data) {
-        loadedStudio = pricingResult.data;
-        // Merge cached material columns if available and custom
-        if (typeof window !== 'undefined') {
-          const cachedCols = localStorage.getItem('hung_decor_material_cols');
-          if (cachedCols) {
-            try {
-              const parsed = JSON.parse(cachedCols);
-              if (parsed && typeof parsed === 'object') {
-                loadedStudio.materialColumnsMap = { ...(loadedStudio.materialColumnsMap || {}), ...parsed };
-                loadedStudio.materialColumnKeys = loadedStudio.materialColumnsMap;
-              }
-            } catch (e) {}
-          }
-        }
+        loadedStudio = sanitizePricingState(pricingResult.data, false);
         setStudioPricing(loadedStudio);
         hasFirestoreData = true;
         if (pricingResult.updatedAt) setLastUpdated(pricingResult.updatedAt);
@@ -208,7 +196,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           const cached = localStorage.getItem('hung_decor_custom_pricing');
           if (cached) {
             try {
-              loadedStudio = JSON.parse(cached);
+              loadedStudio = sanitizePricingState(JSON.parse(cached), false);
               setStudioPricing(loadedStudio);
               hasFirestoreData = true;
             } catch (e) {}
@@ -222,69 +210,32 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (freelanceResult && freelanceResult.data) {
-        let loadedFreelance = freelanceResult.data;
+        let loadedFreelance = sanitizePricingState(freelanceResult.data, true);
         if (loadedStudio.materialColumnsMap) {
           loadedFreelance.materialColumnsMap = loadedStudio.materialColumnsMap;
           loadedFreelance.materialColumnKeys = loadedStudio.materialColumnsMap;
         }
         setFreelancePricing(loadedFreelance);
       } else {
-        if (typeof window !== 'undefined') {
-          const cachedFl = localStorage.getItem('hung_decor_freelance_pricing');
-          if (cachedFl) {
-            try {
-              const parsedFl = JSON.parse(cachedFl);
-              setFreelancePricing(parsedFl);
-            } catch (e) {}
-          } else {
-            const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
-            setFreelancePricing(generatedFreelance);
-            saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
-          }
-        } else {
-          const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
-          setFreelancePricing(generatedFreelance);
-          saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
-        }
+        const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
+        setFreelancePricing(generatedFreelance);
+        saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
       }
 
       // Proactively purge any legacy 194 frames from Firestore & localStorage
       purgeLegacy194FramesFromFirestoreAndStorage().catch(console.warn);
 
       if (framesResult && framesResult.frames && framesResult.frames.length > 0) {
-        const cleanedFrames = framesResult.frames
-          .filter(f => !isLegacy194Frame(f))
-          .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+        const cleanedFrames = normalizeFramesList(framesResult.frames);
         setFrames(cleanedFrames);
+        saveFramesToFirestore(cleanedFrames).catch(console.warn);
         hasFirestoreData = true;
         if (framesResult.updatedAt && !lastUpdated) setLastUpdated(framesResult.updatedAt);
       } else {
-        let cachedFrames: FrameSpecItem[] | null = null;
-        if (typeof window !== 'undefined') {
-          const cached = localStorage.getItem('hung_decor_custom_frames') || localStorage.getItem('hung_decor_frames');
-          if (cached) {
-            try {
-              const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                const filtered = parsed.filter((f: FrameSpecItem) => !isLegacy194Frame(f));
-                if (filtered.length > 0) {
-                  cachedFrames = filtered;
-                }
-              }
-            } catch (e) {}
-          }
-        }
-
-        if (cachedFrames && cachedFrames.length > 0) {
-          cachedFrames.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-          setFrames(cachedFrames);
-          hasFirestoreData = true;
-        } else {
-          const defaultNormalized = normalizeFramesList(defaultFrames);
-          setFrames(defaultNormalized);
-          saveFramesToFirestore(defaultNormalized).catch(console.warn);
-          hasFirestoreData = true;
-        }
+        const defaultNormalized = normalizeFramesList(defaultFrames);
+        setFrames(defaultNormalized);
+        saveFramesToFirestore(defaultNormalized).catch(console.warn);
+        hasFirestoreData = true;
       }
 
       if (realPhotosResult && Array.isArray(realPhotosResult.realPhotos)) {
@@ -295,7 +246,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (shopResult) {
-        setShopInfo(shopResult);
+        setShopInfo({
+          ...shopResult,
+          zaloTho: '0985600073',
+          hotlineTech: shopResult.hotlineTech === '0967827194' ? '0985600073' : (shopResult.hotlineTech || '0985600073')
+        });
       }
 
       setDataSource(hasFirestoreData ? 'firestore' : 'default');

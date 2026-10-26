@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Eye } from 'lucide-react';
+import { Camera, Ruler } from 'lucide-react';
 import { FrameConstantItem, EXACT_FRAME_PATHS } from '../constants/frames';
 import { FrameSpecItem } from '../types';
 
@@ -20,20 +20,22 @@ export const FrameCard: React.FC<FrameCardProps> = ({
 }) => {
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
 
-  // Enforce exact path for K0, K1, K2, K3, K7, K8, K9, K11
   const exactPath = EXACT_FRAME_PATHS[frame.code] || EXACT_FRAME_PATHS[frame.code?.toUpperCase()];
 
   const images = frame.images && frame.images.length > 0
     ? frame.images
-    : [
-        {
-          name: frame.name,
-          url: exactPath || (frame as FrameConstantItem).imageUrl || (frame as FrameConstantItem).image || ''
-        }
-      ];
+    : exactPath || (frame as FrameConstantItem).imageUrl || (frame as FrameConstantItem).image
+      ? [
+          {
+            name: frame.name,
+            url: exactPath || (frame as FrameConstantItem).imageUrl || (frame as FrameConstantItem).image || ''
+          }
+        ]
+      : [];
 
   const currentImage = images[selectedVariantIdx] || images[0];
   const rawUrl = currentImage?.url || exactPath || (frame as FrameConstantItem).imageUrl || '';
+  const hasReal = Boolean(rawUrl);
 
   return (
     <div
@@ -51,53 +53,66 @@ export const FrameCard: React.FC<FrameCardProps> = ({
           <span className="font-mono text-xs sm:text-sm font-bold bg-[#1C1917] text-[#E7C184] px-2.5 py-1 rounded shadow-xs shrink-0">
             {frame.code}
           </span>
-          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-            <Camera className="w-3 h-3 text-emerald-700" />
-            <span>Ảnh Thật {images.length > 1 ? `(${images.length} màu)` : ''}</span>
-          </span>
-        </div>
-
-        {/* Direct <img> Rendering - NO SVG MOCKUP, NO onError Fallback */}
-        <div className="mt-3 space-y-2">
-          <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-900 border border-[#EFEAE2]">
-            <img
-              src={encodeURI(rawUrl)}
-              alt={`${frame.name} - ${currentImage?.name || ''}`}
-              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-
-          </div>
-
-          {/* Color Switchers if available */}
-          {images.length > 1 && (
-            <div className="flex items-center gap-1.5 flex-wrap pt-0.5" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[10px] font-mono text-[#78716C] mr-0.5">Màu:</span>
-              {images.map((img, vIdx) => (
-                <button
-                  key={img.url}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedVariantIdx(vIdx);
-                  }}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                    selectedVariantIdx === vIdx
-                      ? 'bg-[#1C1917] text-[#E7C184] ring-1 ring-[#936B34]'
-                      : 'bg-[#EFEAE2] text-[#57534E] hover:bg-[#E5DDCF]'
-                  }`}
-                >
-                  {img.colorHex && (
-                    <span
-                      className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
-                      style={{ backgroundColor: img.colorHex }}
-                    />
-                  )}
-                  <span>{img.name.split(': ')[1] || img.name}</span>
-                </button>
-              ))}
-            </div>
+          {hasReal ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+              <Camera className="w-3 h-3 text-emerald-700" />
+              <span>Ảnh Thật {images.length > 1 ? `(${images.length} màu)` : ''}</span>
+            </span>
+          ) : (
+            <span className="text-xs font-mono font-bold text-[#936B34] shrink-0">
+              {frame.dimensions}
+            </span>
           )}
         </div>
+
+        {/* Thumbnail or Technical Simulation Placeholder */}
+        {hasReal ? (
+          <div className="mt-3 space-y-2">
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-900 border border-[#EFEAE2]">
+              <img
+                src={encodeURI(rawUrl)}
+                alt={`${frame.name} - ${currentImage?.name || ''}`}
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            </div>
+
+            {/* Color Switchers if available */}
+            {images.length > 1 && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5" onClick={(e) => e.stopPropagation()}>
+                <span className="text-[10px] font-mono text-[#78716C] mr-0.5">Màu:</span>
+                {images.map((img, vIdx) => (
+                  <button
+                    key={img.url}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedVariantIdx(vIdx);
+                    }}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                      selectedVariantIdx === vIdx
+                        ? 'bg-[#1C1917] text-[#E7C184] ring-1 ring-[#936B34]'
+                        : 'bg-[#EFEAE2] text-[#57534E] hover:bg-[#E5DDCF]'
+                    }`}
+                  >
+                    {img.colorHex && (
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                        style={{ backgroundColor: img.colorHex }}
+                      />
+                    )}
+                    <span>{img.name.split(': ')[1] || img.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3 relative aspect-[4/3] rounded-xl overflow-hidden bg-[#EFEAE2]/60 border border-dashed border-[#D5CDBD] flex flex-col items-center justify-center text-center p-3">
+            <Ruler className="w-7 h-7 text-[#936B34]/70 mb-1" />
+            <span className="text-xs font-bold text-[#1C1917] font-mono">{frame.dimensions}</span>
+            <span className="text-[10px] text-[#78716C] mt-0.5">Mô phỏng kỹ thuật Hùng Decor</span>
+          </div>
+        )}
 
         {/* Text Details */}
         <div className="pt-2.5 space-y-1.5">
@@ -107,28 +122,16 @@ export const FrameCard: React.FC<FrameCardProps> = ({
           <div className="text-[11px] font-mono font-semibold text-[#936B34]">
             {frame.dimensions}
           </div>
-          <p className="text-xs text-[#57534E] leading-relaxed line-clamp-2">
+          <p className="text-xs text-[#57534E] leading-relaxed">
             {frame.description}
           </p>
         </div>
       </div>
 
-      <div className="space-y-3 pt-2 border-t border-[#EFEAE2] w-full">
+      <div className="pt-2.5 border-t border-[#EFEAE2] w-full">
         <div className="text-xs text-[#78716C]">
           <div>Màu sắc: <strong className="text-[#1C1917] font-normal">{frame.variants}</strong></div>
         </div>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onViewDetails) onViewDetails(frame);
-            else if (onSelect) onSelect(frame);
-          }}
-          className="w-full h-10 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-emerald-700 hover:bg-emerald-800 text-white"
-        >
-          <Camera className="w-4 h-4 text-emerald-200" />
-          <span>Xem Ảnh Chụp Thật Tại Xưởng</span>
-        </button>
       </div>
     </div>
   );

@@ -456,10 +456,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setPasswordInput('');
   };
 
-  // List of active material tabs in Admin
+  // List of active material tabs in Admin (when editing Bảng Giá Khách Lẻ, only show 1. Ảnh Mika & 2. In Ép)
   const adminMaterialTabs = useMemo(() => {
-    return getAllMaterialTabs(activePricing);
-  }, [activePricing]);
+    return getAllMaterialTabs(activePricing, activePricingSubTab === 'freelance');
+  }, [activePricing, activePricingSubTab]);
 
   // Keep activeMaterialTabId valid
   React.useEffect(() => {
@@ -509,9 +509,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         kx: 0,
         ht10: 0,
         k12: null,
+        b25: null,
+        b4: null,
+        b8: null,
         b10: null,
-        titan1: 0,
-        titan2: 0
+        ttm: 0,
+        ttc: 0
       }));
     } else {
       initialRows = defaultSizes.map((sz, idx) => ({
@@ -586,9 +589,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         kx: 0,
         ht10: 0,
         k12: null,
+        b25: null,
+        b4: null,
+        b8: null,
         b10: null,
-        titan1: 0,
-        titan2: 0
+        ttm: 0,
+        ttc: 0
       } : {
         stt: targetTab.rows.length + 1,
         size: 'Mới',
@@ -1073,7 +1079,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </h3>
               </div>
               <p className="text-xs text-neutral-400 mt-1">
-                Gửi link riêng biệt cho thợ ảnh / studio ruột hoặc khách chụp tự do (Freelance).
+                Gửi link riêng biệt cho thợ ảnh / studio ruột hoặc gửi link Bảng Báo Giá Dịch Vụ cho Khách Lẻ.
               </p>
             </div>
 
@@ -1101,7 +1107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 )}
               </button>
 
-              {/* Freelance link */}
+              {/* Retail Customer (Khách Lẻ) link */}
               <button
                 type="button"
                 onClick={() => handleCopyLink('freelance')}
@@ -1114,12 +1120,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 {copiedLinkType === 'freelance' ? (
                   <>
                     <Check className="w-4 h-4 text-white" />
-                    <span>Đã chép Link Freelance!</span>
+                    <span>Đã chép Link Khách Lẻ!</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4 text-amber-400" />
-                    <span>Link Bảng Giá Freelance</span>
+                    <span>Link Bảng Giá Khách Lẻ</span>
                   </>
                 )}
               </button>
@@ -1131,7 +1137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <span className="text-emerald-400 font-bold">● Link Studio:</span> Giá sỉ xưởng 100%, có hiển thị nút Admin cho anh Hùng.
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-amber-400 font-bold">● Link Freelance:</span> Bảng giá dành riêng cho thợ chụp tự do (đã cấu hình riêng) và ẩn hoàn toàn nút Admin.
+              <span className="text-amber-400 font-bold">● Link Khách Lẻ:</span> Hiển thị trang nhã dạng "Bảng Báo Giá Dịch Vụ Hùng Decor" (ẩn chữ Khách Lẻ & ẩn nút Admin), gồm 2 Tab: 1. Ảnh Mika & 2. In Ép.
             </span>
           </div>
         </div>
@@ -1228,7 +1234,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>2. Bảng Giá Freelance</span>
+                <span>2. Bảng Giá Khách Lẻ</span>
               </button>
             </div>
 
@@ -1239,7 +1245,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400" />
                     <h3 className="font-bold text-sm text-white font-serif-display">
-                      Công Cụ Tăng Giá Hàng Loạt Theo % ({activePricingSubTab === 'studio' ? 'Bảng Sỉ Studio Gốc' : 'Bảng Freelance'})
+                      Công Cụ Tăng Giá Hàng Loạt Theo % ({activePricingSubTab === 'studio' ? 'Bảng Sỉ Studio Gốc' : 'Bảng Giá Khách Lẻ'})
                     </h3>
                   </div>
                   <p className="text-xs text-neutral-400 mt-1">
@@ -1292,7 +1298,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       } else {
                         const boosted = applyPercentageIncrease(localFreelancePricing, percentInputValue);
                         setLocalFreelancePricing(boosted);
-                        showToast(`Đã tăng +${percentInputValue}% cho toàn bộ Bảng Giá Freelance!`);
+                        showToast(`Đã tăng +${percentInputValue}% cho toàn bộ Bảng Giá Khách Lẻ!`);
                       }
                     }}
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-all shadow-md cursor-pointer"
@@ -1320,7 +1326,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <h3 className="text-sm sm:text-base font-bold text-white font-serif-display flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-[#E7C184]" />
                   <span>
-                    {activePricingSubTab === 'studio' ? 'Đang Chỉnh Sửa: Bảng Giá Sỉ Studio (Gốc)' : 'Đang Chỉnh Sửa: Bảng Giá Freelance'}
+                    {activePricingSubTab === 'studio' ? 'Đang Chỉnh Sửa: Bảng Giá Sỉ Studio (Gốc)' : 'Đang Chỉnh Sửa: Bảng Giá Khách Lẻ (2 Tab: 1. Ảnh Mika & 2. In Ép)'}
                   </span>
                 </h3>
                 <p className="text-xs text-neutral-400 mt-0.5">
@@ -1352,7 +1358,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     onClick={async () => {
                       try {
                         await saveFreelancePricing(localFreelancePricing);
-                        showToast('Đã lưu Bảng Giá Freelance lên Firebase Firestore!');
+                        showToast('Đã lưu Bảng Giá Khách Lẻ lên Firebase Firestore!');
                       } catch (e: any) {
                         showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
                       }
@@ -1361,7 +1367,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
-                    <span>{isSaving ? 'Đang lưu...' : 'Lưu Bảng Giá Freelance'}</span>
+                    <span>{isSaving ? 'Đang lưu...' : 'Lưu Bảng Giá Khách Lẻ'}</span>
                   </button>
                 )}
 
@@ -1780,9 +1786,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             kx: null,
                             ht10: null,
                             k12: null,
+                            b25: null,
+                            b4: null,
+                            b8: null,
                             b10: null,
-                            titan1: null,
-                            titan2: null
+                            ttm: null,
+                            ttc: null
                           };
                           updateActivePricing(prev => ({
                             ...prev,
@@ -1949,9 +1958,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             kx: 0,
                             ht10: 0,
                             k12: null,
+                            b25: null,
+                            b4: null,
+                            b8: null,
                             b10: null,
-                            titan1: 0,
-                            titan2: 0
+                            ttm: 0,
+                            ttc: 0
                           };
                           updateActivePricing(prev => ({
                             ...prev,

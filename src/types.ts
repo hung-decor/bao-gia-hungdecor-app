@@ -35,8 +35,8 @@ export interface DongKhungPriceRow {
   b4?: number | null;
   b8?: number | null;
   b10: number | null;
-  titan1: number | null; // Titan 1 (đen, bạc)
-  titan2: number | null; // Titan 2 (xanh, hồng)
+  ttm: number | null; // Khung nhôm Titan M (đen, bạc)
+  ttc: number | null; // Khung nhôm Titan C (xanh, hồng)
   // Optional backward compatibility
   k0_k3?: number | null;
   k4_k6?: number | null;
@@ -116,8 +116,8 @@ export interface ColumnLabelsConfig {
   b4?: string;
   b8?: string;
   b10?: string;
-  titan1?: string;
-  titan2?: string;
+  ttm?: string;
+  ttc?: string;
   // Backward compatibility keys
   k0_k3?: string;
   k4_k6?: string;

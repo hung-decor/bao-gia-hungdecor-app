@@ -14,7 +14,7 @@ import { B2BGuidelinesSection } from './components/B2BGuidelinesSection';
 import { B2BFooter } from './components/B2BFooter';
 import { B2BStickyMobileBar } from './components/B2BStickyMobileBar';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { useIsFreelanceMode } from './hooks/usePriceMultiplier';
+import { useIsFreelanceMode, isFreelanceMode } from './hooks/usePriceMultiplier';
 
 function MainAppContent() {
   const { shopInfo, isLoading, dataSource } = useAppData();
@@ -25,8 +25,8 @@ function MainAppContent() {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const params = new URLSearchParams(window.location.search);
-      // If freelance mode is active, prevent opening admin via query
-      if (params.get('mode')?.toLowerCase() === 'freelance') {
+      // If customer quote mode is active, prevent opening admin via query
+      if (isFreelanceMode()) {
         return path === '/admin' || hash === '#admin';
       }
       return path === '/admin' || hash === '#admin' || params.has('admin');

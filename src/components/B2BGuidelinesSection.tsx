@@ -1,13 +1,14 @@
 import React from 'react';
 import { B2BShopInfo } from '../types';
 import { FileCheck, Truck, Phone, MessageCircle, Copy, Check } from 'lucide-react';
+import { useIsFreelanceMode } from '../hooks/usePriceMultiplier';
 
 export const fileSubmissionGuidelines = {
   format: 'JPEG chuẩn (Baseline Standard, Quality 10 - 12 trong Photoshop) hoặc TIFF / PSD đã merge layer.',
   colorSpace: 'sRGB IEC61966-2.1 hoặc Adobe RGB (1998) - Không để Profile ProPhoto hoặc CMYK để tránh lệch màu.',
   resolution: '300 DPI đúng kích thước in thực tế tỉ lệ 1:1 (Ví dụ ảnh in 60x90cm đặt kích thước 60x90cm ở 300 DPI).',
   bleedMargin: 'Trừ lề an toàn: Với ảnh ép gỗ và khung phào chừa biên 5mm mỗi cạnh (không đặt mắt/chữ sát mép). Với Album mở phẳng chừa lề cắt xén 7mm và gáy an toàn 10mm.',
-  namingConvention: 'Đặt tên file theo cú pháp: [TênStudio]_[LoạiSảnPhẩm]_[KíchThước]_[SốLượng].jpg'
+  namingConvention: 'Đặt tên file theo cú pháp: [TênKhách]_[LoạiSảnPhẩm]_[KíchThước]_[SốLượng].jpg'
 };
 
 export const studioShippingPolicies = [
@@ -21,10 +22,10 @@ export const studioShippingPolicies = [
   },
   {
     title: 'Giao Nhận Chành Xe & Bưu Điện',
-    desc: 'Hỗ trợ gửi qua tất cả các chành xe, nhà xe tuyến tỉnh uy tín hoặc bưu điện/GHTK tận studio.'
+    desc: 'Hỗ trợ gửi qua tất cả các chành xe, nhà xe tuyến tỉnh uy tín hoặc bưu điện/GHTK tận nơi.'
   },
   {
-    title: 'Chính Sách Bù Hàng Lỗi Kỹ Thuật',
+    title: 'Chính Sách Bảo Hành Kỹ Thuật',
     desc: 'Kiểm tra màu chuẩn Lab. Nếu sai lệch màu do xưởng, hỏng hóc do vận chuyển hoặc cong vênh, xưởng in lại 100% miễn phí trong 24h.'
   }
 ];
@@ -35,6 +36,7 @@ interface B2BGuidelinesSectionProps {
 
 export const B2BGuidelinesSection: React.FC<B2BGuidelinesSectionProps> = ({ shopInfo }) => {
   const [copiedNaming, setCopiedNaming] = React.useState(false);
+  const isRetailView = useIsFreelanceMode();
 
   const handleCopyNaming = () => {
     navigator.clipboard.writeText(fileSubmissionGuidelines.namingConvention);
@@ -49,13 +51,15 @@ export const B2BGuidelinesSection: React.FC<B2BGuidelinesSectionProps> = ({ shop
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-2 w-full max-w-full">
           <div className="text-xs font-mono font-bold uppercase tracking-widest text-[#936B34]">
-            Kỹ Thuật In Lab & Vận Chuyển B2B
+            {isRetailView ? 'Tiêu Chuẩn Kỹ Thuật In Ấn & Giao Hàng' : 'Kỹ Thuật In Lab & Vận Chuyển B2B'}
           </div>
           <h2 className="font-serif-display text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight">
-            Quy Chuẩn Đặt File & Chính Sách Giao Hàng Cho Thợ
+            {isRetailView ? 'Quy Chuẩn Gửi File & Chính Sách Giao Nhận' : 'Quy Chuẩn Đặt File & Chính Sách Giao Hàng Cho Thợ'}
           </h2>
           <p className="text-xs sm:text-sm text-[#57534E]">
-            Quy chuẩn kỹ thuật kiểm định file ảnh và vận chuyển an toàn cho Studio cưới và Nhiếp ảnh gia đối tác.
+            {isRetailView
+              ? 'Quy chuẩn kỹ thuật kiểm định file ảnh sắc nét và đóng gói vận chuyển an toàn tận nơi trên toàn quốc.'
+              : 'Quy chuẩn kỹ thuật kiểm định file ảnh và vận chuyển an toàn cho Studio cưới và Nhiếp ảnh gia đối tác.'}
           </p>
         </div>
 
@@ -194,13 +198,13 @@ export const B2BGuidelinesSection: React.FC<B2BGuidelinesSectionProps> = ({ shop
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full max-w-full">
             <a
-              href={`https://zalo.me/${shopInfo.zaloTho.replace(/\D/g, '')}`}
+              href="https://zalo.me/0985600073"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-xs sm:text-sm font-semibold text-white bg-[#0068FF] hover:bg-[#0052cc] rounded-xl transition-all shadow-md cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 text-white" />
-              <span>Gửi File Zalo Thợ ({shopInfo.zaloTho})</span>
+              <span>{isRetailView ? 'Nhắn Zalo Tư Vấn (0985600073)' : 'Gửi File Zalo Thợ (0985600073)'}</span>
             </a>
 
             <a

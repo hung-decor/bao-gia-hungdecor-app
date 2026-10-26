@@ -10,13 +10,21 @@ export function getPriceMultiplier(): number {
 }
 
 /**
- * Checks if current view is in Freelance mode (?mode=freelance).
+ * Checks if current view is in Khách Lẻ / Báo Giá Dịch Vụ mode (?mode=baogia, ?mode=khachle, ?mode=freelance).
  */
 export function isFreelanceMode(): boolean {
   if (typeof window === 'undefined') return false;
   const searchParams = new URLSearchParams(window.location.search);
   const mode = searchParams.get('mode')?.toLowerCase();
-  return mode === 'freelance' || searchParams.has('freelance');
+  return (
+    mode === 'freelance' ||
+    mode === 'khachle' ||
+    mode === 'baogia' ||
+    mode === 'dichvu' ||
+    searchParams.has('freelance') ||
+    searchParams.has('khachle') ||
+    searchParams.has('baogia')
+  );
 }
 
 export function useIsFreelanceMode(): boolean {

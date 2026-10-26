@@ -4,10 +4,78 @@ import { FrameSpecItem } from '../types';
 import { Eye, X, ChevronLeft, ChevronRight, Ruler, Camera, Box, Check, Sparkles } from 'lucide-react';
 import { useModalBackHandler } from '../hooks/useModalBackHandler';
 
+const TAB1_MIKA_FRAME_CODES = new Set([
+  'bo vien',
+  'bovien',
+  'khung kx',
+  'kx',
+  'khung ht10',
+  'ht10',
+  'khung k12',
+  'k12',
+  'ban khung 2.5cm',
+  'b25',
+  'ban khung 4cm',
+  'b4',
+  'ban khung 8cm',
+  'b8',
+  'khung ban 10cm',
+  'b10',
+  'khung nhom titan m',
+  'ttm',
+  'khung nhom titan c',
+  'ttc'
+]);
+
+const normalizeFrameText = (str: string) =>
+  (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .trim();
+
+const isTab1MikaFrame = (f: FrameSpecItem): boolean => {
+  const idNorm = normalizeFrameText(f.id || '');
+  const codeNorm = normalizeFrameText(f.code || '');
+  const nameNorm = normalizeFrameText(f.name || '');
+
+  // Hide frames belonging to other product lines (e.g. Album - Photobook)
+  if (
+    idNorm.includes('album') ||
+    codeNorm.includes('album') ||
+    nameNorm.includes('album') ||
+    nameNorm.includes('photobook')
+  ) {
+    return false;
+  }
+
+  if (TAB1_MIKA_FRAME_CODES.has(codeNorm) || TAB1_MIKA_FRAME_CODES.has(nameNorm)) {
+    return true;
+  }
+
+  return (
+    codeNorm.includes('bo vien') ||
+    codeNorm.includes('kx') ||
+    codeNorm.includes('ht10') ||
+    codeNorm.includes('k12') ||
+    codeNorm.includes('2.5cm') ||
+    codeNorm.includes('4cm') ||
+    codeNorm.includes('8cm') ||
+    codeNorm.includes('10cm') ||
+    codeNorm.includes('titan m') ||
+    codeNorm.includes('titan c') ||
+    codeNorm === 'ttm' ||
+    codeNorm === 'ttc'
+  );
+};
+
 export const FrameReferenceGuide: React.FC = () => {
   const { frames: rawFrames } = useAppData();
   const frameReferenceGuide = React.useMemo(() => {
-    return [...rawFrames].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    return [...rawFrames]
+      .filter(isTab1MikaFrame)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [rawFrames]);
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
   const [activeImageVariantIndex, setActiveImageVariantIndex] = useState<number>(0);
@@ -126,7 +194,7 @@ export const FrameReferenceGuide: React.FC = () => {
             màu ảnh khung có thể khác khung thật ở ngoài do sai lệch màu sắc hiển thị
           </p>
           <p className="text-xs sm:text-sm text-[#57534E]">
-            Ảnh chụp thực tế 100% tại xưởng Hùng Decor cho tất cả các dòng khung: Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
+            Danh sách các mẫu khung thuộc dòng sản phẩm <strong>1. Ảnh Mika</strong>: Bo Viền, Khung KX, Khung HT10, Khung K12, Bản khung 2.5cm, Bản khung 4cm, Bản khung 8cm, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
           </p>
 
           {/* Filter Pills */}
@@ -247,32 +315,16 @@ export const FrameReferenceGuide: React.FC = () => {
                     <div className="text-[11px] font-mono font-semibold text-[#936B34]">
                       {item.dimensions}
                     </div>
-                    <p className="text-xs text-[#57534E] leading-relaxed line-clamp-2">
+                    <p className="text-xs text-[#57534E] leading-relaxed">
                       {item.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-2 border-t border-[#EFEAE2] w-full max-w-full">
+                <div className="pt-2.5 border-t border-[#EFEAE2] w-full max-w-full">
                   <div className="text-xs text-[#78716C]">
                     <div>Màu sắc: <strong className="text-[#1C1917] font-normal">{item.variants}</strong></div>
                   </div>
-
-                  {/* View Details Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveModalIndex(originalIndex);
-                    }}
-                    className={`w-full h-11 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
-                      hasReal
-                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                        : 'bg-[#EFEAE2] hover:bg-[#E2D9CC] text-[#1C1917]'
-                    }`}
-                  >
-                    {hasReal ? <Camera className="w-4 h-4 text-emerald-200" /> : <Eye className="w-4 h-4 text-[#936B34]" />}
-                    <span>{hasReal ? 'Xem Ảnh Chụp Thật Tại Xưởng' : 'Xem Quy Cách Kỹ Thuật'}</span>
-                  </button>
                 </div>
               </div>
             );
