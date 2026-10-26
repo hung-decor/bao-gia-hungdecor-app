@@ -762,7 +762,70 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
 }
 
 
-export const FRAMES_VERSION = '2026_FRAMES_HUNG_DECOR_V4_STANDARDIZED';
+export function isLegacy194Frame(frame: FrameSpecItem): boolean {
+  if (!frame) return true;
+  const idStr = String(frame.id || '').toLowerCase();
+  const codeStr = String(frame.code || '').toLowerCase().trim();
+  const nameStr = String(frame.name || '').toLowerCase();
+
+  if (
+    idStr.includes('194') || codeStr.includes('194') || nameStr.includes('194') ||
+    idStr.includes('2mau_cu') || idStr.includes('hai_mau_cu') || nameStr.includes('2 màu cũ') ||
+    nameStr.includes('mẫu cũ') || idStr.includes('_cu') || codeStr.includes('2 màu cũ')
+  ) {
+    return true;
+  }
+
+  const isIndividualKCode = /^k(0|1|2|3|4|5|6|7|8|9|10|11)$/i.test(codeStr);
+  if (isIndividualKCode) {
+    return true;
+  }
+
+  const isIndividualKId = /^frame_k(0|1|2|3|4|5|6|7|8|9|10|11)$/i.test(idStr);
+  if (isIndividualKId) {
+    return true;
+  }
+
+  return false;
+}
+
+export async function purgeLegacy194FramesFromFirestoreAndStorage(): Promise<void> {
+  try {
+    const colRef = collection(db, 'hung_decor_frame_items');
+    const snap = await getDocs(colRef);
+    const deletePromises: Promise<void>[] = [];
+
+    snap.forEach(d => {
+      const item = d.data() as FrameSpecItem;
+      const fullItem = { ...item, id: d.id };
+      if (isLegacy194Frame(fullItem)) {
+        console.warn(`Purging legacy 194 frame doc from Firestore: ${d.id}`);
+        deletePromises.push(deleteDoc(doc(db, 'hung_decor_frame_items', d.id)));
+      }
+    });
+
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+    }
+
+    if (typeof window !== 'undefined') {
+      ['hung_decor_frames', 'hung_decor_custom_frames'].forEach(key => {
+        const local = localStorage.getItem(key);
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            if (Array.isArray(parsed)) {
+              const cleaned = parsed.filter((f: FrameSpecItem) => !isLegacy194Frame(f));
+              localStorage.setItem(key, JSON.stringify(cleaned));
+            }
+          } catch (e) {}
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Error purging legacy 194 frames:', err);
+  }
+}
 
 // Delete single frame document from Firestore
 export async function deleteFrameFromFirestore(frameId: string): Promise<boolean> {
@@ -772,16 +835,18 @@ export async function deleteFrameFromFirestore(frameId: string): Promise<boolean
     await deleteDoc(itemRef);
 
     if (typeof window !== 'undefined') {
-      const local = localStorage.getItem('hung_decor_frames');
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) {
-            const filtered = parsed.filter((f: any) => f.id !== frameId && f.id !== docId && f.code !== frameId);
-            localStorage.setItem('hung_decor_frames', JSON.stringify(filtered));
-          }
-        } catch (e) {}
-      }
+      ['hung_decor_frames', 'hung_decor_custom_frames'].forEach(key => {
+        const local = localStorage.getItem(key);
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((f: any) => f.id !== frameId && f.id !== docId && f.code !== frameId && !isLegacy194Frame(f));
+              localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          } catch (e) {}
+        }
+      });
     }
     return true;
   } catch (error) {
@@ -793,14 +858,19 @@ export async function deleteFrameFromFirestore(frameId: string): Promise<boolean
 // 3. Fetch Frames from Firestore
 export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecItem[]; updatedAt?: string } | null> {
   try {
+    // Proactively purge any leftover legacy 194 frames
+    purgeLegacy194FramesFromFirestoreAndStorage().catch(console.warn);
+
     const colRef = collection(db, 'hung_decor_frame_items');
     const snap = await getDocs(colRef);
     if (!snap.empty) {
       const frames: FrameSpecItem[] = [];
+      const legacyDocIdsToDelete: string[] = [];
+
       snap.forEach(d => {
         const item = d.data() as FrameSpecItem;
         if (item) {
-          frames.push({
+          const fullItem: FrameSpecItem = {
             ...item,
             id: item.id || d.id,
             displayOrder: typeof item.displayOrder === 'number' ? item.displayOrder : 999,
@@ -812,41 +882,25 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
               id: n?.id || `note_${i}_${Date.now()}`,
               text: typeof n === 'string' ? n : n?.text || ''
             }))
-          });
+          };
+
+          if (isLegacy194Frame(fullItem)) {
+            legacyDocIdsToDelete.push(d.id);
+          } else {
+            frames.push(fullItem);
+          }
         }
       });
+
+      if (legacyDocIdsToDelete.length > 0) {
+        Promise.all(legacyDocIdsToDelete.map(docId => deleteDoc(doc(db, 'hung_decor_frame_items', docId)))).catch(console.warn);
+      }
+
       if (frames.length > 0) {
-        // Sort strictly by displayOrder
         frames.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
         return {
           frames,
           updatedAt: new Date().toISOString()
-        };
-      }
-    }
-
-    // Fallback to legacy single doc 'frames'
-    const docRef = doc(db, FIRESTORE_COLLECTION, FRAMES_DOC);
-    const snapDoc = await getDoc(docRef);
-    if (snapDoc.exists()) {
-      const d = snapDoc.data();
-      if (Array.isArray(d.framesList) && d.framesList.length > 0) {
-        const normalized = d.framesList.map((f: FrameSpecItem, idx: number) => ({
-          ...f,
-          id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
-          displayOrder: typeof f.displayOrder === 'number' ? f.displayOrder : idx,
-          images: (f.images || []).map((img, i) => ({
-            ...img,
-            id: img.id || `img_${idx}_${i}_${Date.now()}`
-          })),
-          notes: (f.notes || []).map((n: any, i: number) => ({
-            id: n?.id || `note_${idx}_${i}_${Date.now()}`,
-            text: typeof n === 'string' ? n : n?.text || ''
-          }))
-        })).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-        return {
-          frames: normalized,
-          updatedAt: d.updatedAt || undefined,
         };
       }
     }
@@ -857,8 +911,11 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            parsed.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-            return { frames: parsed };
+            const cleaned = parsed.filter((f: FrameSpecItem) => !isLegacy194Frame(f));
+            if (cleaned.length > 0) {
+              cleaned.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+              return { frames: cleaned };
+            }
           }
         } catch (e) {}
       }
@@ -872,8 +929,11 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            parsed.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-            return { frames: parsed };
+            const cleaned = parsed.filter((f: FrameSpecItem) => !isLegacy194Frame(f));
+            if (cleaned.length > 0) {
+              cleaned.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+              return { frames: cleaned };
+            }
           }
         } catch (e) {}
       }

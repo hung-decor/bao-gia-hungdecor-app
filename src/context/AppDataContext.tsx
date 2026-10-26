@@ -32,6 +32,8 @@ import {
   fetchFramesFromFirestore,
   saveFramesToFirestore,
   deleteFrameFromFirestore,
+  isLegacy194Frame,
+  purgeLegacy194FramesFromFirestoreAndStorage,
   fetchRealPhotosFromFirestore,
   saveRealPhotosToFirestore,
   fetchShopInfoFromFirestore,
@@ -117,19 +119,22 @@ const initialPricing: FullPricingState = {
 const normalizeFramesList = (list: FrameSpecItem[]): FrameSpecItem[] => {
   const source = list && list.length > 0 ? list : defaultFrames;
 
-  return source.map((f, idx) => ({
-    ...f,
-    displayOrder: f.displayOrder ?? idx,
-    id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
-    images: (f.images || []).map((img, i) => ({
-      ...img,
-      id: img.id || `img_${idx}_${i}_${Date.now()}`
-    })),
-    notes: (f.notes || []).map((n: any, i: number) => ({
-      id: n?.id || `note_${idx}_${i}_${Date.now()}`,
-      text: typeof n === 'string' ? n : n?.text || ''
+  return source
+    .filter(f => !isLegacy194Frame(f))
+    .map((f, idx) => ({
+      ...f,
+      displayOrder: f.displayOrder ?? idx,
+      id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
+      images: (f.images || []).map((img, i) => ({
+        ...img,
+        id: img.id || `img_${idx}_${i}_${Date.now()}`
+      })),
+      notes: (f.notes || []).map((n: any, i: number) => ({
+        id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+        text: typeof n === 'string' ? n : n?.text || ''
+      }))
     }))
-  })).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -243,26 +248,34 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
       }
 
+      // Proactively purge any legacy 194 frames from Firestore & localStorage
+      purgeLegacy194FramesFromFirestoreAndStorage().catch(console.warn);
+
       if (framesResult && framesResult.frames && framesResult.frames.length > 0) {
-        const sortedFrames = [...framesResult.frames].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-        setFrames(sortedFrames);
+        const cleanedFrames = framesResult.frames
+          .filter(f => !isLegacy194Frame(f))
+          .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+        setFrames(cleanedFrames);
         hasFirestoreData = true;
         if (framesResult.updatedAt && !lastUpdated) setLastUpdated(framesResult.updatedAt);
       } else {
         let cachedFrames: FrameSpecItem[] | null = null;
         if (typeof window !== 'undefined') {
-          const cached = localStorage.getItem('hung_decor_custom_frames');
+          const cached = localStorage.getItem('hung_decor_custom_frames') || localStorage.getItem('hung_decor_frames');
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                cachedFrames = parsed;
+                const filtered = parsed.filter((f: FrameSpecItem) => !isLegacy194Frame(f));
+                if (filtered.length > 0) {
+                  cachedFrames = filtered;
+                }
               }
             } catch (e) {}
           }
         }
 
-        if (cachedFrames) {
+        if (cachedFrames && cachedFrames.length > 0) {
           cachedFrames.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
           setFrames(cachedFrames);
           hasFirestoreData = true;

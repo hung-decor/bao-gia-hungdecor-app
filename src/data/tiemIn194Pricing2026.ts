@@ -112,6 +112,37 @@ export const anh4KPricingData = albumPricingData as any;
 // Chú thích quy cách khung xưởng Hùng Decor 2026
 export const frameReferenceGuide: FrameSpecItem[] = [
   {
+    id: 'frame_album',
+    code: 'Album - Photobook',
+    name: 'Album - Photobook (Mặt Mika 8K & Bìa Da/Mika Cao Cấp)',
+    dimensions: 'Kích thước đa dạng • Mở phẳng 180 độ',
+    description: 'Dòng Album - Photobook cao cấp xưởng Hùng Decor: Công nghệ in Lab Mới sắc nét, mở phẳng 180 độ không cong vênh, chống ẩm mốc. Đa dạng kích thước 15x21, 20x20, 25x25, 25x35, 30x30.',
+    suitableFor: 'Album cưới cao cấp, Album phóng sự cưới, Album em bé, Photobook gia đình và du lịch.',
+    variants: 'Bìa Mika 8K, Bìa Da cao cấp, Bìa Gỗ lụa',
+    hasRealPhotos: true,
+    images: [],
+    notes: [
+      { id: 'note_album_1', text: 'Trang in mở phẳng 180 độ sắc nét công nghệ in Lab' },
+      { id: 'note_album_2', text: 'Gia công đóng cuốn chắc chắn chống ẩm bền bỉ' }
+    ],
+    displayOrder: 0
+  },
+  {
+    id: 'frame_boVien',
+    code: 'Bo Viền',
+    name: 'Bo Viền (Gia Công Viền Trực Tiếp Mép Ảnh)',
+    dimensions: 'Viền bọc tinh tế ôm khít mép ảnh',
+    description: 'Quy cách Bo viền chuyên dụng của xưởng Hùng Decor: Viền bọc ôm sát viền mép ảnh Gỗ Lụa hoặc Mika, giúp bảo vệ chống sứt mẻ va đập, tạo viền hoàn thiện gọn gàng, thanh thoát mà không cần lắp khung ngoài.',
+    suitableFor: 'Ảnh Gỗ Lụa để bàn, ảnh treo tường tối giản không dùng khung ngoài.',
+    variants: 'Viền trắng, viền đen, viền vân gỗ',
+    hasRealPhotos: true,
+    images: [],
+    notes: [
+      { id: 'note_boVien_1', text: 'Bảo vệ cạnh ảnh chống sứt mép, độ bền cao' }
+    ],
+    displayOrder: 1
+  },
+  {
     id: 'frame_kx',
     code: 'Khung KX',
     name: 'Khung KX (Bản 2cm - 3cm Chống Cong Vênh)',
@@ -129,7 +160,8 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     notes: [
       { id: 'note_kx_1', text: 'Bản rộng 2.0cm - 3.0cm gia công chắc chắn chống cong vênh' },
       { id: 'note_kx_2', text: 'Tối ưu cho ảnh để bàn và ảnh treo tường đến cỡ 40x60' }
-    ]
+    ],
+    displayOrder: 2
   },
   {
     id: 'frame_ht10',
@@ -149,7 +181,8 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     notes: [
       { id: 'note_ht10_1', text: 'Thành khung cao 3.5cm tạo hiệu ứng khối 3D sâu và sang trọng' },
       { id: 'note_ht10_2', text: 'Mặt viền 1.0cm thanh thoát, kết cấu xương gỗ gia cố chịu lực cao' }
-    ]
+    ],
+    displayOrder: 3
   },
   {
     id: 'frame_k12',
@@ -166,7 +199,8 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     notes: [
       { id: 'note_k12_1', text: 'Bản rộng 5.5cm bề thế, giúp tăng khoảng 10cm kích thước phủ bì' },
       { id: 'note_k12_2', text: 'Gia cố hậu chống ẩm mốc cho ảnh phóng đại gia đình' }
-    ]
+    ],
+    displayOrder: 4
   },
   {
     id: 'frame_b10',
@@ -183,7 +217,8 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     notes: [
       { id: 'note_b10_1', text: 'Bản đại 10cm siêu chắc, tăng khoảng 20cm kích thước phủ bì ảnh' },
       { id: 'note_b10_2', text: 'Hệ khung gỗ đầm nặng, phù hợp kích thước từ 60x90 trở lên' }
-    ]
+    ],
+    displayOrder: 5
   },
   {
     id: 'frame_titan1',
@@ -201,7 +236,8 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     notes: [
       { id: 'note_titan1_1', text: 'Hợp kim nhôm nguyên khối siêu nhẹ, chống rỉ sét và bay màu' },
       { id: 'note_titan1_2', text: 'Góc bo ghép 45 độ chuẩn xác công nghệ CNC' }
-    ]
+    ],
+    displayOrder: 6
   },
   {
     id: 'frame_titan2',
@@ -219,21 +255,8 @@ export const frameReferenceGuide: FrameSpecItem[] = [
     notes: [
       { id: 'note_titan2_1', text: 'Bản mặt chính diện 2.0cm phủ bóng công nghệ mạ điện cao cấp' },
       { id: 'note_titan2_2', text: 'Khả năng chịu lực cao, phù hợp cho mọi kích thước ảnh phóng' }
-    ]
-  },
-  {
-    id: 'frame_boVien',
-    code: 'Bo Viền',
-    name: 'Bo Viền (Gia Công Viền Trực Tiếp Mép Ảnh)',
-    dimensions: 'Viền bọc tinh tế ôm khít mép ảnh',
-    description: 'Quy cách Bo viền chuyên dụng của xưởng Hùng Decor: Viền bọc ôm sát viền mép ảnh Gỗ Lụa hoặc Mika, giúp bảo vệ chống sứt mẻ va đập, tạo viền hoàn thiện gọn gàng, thanh thoát mà không cần lắp khung ngoài.',
-    suitableFor: 'Ảnh Gỗ Lụa để bàn, ảnh treo tường tối giản không dùng khung ngoài.',
-    variants: 'Viền trắng, viền đen, viền vân gỗ',
-    hasRealPhotos: true,
-    images: [],
-    notes: [
-      { id: 'note_boVien_1', text: 'Bảo vệ cạnh ảnh chống sứt mép, độ bền cao' }
-    ]
+    ],
+    displayOrder: 7
   }
 ];
 
