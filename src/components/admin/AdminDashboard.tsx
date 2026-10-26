@@ -2103,8 +2103,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         onClick={() => {
                           const newRow: any = {
                             size: 'Mới',
-                            donGia: 0,
-                            k4_k6: 0
+                            donGia: 0
                           };
                           updateActivePricing(prev => ({
                             ...prev,
@@ -2124,28 +2123,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
                             <th className="p-3 w-16 text-center">Xếp</th>
                             <th className="p-3 w-36">Kích Thước</th>
-                            {getMaterialColumns(activePricing, 'anh-4k').map(colKey => {
-                              const colTitle = activePricing.columnLabels?.[colKey] || (colKey === 'donGia' ? 'Đơn Giá VNĐ (Trọn gói)' : colKey);
-                              return (
-                                <th key={colKey} className="p-3">
-                                  <div className="flex items-center justify-between gap-1 group">
-                                    <span className="truncate">{colTitle}</span>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleDeleteColumnFromMaterial('anh-4k', colKey, colTitle);
-                                      }}
-                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
-                                      title={`Xóa cột "${colTitle}" khỏi riêng tab Album`}
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </th>
-                              );
-                            })}
+                            <th className="p-3">
+                              <span>Đơn Giá VNĐ (Trọn gói)</span>
+                            </th>
                             <th className="p-3 w-14 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -2199,40 +2179,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-32 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              {getMaterialColumns(activePricing, 'anh-4k').map(colKey => (
-                                <td key={colKey} className="p-2 align-top">
-                                  <div className="flex flex-col gap-1">
+                              <td className="p-2 align-top">
+                                <div className="flex flex-col gap-1">
+                                  <input
+                                    type="number"
+                                    value={row.donGia ?? row.price ?? ''}
+                                    placeholder="-"
+                                    onChange={(e) => {
+                                      const val = e.target.value === '' ? null : Number(e.target.value);
+                                      updateActivePricing(prev => {
+                                        const copy = [...prev.anh4K];
+                                        copy[idx].donGia = val;
+                                        return { ...prev, anh4K: copy };
+                                      }, false);
+                                    }}
+                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
+                                  />
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
                                     <input
-                                      type="number"
-                                      value={row[colKey] ?? (colKey === 'donGia' ? (row.donGia ?? row.k4_k6 ?? '') : '')}
-                                      placeholder="-"
-                                      onChange={(e) => {
-                                        const val = e.target.value === '' ? null : Number(e.target.value);
-                                        updateActivePricing(prev => {
-                                          const copy = [...prev.anh4K];
-                                          (copy[idx] as any)[colKey] = val;
-                                          if (colKey === 'donGia') {
-                                            (copy[idx] as any).k4_k6 = val;
-                                          }
-                                          return { ...prev, anh4K: copy };
-                                        }, false);
-                                      }}
-                                      className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
+                                      type="text"
+                                      value={getCellSKU(row, 'donGia', 'anh-4k', activePricingSubTab)}
+                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'donGia', e.target.value)}
+                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'donGia', row.size)}
+                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
+                                      title="Sửa mã SKU thủ công"
                                     />
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
-                                      <input
-                                        type="text"
-                                        value={getCellSKU(row, colKey, 'anh-4k', activePricingSubTab)}
-                                        onChange={(e) => updateRowSKU('anh-4k', idx, colKey, e.target.value)}
-                                        placeholder={getDefaultSKU('anh-4k', activePricingSubTab, colKey, row.size)}
-                                        className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
-                                        title="Sửa mã SKU thủ công"
-                                      />
-                                    </div>
                                   </div>
-                                </td>
-                              ))}
+                                </div>
+                              </td>
                               <td className="p-3 text-center">
                                 <button
                                   type="button"

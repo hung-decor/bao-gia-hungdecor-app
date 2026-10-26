@@ -68,13 +68,16 @@ export const defaultMaterialColumnKeys: Record<string, string[]> = {
   'hd-guong-sieu-bong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
   'mika-pho-thong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
   'in-ep-mika': ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'],
-  'anh-4k': ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'],
+  'anh-4k': ['donGia'],
 };
 export const defaultMaterialColumnsMap = defaultMaterialColumnKeys;
 
 export function getMaterialColumns(pricing: FullPricingState, tabId: string): string[] {
+  if (tabId === 'anh-4k' || tabId === 'album' || tabId === 'album-photobook') {
+    return ['donGia'];
+  }
   const map = pricing.materialColumnsMap || pricing.materialColumnKeys;
-  if (map && Array.isArray(map[tabId])) {
+  if (map && Array.isArray(map[tabId]) && map[tabId].length > 0) {
     return map[tabId];
   }
   if (defaultMaterialColumnKeys[tabId]) {
@@ -83,19 +86,18 @@ export function getMaterialColumns(pricing: FullPricingState, tabId: string): st
   if (tabId === 'in-ep-mika') {
     return pricing.inEpColumnKeys || defaultInEpColumnKeys;
   }
-  if (tabId === 'anh-4k' || tabId === 'album') {
-    return ['donGia'];
-  }
   if (pricing.customTabs) {
     const custom = pricing.customTabs.find(c => c.id === tabId);
     if (custom) {
       if (custom.type === 'inEpMika') {
         return pricing.inEpColumnKeys || defaultInEpColumnKeys;
       }
+      if (custom.type === 'album') {
+        return ['donGia'];
+      }
       return pricing.frameColumnKeys || defaultFrameColumnKeys;
     }
   }
-  // For 'go-lua', 'hd-guong-sieu-bong', 'mika-pho-thong' and any other dongKhung:
   return pricing.frameColumnKeys || defaultFrameColumnKeys;
 }
 
@@ -319,6 +321,14 @@ export function sanitizePricingState(d: any): FullPricingState {
     };
   };
 
+  const sanitizeAlbumRow = (r: any): Anh4KPriceRow => {
+    return {
+      size: r.size,
+      donGia: r.donGia ?? r.price ?? r.k4_k6 ?? r.boVien ?? null,
+      skus: r.skus || {}
+    };
+  };
+
   const sanitizeCols = (cols: string[]): string[] => {
     return (cols || [])
       .map(k => {
@@ -355,7 +365,7 @@ export function sanitizePricingState(d: any): FullPricingState {
   if (cleanMap['hd-guong-sieu-bong'] === undefined) cleanMap['hd-guong-sieu-bong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
   if (cleanMap['mika-pho-thong'] === undefined) cleanMap['mika-pho-thong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
   if (cleanMap['in-ep-mika'] === undefined) cleanMap['in-ep-mika'] = defaultInEpColumnKeys;
-  if (cleanMap['anh-4k'] === undefined) cleanMap['anh-4k'] = ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'];
+  cleanMap['anh-4k'] = ['donGia'];
 
   let loadedTabLabels = d.tabLabels;
   if (!loadedTabLabels && typeof window !== 'undefined') {
@@ -372,7 +382,7 @@ export function sanitizePricingState(d: any): FullPricingState {
     goLua: (d.goLua || defaultGoLua).map(sanitizeDongKhungRow),
     mikaPhoThong: (d.mikaPhoThong || defaultMikaPhoThong).map(sanitizeDongKhungRow),
     hdGuong: (d.hdGuong || defaultHdGuong).map(sanitizeDongKhungRow),
-    anh4K: d.anh4K || defaultAnh4K,
+    anh4K: (d.anh4K || defaultAnh4K).map(sanitizeAlbumRow),
     tabLabels: loadedTabLabels || defaultTabLabels,
     columnLabels: {
       ...defaultColumnLabels,
@@ -384,7 +394,7 @@ export function sanitizePricingState(d: any): FullPricingState {
     materialColumnsMap: cleanMap,
     customTabs: (d.customTabs || []).map((ct: any) => ({
       ...ct,
-      rows: (ct.rows || []).map((r: any) => ct.type === 'dongKhung' ? sanitizeDongKhungRow(r) : r)
+      rows: (ct.rows || []).map((r: any) => ct.type === 'dongKhung' ? sanitizeDongKhungRow(r) : ct.type === 'album' ? sanitizeAlbumRow(r) : r)
     })),
     deletedTabIds: d.deletedTabIds || [],
     lastPriceAdjustmentDate: d.lastPriceAdjustmentDate || undefined,
@@ -518,9 +528,9 @@ export function applyPercentageIncrease(targetPricing: FullPricingState, percent
   });
 
   const bumpAnh4KRow = (r: Anh4KPriceRow): Anh4KPriceRow => ({
-    ...r,
-    k4_k6: bumpValue(r.k4_k6),
-    titan2: bumpValue(r.titan2),
+    size: r.size,
+    donGia: bumpValue(r.donGia ?? (r as any).k4_k6),
+    skus: r.skus
   });
 
   const bumpCustomRow = (r: any, type: string) => {
@@ -617,7 +627,6 @@ export function syncPricingStructure(structureSource: FullPricingState, priceTar
     });
   };
 
-  // Anh4K row merger
   const syncAnh4K = (sourceRows: Anh4KPriceRow[], targetRows: Anh4KPriceRow[]): Anh4KPriceRow[] => {
     const targetMap = new Map<string, Anh4KPriceRow>();
     (targetRows || []).forEach(r => r.size && targetMap.set(r.size, r));
@@ -626,14 +635,15 @@ export function syncPricingStructure(structureSource: FullPricingState, priceTar
       const existingTarget = targetMap.get(srcRow.size);
       if (!existingTarget) {
         return {
-          ...srcRow,
-          k4_k6: srcRow.k4_k6 ? Math.round((srcRow.k4_k6 * 1.1) / 1000) * 1000 : null,
-          titan2: srcRow.titan2 ? Math.round((srcRow.titan2 * 1.1) / 1000) * 1000 : null,
+          size: srcRow.size,
+          donGia: srcRow.donGia ? Math.round((srcRow.donGia * 1.1) / 1000) * 1000 : null,
+          skus: srcRow.skus || {}
         };
       }
       return {
-        ...existingTarget,
-        size: srcRow.size
+        size: srcRow.size,
+        donGia: existingTarget.donGia ?? (existingTarget as any).k4_k6 ?? srcRow.donGia ?? null,
+        skus: existingTarget.skus || srcRow.skus || {}
       };
     });
   };

@@ -9,7 +9,7 @@ export type MaterialTabId =
 export interface CustomMaterialTab {
   id: string;
   title: string;
-  type: 'dongKhung' | 'inEpMika' | 'anh4K';
+  type: 'dongKhung' | 'inEpMika' | 'anh4K' | 'album';
   rows: any[];
 }
 
@@ -46,8 +46,7 @@ export interface DongKhungPriceRow {
 
 export interface Anh4KPriceRow {
   size: string;
-  k4_k6: number | null;
-  titan2: number | null;
+  donGia: number | null;
   skus?: { [colKey: string]: string };
 }
 

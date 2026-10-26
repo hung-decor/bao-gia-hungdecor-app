@@ -239,18 +239,16 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
             )}
 
             {activeTabItem && (activeTabItem.type === 'album' || activeTabItem.id === 'anh-4k' || activeTabItem.id === 'album') && (
-              <div className={getMaterialColumns(pricing, activeTabItem.id).length <= 2 ? "max-w-2xl mx-auto" : ""}>
+              <div className="max-w-2xl mx-auto">
                 <table className="w-full text-center text-xs border-collapse">
                   <thead>
                     <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
                       <th className="py-3 px-3.5 text-center font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap w-32 min-w-[120px]">
                         Kích Thước
                       </th>
-                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                        <th key={k} className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[140px] w-44">
-                          {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || (k === 'donGia' ? 'Đơn Giá' : k)}
-                        </th>
-                      ))}
+                      <th className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[140px] w-44">
+                        Đơn Giá
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
@@ -259,11 +257,9 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                         <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
                         </td>
-                        {getMaterialColumns(pricing, activeTabItem.id).map(k => (
-                          <td key={k} className="py-2.5 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap">
-                            {formatPrice(applyMultiplier(row[k] ?? row.donGia ?? row.k4_k6 ?? row.boVien, multiplier))}
-                          </td>
-                        ))}
+                        <td className="py-2.5 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row.donGia ?? row.price, multiplier))}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
