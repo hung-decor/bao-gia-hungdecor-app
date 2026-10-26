@@ -233,11 +233,11 @@ export async function fetchRealPhotosFromFirestore(): Promise<{ realPhotos: Real
 export async function saveRealPhotosToFirestore(photosList: RealGalleryPhoto[]): Promise<boolean> {
   try {
     const docRef = doc(db, FIRESTORE_COLLECTION, GALLERY_REAL_PHOTOS_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       photosList,
       version: GALLERY_VERSION,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    }), { merge: true });
 
     if (typeof window !== 'undefined') {
       try {
@@ -274,15 +274,32 @@ export async function fetchAdminPasswordFromFirestore(): Promise<string> {
 export async function saveAdminPasswordToFirestore(newPassword: string): Promise<boolean> {
   try {
     const docRef = doc(db, FIRESTORE_COLLECTION, SECURITY_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       adminPassword: newPassword,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (error) {
     console.error('Error saving new admin password to Firestore:', error);
     throw error;
   }
+}
+
+export function cleanUndefined<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanUndefined(item)) as unknown as T;
+  }
+  const cleaned: any = {};
+  Object.keys(obj).forEach(key => {
+    const val = (obj as any)[key];
+    if (val !== undefined) {
+      cleaned[key] = cleanUndefined(val);
+    }
+  });
+  return cleaned;
 }
 
 export const PRICING_VERSION = '2026_HUNG_DECOR_GOLUA_V10_CLEAN';
@@ -340,13 +357,23 @@ export function sanitizePricingState(d: any): FullPricingState {
   if (cleanMap['in-ep-mika'] === undefined) cleanMap['in-ep-mika'] = defaultInEpColumnKeys;
   if (cleanMap['anh-4k'] === undefined) cleanMap['anh-4k'] = ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'];
 
+  let loadedTabLabels = d.tabLabels;
+  if (!loadedTabLabels && typeof window !== 'undefined') {
+    const cachedTabs = localStorage.getItem('hung_decor_tab_labels');
+    if (cachedTabs) {
+      try {
+        loadedTabLabels = JSON.parse(cachedTabs);
+      } catch (e) {}
+    }
+  }
+
   return {
     inEpMika: d.inEpMika || defaultInEpMika,
     goLua: (d.goLua || defaultGoLua).map(sanitizeDongKhungRow),
     mikaPhoThong: (d.mikaPhoThong || defaultMikaPhoThong).map(sanitizeDongKhungRow),
     hdGuong: (d.hdGuong || defaultHdGuong).map(sanitizeDongKhungRow),
     anh4K: d.anh4K || defaultAnh4K,
-    tabLabels: d.tabLabels || defaultTabLabels,
+    tabLabels: loadedTabLabels || defaultTabLabels,
     columnLabels: {
       ...defaultColumnLabels,
       ...(d.columnLabels || {})
@@ -423,16 +450,19 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
       deletedTabIds: pricing.deletedTabIds || [],
     };
     const docRef = doc(db, FIRESTORE_COLLECTION, PRICING_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       ...toSave,
       version: PRICING_VERSION,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    }), { merge: true });
 
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('hung_decor_custom_pricing', JSON.stringify(toSave));
         localStorage.setItem('hung_decor_material_cols', JSON.stringify(matCols));
+        if (toSave.tabLabels) {
+          localStorage.setItem('hung_decor_tab_labels', JSON.stringify(toSave.tabLabels));
+        }
       } catch (err) {
         console.warn('Could not cache custom pricing to localStorage:', err);
       }
@@ -706,16 +736,19 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
       deletedTabIds: pricing.deletedTabIds || [],
     };
     const docRef = doc(db, FIRESTORE_COLLECTION, FREELANCE_PRICING_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       ...toSave,
       version: PRICING_VERSION,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    }), { merge: true });
 
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('hung_decor_freelance_pricing', JSON.stringify(toSave));
         localStorage.setItem('hung_decor_material_cols', JSON.stringify(matCols));
+        if (toSave.tabLabels) {
+          localStorage.setItem('hung_decor_tab_labels', JSON.stringify(toSave.tabLabels));
+        }
       } catch (err) {
         console.warn('Could not cache freelance pricing to localStorage:', err);
       }
@@ -802,11 +835,11 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
       }))
     }));
     const docRef = doc(db, FIRESTORE_COLLECTION, FRAMES_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       framesList: normalized,
       version: FRAMES_VERSION,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    }), { merge: true });
 
     if (typeof window !== 'undefined') {
       try {
@@ -842,10 +875,10 @@ export async function fetchShopInfoFromFirestore(): Promise<B2BShopInfo | null> 
 export async function saveShopInfoToFirestore(shopInfo: B2BShopInfo): Promise<boolean> {
   try {
     const docRef = doc(db, FIRESTORE_COLLECTION, SHOP_INFO_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       ...shopInfo,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (error) {
     console.error('Error saving shop info to Firestore:', error);
@@ -1096,13 +1129,13 @@ export async function saveCatalogToFirestore(
   try {
     const { items, itemsBySku } = generateCatalogFromPricing(studioPricing, freelancePricing);
     const docRef = doc(db, FIRESTORE_COLLECTION, CATALOG_DOC);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       version: '2026_HUNG_DECOR_CATALOG_V1',
       updatedAt: new Date().toISOString(),
       totalItems: items.length,
       items,
       itemsBySku
-    }, { merge: true });
+    }), { merge: true });
 
     if (typeof window !== 'undefined') {
       try {
