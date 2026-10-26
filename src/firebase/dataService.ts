@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from './config';
 import { 
   InEpMikaPriceRow, 
@@ -767,10 +767,40 @@ export const FRAMES_VERSION = '2026_FRAMES_HUNG_DECOR_V4_STANDARDIZED';
 // 3. Fetch Frames from Firestore
 export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecItem[]; updatedAt?: string } | null> {
   try {
+    const colRef = collection(db, 'hung_decor_frame_items');
+    const snap = await getDocs(colRef);
+    if (!snap.empty) {
+      const frames: FrameSpecItem[] = [];
+      snap.forEach(d => {
+        const item = d.data() as FrameSpecItem;
+        if (item) {
+          frames.push({
+            ...item,
+            id: item.id || d.id,
+            images: (item.images || []).map((img, i) => ({
+              ...img,
+              id: img.id || `img_${i}_${Date.now()}`
+            })),
+            notes: (item.notes || []).map((n: any, i: number) => ({
+              id: n?.id || `note_${i}_${Date.now()}`,
+              text: typeof n === 'string' ? n : n?.text || ''
+            }))
+          });
+        }
+      });
+      if (frames.length > 0) {
+        return {
+          frames,
+          updatedAt: new Date().toISOString()
+        };
+      }
+    }
+
+    // Fallback to legacy single doc 'frames'
     const docRef = doc(db, FIRESTORE_COLLECTION, FRAMES_DOC);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const d = snap.data();
+    const snapDoc = await getDoc(docRef);
+    if (snapDoc.exists()) {
+      const d = snapDoc.data();
       if (Array.isArray(d.framesList) && d.framesList.length > 0) {
         const normalized = d.framesList.map((f: FrameSpecItem, idx: number) => ({
           ...f,
@@ -790,6 +820,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         };
       }
     }
+
     if (typeof window !== 'undefined') {
       const local = localStorage.getItem('hung_decor_frames');
       if (local) {
@@ -803,7 +834,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
     }
     return null;
   } catch (error) {
-    console.warn('Could not fetch frames from Firestore, falling back to local defaults:', error);
+    console.warn('Could not fetch frames from Firestore collection:', error);
     if (typeof window !== 'undefined') {
       const local = localStorage.getItem('hung_decor_frames');
       if (local) {
@@ -822,24 +853,35 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
 // 4. Save Frames to Firestore
 export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promise<boolean> {
   try {
-    const normalized = (framesList || []).map((f: FrameSpecItem, idx: number) => ({
-      ...f,
-      id: f.id || f.code || `frame_${idx}_${Date.now()}`,
-      images: (f.images || []).map((img, i) => ({
-        ...img,
-        id: img.id || `img_${idx}_${i}_${Date.now()}`
-      })),
-      notes: (f.notes || []).map((n: any, i: number) => ({
-        id: n?.id || `note_${idx}_${i}_${Date.now()}`,
-        text: typeof n === 'string' ? n : n?.text || ''
-      }))
-    }));
-    const docRef = doc(db, FIRESTORE_COLLECTION, FRAMES_DOC);
-    await setDoc(docRef, cleanUndefined({
-      framesList: normalized,
-      version: FRAMES_VERSION,
-      updatedAt: new Date().toISOString(),
-    }), { merge: true });
+    const normalized = (framesList || []).map((f: FrameSpecItem, idx: number) => {
+      const rawId = f.id || f.code || `frame_${idx}`;
+      const frameId = String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_');
+      return {
+        ...f,
+        id: frameId,
+        images: (f.images || []).slice(0, 3).map((img, i) => ({
+          ...img,
+          id: img.id || `img_${idx}_${i}_${Date.now()}`
+        })),
+        notes: (f.notes || []).map((n: any, i: number) => ({
+          id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+          text: typeof n === 'string' ? n : n?.text || ''
+        }))
+      };
+    });
+
+    // Save each frame as its own document in 'hung_decor_frame_items' collection
+    // This completely bypasses the 1MB document size limit forever!
+    const savePromises = normalized.map(frame => {
+      const docId = frame.id || frame.code ? String(frame.code || frame.id).replace(/[^a-zA-Z0-9_-]/g, '_') : `frame_${Math.random()}`;
+      const itemRef = doc(db, 'hung_decor_frame_items', docId);
+      return setDoc(itemRef, cleanUndefined({
+        ...frame,
+        updatedAt: new Date().toISOString()
+      }), { merge: true });
+    });
+
+    await Promise.all(savePromises);
 
     if (typeof window !== 'undefined') {
       try {
@@ -851,7 +893,7 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
 
     return true;
   } catch (error) {
-    console.error('Error saving frames to Firestore:', error);
+    console.error('Error saving frames to Firestore collection:', error);
     throw error;
   }
 }
@@ -917,9 +959,9 @@ export async function seedAllDataToFirestore(): Promise<boolean> {
 // Helper: Compress and resize image file to Base64 (No Firebase Storage needed)
 export function compressImageFile(
   file: File,
-  maxWidth: number = 1200,
-  maxHeight: number = 1200,
-  quality: number = 0.75
+  maxWidth: number = 700,
+  maxHeight: number = 700,
+  quality: number = 0.6
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {

@@ -1323,8 +1323,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   <button
                     type="button"
                     onClick={async () => {
-                      await saveStudioPricing(localStudioPricing);
-                      showToast('Đã lưu Bảng Giá Sỉ Studio Gốc thành công!');
+                      try {
+                        await saveStudioPricing(localStudioPricing);
+                        showToast('Đã lưu Bảng Giá Sỉ Studio Gốc lên Firebase Firestore!');
+                      } catch (e: any) {
+                        showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
+                      }
                     }}
                     disabled={isSaving}
                     className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50"
@@ -1336,8 +1340,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   <button
                     type="button"
                     onClick={async () => {
-                      await saveFreelancePricing(localFreelancePricing);
-                      showToast('Đã lưu Bảng Giá Freelance thành công!');
+                      try {
+                        await saveFreelancePricing(localFreelancePricing);
+                        showToast('Đã lưu Bảng Giá Freelance lên Firebase Firestore!');
+                      } catch (e: any) {
+                        showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
+                      }
                     }}
                     disabled={isSaving}
                     className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer disabled:opacity-50"
@@ -1350,8 +1358,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <button
                   type="button"
                   onClick={async () => {
-                    await saveAllPricing(localStudioPricing, localFreelancePricing);
-                    showToast('Đã lưu đồng thời cả 2 Bảng Giá (Studio Gốc & Freelance) thành công!');
+                    try {
+                      await saveAllPricing(localStudioPricing, localFreelancePricing);
+                      showToast('Đã lưu toàn bộ Bảng Giá lên Firebase Firestore thành công!');
+                    } catch (e: any) {
+                      showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
+                    }
                   }}
                   disabled={isSaving}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs sm:text-sm border border-neutral-700 transition-all shadow-md cursor-pointer disabled:opacity-50"
@@ -2490,7 +2502,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
                     return (
                       <div
-                        key={frame.id || frame.code || index}
+                        key={frame.id ? `${frame.id}_${index}` : `reorder_frame_${index}`}
                         draggable
                         onDragStart={(e) => handleFrameDragStart(e, index)}
                         onDragOver={(e) => handleFrameDragOver(e, index)}
@@ -2620,7 +2632,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {frames.map((frame, index) => (
                   <div
-                    key={frame.id || frame.code || index}
+                    key={frame.id ? `${frame.id}_${index}` : `frame_${index}`}
                     className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col justify-between hover:border-neutral-700 transition-colors shadow-lg space-y-3"
                   >
                     <div>

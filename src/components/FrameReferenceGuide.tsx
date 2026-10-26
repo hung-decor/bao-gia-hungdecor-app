@@ -162,7 +162,7 @@ export const FrameReferenceGuide: React.FC = () => {
 
             return (
               <div
-                key={item.code}
+                key={item.id ? `${item.id}_${item.code}` : `ref_frame_${item.code}`}
                 className="bg-[#FAF9F5] rounded-2xl border border-[#E7E2DA] p-4 sm:p-5 flex flex-col justify-between hover:border-[#936B34] transition-all space-y-3 shadow-xs group w-full max-w-full cursor-pointer"
                 onClick={() => {
                   setCardVariantMap(prev => ({ ...prev, [item.code]: activeCardVariantIdx }));
@@ -207,7 +207,7 @@ export const FrameReferenceGuide: React.FC = () => {
                           <span className="text-[10px] font-mono text-[#78716C] mr-0.5">Màu:</span>
                           {item.images!.map((img, vIdx) => (
                             <button
-                              key={img.url}
+                              key={img.id ? `${img.id}_${vIdx}` : `swatch_${vIdx}`}
                               onClick={(e) => handleSelectCardVariant(item.code, vIdx, e)}
                               className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                                 activeCardVariantIdx === vIdx
