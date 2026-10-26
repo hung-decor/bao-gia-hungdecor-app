@@ -21,6 +21,7 @@ import {
   FullPricingState,
   defaultTabLabels,
   defaultColumnLabels,
+  defaultMaterialColumnKeys,
   fetchPricingFromFirestore,
   savePricingToFirestore,
   fetchFreelancePricingFromFirestore,
@@ -63,7 +64,8 @@ export interface AppDataContextType {
   saveFrames: (newFrames?: FrameSpecItem[]) => Promise<boolean>;
   addFrame: (newFrame: FrameSpecItem) => Promise<boolean>;
   updateFrame: (index: number, updatedFrame: FrameSpecItem) => Promise<boolean>;
-  deleteFrame: (code: string) => Promise<boolean>;
+  deleteFrame: (idOrIndex: string | number) => void;
+  deleteFrameNote: (frameIdOrIndex: string | number, noteIdx: number) => void;
   uploadFrameImage: (file: File, frameCode: string) => Promise<string>;
 
   // Shop Info
@@ -103,16 +105,41 @@ const initialPricing: FullPricingState = {
   anh4K: defaultAnh4K,
   tabLabels: defaultTabLabels,
   columnLabels: defaultColumnLabels,
+  materialColumnsMap: defaultMaterialColumnKeys,
+  materialColumnKeys: defaultMaterialColumnKeys,
+};
+
+const normalizeFramesList = (list: FrameSpecItem[]): FrameSpecItem[] => {
+  const isLegacy = (list || []).some(f => {
+    const code = (f.code || '').toUpperCase();
+    return code.includes('K0') || code.includes('K1') || code.includes('K2') || code.includes('K3') ||
+           code.includes('K4') || code.includes('K5') || code.includes('K6') || code.includes('K7') ||
+           code.includes('K8') || code.includes('K9') || code.includes('K10') || code.includes('K11');
+  });
+  const source = isLegacy ? defaultFrames : (list || defaultFrames);
+
+  return source.map((f, idx) => ({
+    ...f,
+    id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
+    images: (f.images || []).map((img, i) => ({
+      ...img,
+      id: img.id || `img_${idx}_${i}_${Date.now()}`
+    })),
+    notes: (f.notes || []).map((n: any, i: number) => ({
+      id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+      text: typeof n === 'string' ? n : n?.text || ''
+    }))
+  }));
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
-export const CACHE_VERSION = '2026_HUNG_DECOR_GOLUA_V8';
+export const CACHE_VERSION = '2026_HUNG_DECOR_GOLUA_V10_CLEAN';
 
 export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [studioPricing, setStudioPricing] = useState<FullPricingState>(initialPricing);
   const [freelancePricing, setFreelancePricing] = useState<FullPricingState>(() => generateDefaultFreelancePricing(initialPricing));
-  const [frames, setFrames] = useState<FrameSpecItem[]>(defaultFrames);
+  const [frames, setFrames] = useState<FrameSpecItem[]>(() => normalizeFramesList(defaultFrames));
   const [realPhotos, setRealPhotos] = useState<RealGalleryPhoto[]>(defaultRealGalleryPhotos);
   const [shopInfo, setShopInfo] = useState<B2BShopInfo>(initialShopInfo);
   const [adminPassword, setAdminPassword] = useState<string>('123456');
@@ -294,9 +321,47 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return handleSaveFrames(updated);
   };
 
-  const handleDeleteFrame = async (code: string): Promise<boolean> => {
-    const updated = frames.filter(f => f.code !== code);
-    return handleSaveFrames(updated);
+  const deleteFrame = (idOrIndex: string | number) => {
+    setFrames(prev => {
+      const newFrames = prev.filter((item, idx) => {
+        if (typeof idOrIndex === 'number') {
+          return idx !== idOrIndex;
+        }
+        if (item.id === idOrIndex || item.code === idOrIndex) {
+          return false;
+        }
+        if (String(idx) === String(idOrIndex)) {
+          return false;
+        }
+        return true;
+      });
+      return [...newFrames];
+    });
+  };
+
+  const deleteFrameNote = (frameIdOrIndex: string | number, noteIdx: number) => {
+    setFrames(prev => {
+      let targetIdx = -1;
+      if (typeof frameIdOrIndex === 'number') {
+        targetIdx = frameIdOrIndex;
+      } else {
+        targetIdx = prev.findIndex((item, idx) =>
+          item.id === frameIdOrIndex || item.code === frameIdOrIndex || String(idx) === String(frameIdOrIndex)
+        );
+      }
+
+      if (targetIdx === -1 || !prev[targetIdx]) {
+        return prev;
+      }
+
+      const newFrames = [...prev];
+      const targetFrame = { ...newFrames[targetIdx] };
+      const currentNotes = [...(targetFrame.notes || [])];
+      currentNotes.splice(noteIdx, 1);
+      targetFrame.notes = currentNotes;
+      newFrames[targetIdx] = targetFrame;
+      return [...newFrames];
+    });
   };
 
   const handleSaveShopInfo = async (newShopInfo?: B2BShopInfo): Promise<boolean> => {
@@ -384,7 +449,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         saveFrames: handleSaveFrames,
         addFrame: handleAddFrame,
         updateFrame: handleUpdateFrame,
-        deleteFrame: handleDeleteFrame,
+        deleteFrame,
+        deleteFrameNote,
         uploadFrameImage: handleUploadImage,
         realPhotos,
         setRealPhotos,

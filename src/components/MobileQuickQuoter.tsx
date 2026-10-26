@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { usePriceMultiplier, applyMultiplier } from '../hooks/usePriceMultiplier';
 import { Calculator, Copy, Check, MessageCircle, ChevronDown, Camera } from 'lucide-react';
-import { getAllMaterialTabs } from '../firebase/dataService';
+import { getAllMaterialTabs, getMaterialColumns } from '../firebase/dataService';
 
 interface MobileQuickQuoterProps {
   zaloTho: string;
@@ -59,45 +59,24 @@ export const MobileQuickQuoter: React.FC<MobileQuickQuoterProps> = ({ zaloTho })
 
   const frameOptions = useMemo(() => {
     const col = pricing.columnLabels;
-    if (selectedTabItem?.id === 'go-lua' || selectedTabItem?.type === 'goLuaBoVien') {
-      return [
-        { id: 'boVien', label: col?.boVien ? `Chỉ ${col.boVien} (Không Khung)` : 'Chỉ Bo Viền (Không Khung)' }
-      ];
-    }
-
     if (selectedTabItem?.type === 'album' || selectedTabItem?.id === 'anh-4k' || selectedTabItem?.id === 'album') {
       return [
         { id: 'donGia', label: 'Giá trọn gói (Không dùng khung)' }
       ];
     }
 
-    if (selectedTabItem?.type === 'inEpMika') {
-      const keys = pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'];
-      return keys.map(k => ({
-        id: k === 'inEpMikaCol' ? 'inEpMika' : k,
-        label: col?.[k] || k
-      }));
-    }
-
-    if (selectedTabItem?.type === 'anh4K') {
-      return [
-        { id: 'k4_k6', label: col?.k4_k6 || 'Khung HT10' },
-        { id: 'titan2', label: col?.titan2 || 'Khung nhôm Titan C' }
-      ];
-    }
-
-    const keys = pricing.frameColumnKeys || ['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2'];
+    const keys = getMaterialColumns(pricing, selectedTabItem?.id || '');
     return keys.map(k => {
-      let labelTitle = col?.[k] || k;
+      let labelTitle = col?.[k] || pricing.columnLabels?.[k] || k;
       if (k === 'boVien') {
         labelTitle = col?.boVien ? `Chỉ ${col.boVien} (Không Khung)` : 'Chỉ Bo Viền (Không Khung)';
       }
       return {
-        id: k,
+        id: k === 'inEpMikaCol' ? 'inEpMika' : k,
         label: labelTitle
       };
     });
-  }, [selectedTabItem, pricing.columnLabels, pricing.frameColumnKeys, pricing.inEpColumnKeys]);
+  }, [selectedTabItem, pricing.columnLabels, pricing.materialColumnKeys, pricing.frameColumnKeys, pricing.inEpColumnKeys]);
 
   // Adjust selected frame if not valid for selected material
   React.useEffect(() => {

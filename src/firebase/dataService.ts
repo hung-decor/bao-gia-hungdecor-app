@@ -32,10 +32,10 @@ export const defaultTabLabels: TabLabelsConfig = {
 
 export const defaultColumnLabels: ColumnLabelsConfig = {
   boVien: 'Bo Viền',
-  k0_k3: 'Khung KX',
-  k4_k6: 'Khung HT10',
-  k10: 'Khung K12',
-  k11: 'Khung bản 10cm',
+  kx: 'Khung KX',
+  ht10: 'Khung HT10',
+  k12: 'Khung K12',
+  b10: 'Khung bản 10cm',
   titan1: 'Khung nhôm Titan M',
   titan2: 'Khung nhôm Titan C',
   inAnh: 'In Ảnh',
@@ -47,10 +47,10 @@ export const defaultColumnLabels: ColumnLabelsConfig = {
 
 export const defaultFrameColumnKeys: string[] = [
   'boVien',
-  'k0_k3',
-  'k4_k6',
-  'k10',
-  'k11',
+  'kx',
+  'ht10',
+  'k12',
+  'b10',
   'titan1',
   'titan2',
 ];
@@ -63,6 +63,42 @@ export const defaultInEpColumnKeys: string[] = [
   'khungGiaCo',
 ];
 
+export const defaultMaterialColumnKeys: Record<string, string[]> = {
+  'go-lua': ['boVien'],
+  'hd-guong-sieu-bong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
+  'mika-pho-thong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
+  'in-ep-mika': ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'],
+  'anh-4k': ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'],
+};
+export const defaultMaterialColumnsMap = defaultMaterialColumnKeys;
+
+export function getMaterialColumns(pricing: FullPricingState, tabId: string): string[] {
+  const map = pricing.materialColumnsMap || pricing.materialColumnKeys;
+  if (map && Array.isArray(map[tabId])) {
+    return map[tabId];
+  }
+  if (defaultMaterialColumnKeys[tabId]) {
+    return defaultMaterialColumnKeys[tabId];
+  }
+  if (tabId === 'in-ep-mika') {
+    return pricing.inEpColumnKeys || defaultInEpColumnKeys;
+  }
+  if (tabId === 'anh-4k' || tabId === 'album') {
+    return ['donGia'];
+  }
+  if (pricing.customTabs) {
+    const custom = pricing.customTabs.find(c => c.id === tabId);
+    if (custom) {
+      if (custom.type === 'inEpMika') {
+        return pricing.inEpColumnKeys || defaultInEpColumnKeys;
+      }
+      return pricing.frameColumnKeys || defaultFrameColumnKeys;
+    }
+  }
+  // For 'go-lua', 'hd-guong-sieu-bong', 'mika-pho-thong' and any other dongKhung:
+  return pricing.frameColumnKeys || defaultFrameColumnKeys;
+}
+
 export interface FullPricingState {
   inEpMika: InEpMikaPriceRow[];
   goLua: DongKhungPriceRow[];
@@ -73,6 +109,8 @@ export interface FullPricingState {
   columnLabels?: ColumnLabelsConfig;
   frameColumnKeys?: string[];
   inEpColumnKeys?: string[];
+  materialColumnKeys?: { [materialTabId: string]: string[] };
+  materialColumnsMap?: { [materialTabId: string]: string[] };
   customTabs?: CustomMaterialTab[];
   deletedTabIds?: string[];
   lastPriceAdjustmentDate?: string;
@@ -247,7 +285,70 @@ export async function saveAdminPasswordToFirestore(newPassword: string): Promise
   }
 }
 
-export const PRICING_VERSION = '2026_HUNG_DECOR_GOLUA_V8';
+export const PRICING_VERSION = '2026_HUNG_DECOR_GOLUA_V10_CLEAN';
+
+export function sanitizePricingState(d: any): FullPricingState {
+  const sanitizeDongKhungRow = (r: any): DongKhungPriceRow => {
+    return {
+      ...r,
+      size: r.size,
+      boVien: r.boVien ?? null,
+      kx: r.kx ?? r.k0_k3 ?? null,
+      ht10: r.ht10 ?? r.k4_k6 ?? null,
+      k12: r.k12 ?? r.k10 ?? null,
+      b10: r.b10 ?? r.k11 ?? null,
+      titan1: r.titan1 ?? null,
+      titan2: r.titan2 ?? null,
+    };
+  };
+
+  const sanitizeCols = (cols: string[]): string[] => {
+    return (cols || [])
+      .map(k => {
+        if (k === 'k0_k3') return 'kx';
+        if (k === 'k4_k6') return 'ht10';
+        if (k === 'k10') return 'k12';
+        if (k === 'k11') return 'b10';
+        return k;
+      })
+      .filter((k, idx, arr) => arr.indexOf(k) === idx && !['k7_k9'].includes(k));
+  };
+
+  const rawMap = d.materialColumnsMap || d.materialColumnKeys || defaultMaterialColumnKeys;
+  const cleanMap: Record<string, string[]> = {};
+  Object.keys(rawMap).forEach(key => {
+    cleanMap[key] = sanitizeCols(rawMap[key]);
+  });
+
+  if (!cleanMap['go-lua']) cleanMap['go-lua'] = ['boVien'];
+  if (!cleanMap['hd-guong-sieu-bong']) cleanMap['hd-guong-sieu-bong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
+  if (!cleanMap['mika-pho-thong']) cleanMap['mika-pho-thong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
+  if (!cleanMap['in-ep-mika']) cleanMap['in-ep-mika'] = defaultInEpColumnKeys;
+  if (!cleanMap['anh-4k']) cleanMap['anh-4k'] = ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'];
+
+  return {
+    inEpMika: d.inEpMika || defaultInEpMika,
+    goLua: (d.goLua || defaultGoLua).map(sanitizeDongKhungRow),
+    mikaPhoThong: (d.mikaPhoThong || defaultMikaPhoThong).map(sanitizeDongKhungRow),
+    hdGuong: (d.hdGuong || defaultHdGuong).map(sanitizeDongKhungRow),
+    anh4K: d.anh4K || defaultAnh4K,
+    tabLabels: d.tabLabels || defaultTabLabels,
+    columnLabels: {
+      ...defaultColumnLabels,
+      ...(d.columnLabels || {})
+    },
+    frameColumnKeys: sanitizeCols(d.frameColumnKeys || defaultFrameColumnKeys),
+    inEpColumnKeys: d.inEpColumnKeys || defaultInEpColumnKeys,
+    materialColumnKeys: cleanMap,
+    materialColumnsMap: cleanMap,
+    customTabs: (d.customTabs || []).map((ct: any) => ({
+      ...ct,
+      rows: (ct.rows || []).map((r: any) => ct.type === 'dongKhung' ? sanitizeDongKhungRow(r) : r)
+    })),
+    deletedTabIds: d.deletedTabIds || [],
+    lastPriceAdjustmentDate: d.lastPriceAdjustmentDate || undefined,
+  };
+}
 
 // 1. Fetch Pricing from Firestore
 export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingState; updatedAt?: string } | null> {
@@ -256,23 +357,9 @@ export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingSt
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      // Enforce the new Excel pricing version: disregard older cached versions
-      if (d.version === PRICING_VERSION && d.inEpMika && d.goLua && d.hdGuong) {
+      if (d.inEpMika && d.goLua && d.hdGuong) {
         return {
-          data: {
-            inEpMika: d.inEpMika,
-            goLua: d.goLua,
-            mikaPhoThong: d.mikaPhoThong,
-            hdGuong: d.hdGuong,
-            anh4K: d.anh4K,
-            tabLabels: d.tabLabels || defaultTabLabels,
-            columnLabels: d.columnLabels || defaultColumnLabels,
-            frameColumnKeys: d.frameColumnKeys || defaultFrameColumnKeys,
-            inEpColumnKeys: d.inEpColumnKeys || defaultInEpColumnKeys,
-            customTabs: d.customTabs || [],
-            deletedTabIds: d.deletedTabIds || [],
-            lastPriceAdjustmentDate: d.lastPriceAdjustmentDate || undefined,
-          },
+          data: sanitizePricingState(d),
           updatedAt: d.updatedAt || undefined,
         };
       }
@@ -287,12 +374,15 @@ export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingSt
 // 2. Save Pricing to Firestore
 export async function savePricingToFirestore(pricing: FullPricingState): Promise<boolean> {
   try {
+    const matCols = pricing.materialColumnsMap || pricing.materialColumnKeys || defaultMaterialColumnKeys;
     const toSave: FullPricingState = {
       ...pricing,
       tabLabels: pricing.tabLabels || defaultTabLabels,
       columnLabels: pricing.columnLabels || defaultColumnLabels,
       frameColumnKeys: pricing.frameColumnKeys || defaultFrameColumnKeys,
       inEpColumnKeys: pricing.inEpColumnKeys || defaultInEpColumnKeys,
+      materialColumnKeys: matCols,
+      materialColumnsMap: matCols,
       customTabs: pricing.customTabs || [],
       deletedTabIds: pricing.deletedTabIds || [],
     };
@@ -302,6 +392,7 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
       version: PRICING_VERSION,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
+
 
     if (typeof window !== 'undefined') {
       try {
@@ -522,6 +613,8 @@ export function syncPricingStructure(structureSource: FullPricingState, priceTar
     columnLabels: structureSource.columnLabels || defaultColumnLabels,
     frameColumnKeys: structureSource.frameColumnKeys || priceTarget.frameColumnKeys || defaultFrameColumnKeys,
     inEpColumnKeys: structureSource.inEpColumnKeys || priceTarget.inEpColumnKeys || defaultInEpColumnKeys,
+    materialColumnKeys: structureSource.materialColumnsMap || structureSource.materialColumnKeys || priceTarget.materialColumnsMap || priceTarget.materialColumnKeys || undefined,
+    materialColumnsMap: structureSource.materialColumnsMap || structureSource.materialColumnKeys || priceTarget.materialColumnsMap || priceTarget.materialColumnKeys || undefined,
     deletedTabIds: structureSource.deletedTabIds || [],
     customTabs: syncedCustomTabs
   };
@@ -534,22 +627,9 @@ export async function fetchFreelancePricingFromFirestore(): Promise<{ data: Full
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      if (d.version === PRICING_VERSION && d.inEpMika && d.goLua && d.hdGuong) {
+      if (d.inEpMika && d.goLua && d.hdGuong) {
         return {
-          data: {
-            inEpMika: d.inEpMika,
-            goLua: d.goLua,
-            mikaPhoThong: d.mikaPhoThong,
-            hdGuong: d.hdGuong,
-            anh4K: d.anh4K,
-            tabLabels: d.tabLabels || defaultTabLabels,
-            columnLabels: d.columnLabels || defaultColumnLabels,
-            frameColumnKeys: d.frameColumnKeys || defaultFrameColumnKeys,
-            inEpColumnKeys: d.inEpColumnKeys || defaultInEpColumnKeys,
-            customTabs: d.customTabs || [],
-            deletedTabIds: d.deletedTabIds || [],
-            lastPriceAdjustmentDate: d.lastPriceAdjustmentDate || undefined,
-          },
+          data: sanitizePricingState(d),
           updatedAt: d.updatedAt || undefined,
         };
       }
@@ -560,7 +640,7 @@ export async function fetchFreelancePricingFromFirestore(): Promise<{ data: Full
       if (local) {
         try {
           const parsed = JSON.parse(local);
-          return { data: parsed };
+          return { data: sanitizePricingState(parsed) };
         } catch (e) {
           console.warn('Could not parse freelance pricing from LocalStorage');
         }
@@ -577,12 +657,15 @@ export async function fetchFreelancePricingFromFirestore(): Promise<{ data: Full
 // Save Freelance Pricing
 export async function saveFreelancePricingToFirestore(pricing: FullPricingState): Promise<boolean> {
   try {
+    const matCols = pricing.materialColumnsMap || pricing.materialColumnKeys || defaultMaterialColumnKeys;
     const toSave: FullPricingState = {
       ...pricing,
       tabLabels: pricing.tabLabels || defaultTabLabels,
       columnLabels: pricing.columnLabels || defaultColumnLabels,
       frameColumnKeys: pricing.frameColumnKeys || defaultFrameColumnKeys,
       inEpColumnKeys: pricing.inEpColumnKeys || defaultInEpColumnKeys,
+      materialColumnKeys: matCols,
+      materialColumnsMap: matCols,
       customTabs: pricing.customTabs || [],
       deletedTabIds: pricing.deletedTabIds || [],
     };
@@ -609,7 +692,7 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
 }
 
 
-export const FRAMES_VERSION = '2026_FRAMES_HUNG_DECOR_V3';
+export const FRAMES_VERSION = '2026_FRAMES_HUNG_DECOR_V4_STANDARDIZED';
 
 // 3. Fetch Frames from Firestore
 export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecItem[]; updatedAt?: string } | null> {
@@ -618,9 +701,37 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      if (d.version === FRAMES_VERSION && Array.isArray(d.framesList)) {
+      if (Array.isArray(d.framesList)) {
+        // Check if frames list contains legacy 194 frames with K0-K11
+        const hasLegacy194 = d.framesList.some((f: FrameSpecItem) => {
+          const code = (f.code || '').toUpperCase();
+          return code.includes('K0') || code.includes('K1') || code.includes('K2') || code.includes('K3') ||
+                 code.includes('K4') || code.includes('K5') || code.includes('K6') || code.includes('K7') ||
+                 code.includes('K8') || code.includes('K9') || code.includes('K10') || code.includes('K11');
+        });
+
+        // If legacy items are found, purge them and return standardized default frames
+        if (hasLegacy194) {
+          return {
+            frames: defaultFrames,
+            updatedAt: d.updatedAt || undefined,
+          };
+        }
+
+        const normalized = d.framesList.map((f: FrameSpecItem, idx: number) => ({
+          ...f,
+          id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}_${Date.now()}`,
+          images: (f.images || []).map((img, i) => ({
+            ...img,
+            id: img.id || `img_${idx}_${i}_${Date.now()}`
+          })),
+          notes: (f.notes || []).map((n: any, i: number) => ({
+            id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+            text: typeof n === 'string' ? n : n?.text || ''
+          }))
+        }));
         return {
-          frames: d.framesList,
+          frames: normalized,
           updatedAt: d.updatedAt || undefined,
         };
       }
@@ -635,9 +746,21 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
 // 4. Save Frames to Firestore
 export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promise<boolean> {
   try {
+    const normalized = (framesList || []).map((f: FrameSpecItem, idx: number) => ({
+      ...f,
+      id: f.id || f.code || `frame_${idx}_${Date.now()}`,
+      images: (f.images || []).map((img, i) => ({
+        ...img,
+        id: img.id || `img_${idx}_${i}_${Date.now()}`
+      })),
+      notes: (f.notes || []).map((n: any, i: number) => ({
+        id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+        text: typeof n === 'string' ? n : n?.text || ''
+      }))
+    }));
     const docRef = doc(db, FIRESTORE_COLLECTION, FRAMES_DOC);
     await setDoc(docRef, {
-      framesList,
+      framesList: normalized,
       version: FRAMES_VERSION,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
@@ -820,10 +943,10 @@ export function getDefaultSKU(
   // Frame suffix
   let frameSuffix = '';
   if (colKey === 'boVien') frameSuffix = '';
-  else if (colKey === 'k0_k3') frameSuffix = 'kx';
-  else if (colKey === 'k4_k6') frameSuffix = 'ht10';
-  else if (colKey === 'k10') frameSuffix = 'k12';
-  else if (colKey === 'k11') frameSuffix = 'b10';
+  else if (colKey === 'kx' || colKey === 'k0_k3') frameSuffix = 'kx';
+  else if (colKey === 'ht10' || colKey === 'k4_k6') frameSuffix = 'ht10';
+  else if (colKey === 'k12' || colKey === 'k10') frameSuffix = 'k12';
+  else if (colKey === 'b10' || colKey === 'k11') frameSuffix = 'b10';
   else if (colKey === 'titan1') frameSuffix = 'ttm';
   else if (colKey === 'titan2') frameSuffix = 'ttc';
   else if (colKey === 'donGia') frameSuffix = '';

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppData } from '../../context/AppDataContext';
 import { 
   FrameSpecItem, 
+  FrameImageVariant,
   InEpMikaPriceRow, 
   DongKhungPriceRow, 
   Anh4KPriceRow,
@@ -22,6 +23,8 @@ import {
   defaultColumnLabels,
   defaultFrameColumnKeys,
   defaultInEpColumnKeys,
+  defaultMaterialColumnKeys,
+  getMaterialColumns,
   FullPricingState,
   getAllMaterialTabs,
   applyPercentageIncrease,
@@ -71,7 +74,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     saveFreelancePricing,
     saveAllPricing,
     frames,
+    setFrames,
     saveFrames,
+    deleteFrame,
+    deleteFrameNote,
     realPhotos,
     saveRealPhotos,
     shopInfo,
@@ -117,7 +123,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   // Add New Frame Column Modal State
   const [isAddingColumnModalOpen, setIsAddingColumnModalOpen] = useState<boolean>(false);
   const [newColumnTitle, setNewColumnTitle] = useState<string>('');
-  const [newColumnTargetType, setNewColumnTargetType] = useState<'dongKhung' | 'inEpMika'>('dongKhung');
+  const [selectedTargetTabIds, setSelectedTargetTabIds] = useState<string[]>([]);
 
   // Status Notification
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -192,9 +198,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   };
 
   // Frame editing states
+  const [localFrames, setLocalFrames] = useState<FrameSpecItem[]>(() => {
+    return (frames || []).map((f, idx) => ({
+      ...f,
+      id: f.id || f.code || `frame_${idx}_${Date.now()}`,
+      images: (f.images || []).map((img, i) => ({
+        ...img,
+        id: img.id || `img_${idx}_${i}_${Date.now()}`
+      })),
+      notes: (f.notes || []).map((n: any, i: number) => ({
+        id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+        text: typeof n === 'string' ? n : n?.text || ''
+      }))
+    }));
+  });
+
+  React.useEffect(() => {
+    setLocalFrames((frames || []).map((f, idx) => ({
+      ...f,
+      id: f.id || f.code || `frame_${idx}_${Date.now()}`,
+      images: (f.images || []).map((img, i) => ({
+        ...img,
+        id: img.id || `img_${idx}_${i}_${Date.now()}`
+      })),
+      notes: (f.notes || []).map((n: any, i: number) => ({
+        id: n?.id || `note_${idx}_${i}_${Date.now()}`,
+        text: typeof n === 'string' ? n : n?.text || ''
+      }))
+    })));
+  }, [frames]);
+
   const [editingFrameIndex, setEditingFrameIndex] = useState<number | null>(null);
   const [isAddingNewFrame, setIsAddingNewFrame] = useState<boolean>(false);
   const [frameFormData, setFrameFormData] = useState<FrameSpecItem>({
+    id: '',
     code: '',
     name: '',
     dimensions: '',
@@ -202,9 +239,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     suitableFor: '',
     variants: '',
     hasRealPhotos: true,
-    images: []
+    images: [],
+    notes: []
   });
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+
+  // Note / Annotation handlers
+  const handleAddNote = () => {
+    const newNote = {
+      id: `note_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      text: ''
+    };
+    setFrameFormData(prev => ({
+      ...prev,
+      notes: [...(prev.notes || []), newNote]
+    }));
+  };
+
+  const handleDeleteNote = (noteId: string, noteIndex?: number) => {
+    setFrameFormData(prev => {
+      const updatedNotes = (prev.notes || []).filter((n, idx) => n.id !== noteId && (noteIndex === undefined || idx !== noteIndex));
+      return {
+        ...prev,
+        notes: updatedNotes
+      };
+    });
+    if (editingFrameIndex !== null) {
+      setLocalFrames(prev => {
+        const updated = [...prev];
+        if (updated[editingFrameIndex]) {
+          updated[editingFrameIndex] = {
+            ...updated[editingFrameIndex],
+            notes: (updated[editingFrameIndex].notes || []).filter((n, idx) => n.id !== noteId && (noteIndex === undefined || idx !== noteIndex))
+          };
+        }
+        return updated;
+      });
+    }
+  };
+
+  const handleDeleteNoteFromFrame = (frameIndex: number, noteId: string, noteIndex: number) => {
+    setLocalFrames(prev => {
+      const updated = [...prev];
+      if (updated[frameIndex]) {
+        updated[frameIndex] = {
+          ...updated[frameIndex],
+          notes: (updated[frameIndex].notes || []).filter((n, nIdx) => nIdx !== noteIndex && n.id !== noteId)
+        };
+      }
+      return updated;
+    });
+    showToast('Đã xóa dòng chú thích kỹ thuật!');
+  };
+
+  const handleUpdateNote = (noteId: string, text: string) => {
+    setFrameFormData(prev => ({
+      ...prev,
+      notes: (prev.notes || []).map(n => n.id === noteId ? { ...n, text } : n)
+    }));
+  };
+
+  const handleDeleteImage = (targetIdOrIndex: string | number) => {
+    setFrameFormData(prev => {
+      const imgs = prev.images || [];
+      if (typeof targetIdOrIndex === 'string') {
+        return {
+          ...prev,
+          images: imgs.filter(img => img.id !== targetIdOrIndex)
+        };
+      }
+      return {
+        ...prev,
+        images: imgs.filter((_, idx) => idx !== targetIdOrIndex)
+      };
+    });
+  };
+
+  const handleDeleteFrameItem = (frameIndex: number, deleteId?: string) => {
+    const itemToDelete = localFrames[frameIndex];
+    const title = itemToDelete ? `${itemToDelete.code} - ${itemToDelete.name}` : `Mẫu khung #${frameIndex + 1}`;
+    if (window.confirm(`Bạn có chắc muốn xóa mẫu khung "${title}" không?`)) {
+      setLocalFrames(prev => prev.filter((item, idx) => idx !== frameIndex && (!deleteId || item.id !== deleteId)));
+      showToast(`Đã xóa mẫu khung "${title}"! Hãy bấm "Lưu Danh Mục Khung" để lưu vĩnh viễn.`);
+    }
+  };
+
 
   // Shop info editing
   const [localShopInfo, setLocalShopInfo] = useState(shopInfo);
@@ -283,11 +402,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       initialRows = defaultSizes.map(sz => ({
         size: sz,
         boVien: 0,
-        k0_k3: 0,
-        k4_k6: 0,
-        k7_k9: null,
-        k10: null,
-        k11: null,
+        kx: 0,
+        ht10: 0,
+        k12: null,
+        b10: null,
         titan1: 0,
         titan2: 0
       }));
@@ -361,11 +479,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       const newRow = isDongKhung ? {
         size: 'Mới',
         boVien: 0,
-        k0_k3: 0,
-        k4_k6: 0,
-        k7_k9: null,
-        k10: null,
-        k11: null,
+        kx: 0,
+        ht10: 0,
+        k12: null,
+        b10: null,
         titan1: 0,
         titan2: 0
       } : {
@@ -421,22 +538,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setLocalFreelancePricing(applyColLabel);
   };
 
-  // Add new frame column handler
+  // Add new frame column handler with selection of target material tabs
   const handleAddNewColumn = () => {
     if (!newColumnTitle.trim()) {
       alert('Vui lòng nhập tên cột khung mới!');
+      return;
+    }
+    if (selectedTargetTabIds.length === 0) {
+      alert('Vui lòng tick chọn ít nhất một tab chất liệu để áp dụng cột mới!');
       return;
     }
     const title = newColumnTitle.trim();
     const colKey = 'col_' + Date.now();
 
     const applyAddCol = (prev: FullPricingState): FullPricingState => {
-      const isDongKhung = newColumnTargetType === 'dongKhung';
-      const currentKeys = isDongKhung
-        ? (prev.frameColumnKeys || defaultFrameColumnKeys)
-        : (prev.inEpColumnKeys || defaultInEpColumnKeys);
+      const allTabs = getAllMaterialTabs(prev);
+      const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
 
-      const newKeys = [...currentKeys, colKey];
+      allTabs.forEach(t => {
+        if (!currentMatCols[t.id]) {
+          currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+        }
+      });
+
+      selectedTargetTabIds.forEach(tabId => {
+        if (!currentMatCols[tabId]) {
+          currentMatCols[tabId] = [];
+        }
+        if (!currentMatCols[tabId].includes(colKey)) {
+          currentMatCols[tabId] = [...currentMatCols[tabId], colKey];
+        }
+      });
 
       const addColToRows = (rows: any[]) => (rows || []).map(r => ({ ...r, [colKey]: null }));
 
@@ -446,16 +578,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           ...(prev.columnLabels || defaultColumnLabels),
           [colKey]: title
         },
-        frameColumnKeys: isDongKhung ? newKeys : (prev.frameColumnKeys || defaultFrameColumnKeys),
-        inEpColumnKeys: !isDongKhung ? newKeys : (prev.inEpColumnKeys || defaultInEpColumnKeys),
-        goLua: isDongKhung ? addColToRows(prev.goLua) : prev.goLua,
-        hdGuong: isDongKhung ? addColToRows(prev.hdGuong) : prev.hdGuong,
-        mikaPhoThong: isDongKhung ? addColToRows(prev.mikaPhoThong) : prev.mikaPhoThong,
-        inEpMika: !isDongKhung ? addColToRows(prev.inEpMika) : prev.inEpMika,
-        anh4K: isDongKhung ? addColToRows(prev.anh4K) : prev.anh4K,
+        materialColumnKeys: currentMatCols,
+        frameColumnKeys: [...(prev.frameColumnKeys || defaultFrameColumnKeys), colKey],
+        inEpColumnKeys: [...(prev.inEpColumnKeys || defaultInEpColumnKeys), colKey],
+        goLua: selectedTargetTabIds.includes('go-lua') ? addColToRows(prev.goLua) : prev.goLua,
+        hdGuong: selectedTargetTabIds.includes('hd-guong-sieu-bong') ? addColToRows(prev.hdGuong) : prev.hdGuong,
+        mikaPhoThong: selectedTargetTabIds.includes('mika-pho-thong') ? addColToRows(prev.mikaPhoThong) : prev.mikaPhoThong,
+        inEpMika: selectedTargetTabIds.includes('in-ep-mika') ? addColToRows(prev.inEpMika) : prev.inEpMika,
+        anh4K: selectedTargetTabIds.includes('anh-4k') ? addColToRows(prev.anh4K) : prev.anh4K,
         customTabs: (prev.customTabs || []).map(ct => ({
           ...ct,
-          rows: ((ct.type || 'dongKhung') === newColumnTargetType) ? addColToRows(ct.rows) : ct.rows
+          rows: selectedTargetTabIds.includes(ct.id) ? addColToRows(ct.rows) : ct.rows
         }))
       };
     };
@@ -465,15 +598,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
     setNewColumnTitle('');
     setIsAddingColumnModalOpen(false);
-    showToast(`Đã thêm cột khung "${title}" thành công!`);
+    showToast(`Đã thêm cột khung "${title}" vào ${selectedTargetTabIds.length} chất liệu đã chọn!`);
   };
 
-  // Delete frame column handler
+  // Delete frame column handler for a SPECIFIC material tab ONLY
+  const handleDeleteColumnFromMaterial = (materialTabId: string, colKey: string, colTitle: string) => {
+    const currentTab = adminMaterialTabs.find(t => t.id === materialTabId);
+    const tabName = currentTab?.title || materialTabId;
+
+    if (window.confirm(`Bạn có chắc muốn xóa cột "${colTitle}" khỏi riêng chất liệu "${tabName}" không?\n(Cột này ở các chất liệu khác như Mika HD Gương... vẫn được giữ nguyên)`)) {
+      const applyDelete = (prev: FullPricingState): FullPricingState => {
+        const allTabs = getAllMaterialTabs(prev);
+        const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
+
+        // Ensure all tabs have their current column lists initialized
+        allTabs.forEach(t => {
+          if (!currentMatCols[t.id]) {
+            currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+          }
+        });
+
+        // Remove colKey specifically from materialTabId
+        currentMatCols[materialTabId] = (currentMatCols[materialTabId] || []).filter(k => k !== colKey);
+
+        return {
+          ...prev,
+          materialColumnKeys: currentMatCols,
+        };
+      };
+
+      setLocalStudioPricing(prev => applyDelete(prev));
+      setLocalFreelancePricing(prev => applyDelete(prev));
+
+      showToast(`Đã xóa cột "${colTitle}" khỏi riêng "${tabName}" thành công!`);
+    }
+  };
+
+  // Add an existing column to the current material tab
+  const handleAddExistingColumnToMaterial = (materialTabId: string, colKey: string) => {
+    const applyAdd = (prev: FullPricingState): FullPricingState => {
+      const allTabs = getAllMaterialTabs(prev);
+      const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
+
+      allTabs.forEach(t => {
+        if (!currentMatCols[t.id]) {
+          currentMatCols[t.id] = [...getMaterialColumns(prev, t.id)];
+        }
+      });
+
+      if (!currentMatCols[materialTabId]) {
+        currentMatCols[materialTabId] = [];
+      }
+      if (!currentMatCols[materialTabId].includes(colKey)) {
+        currentMatCols[materialTabId] = [...currentMatCols[materialTabId], colKey];
+      }
+
+      return {
+        ...prev,
+        materialColumnKeys: currentMatCols,
+      };
+    };
+
+    setLocalStudioPricing(prev => applyAdd(prev));
+    setLocalFreelancePricing(prev => applyAdd(prev));
+
+    const colTitle = activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
+    showToast(`Đã thêm lại cột "${colTitle}" vào chất liệu này!`);
+  };
+
+  // Optional: Global delete frame column handler
   const handleDeleteColumn = (colKey: string, colTitle: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn XÓA BỚT cột khung "${colTitle}" không?\nToàn bộ đơn giá ở cột này sẽ bị loại bỏ khỏi bảng giá.`)) {
+    if (window.confirm(`Bạn có chắc chắn muốn XÓA BỎ HOÀN TOÀN cột "${colTitle}" khỏi TẤT CẢ các bảng giá không?`)) {
       const applyDeleteCol = (prev: FullPricingState): FullPricingState => {
         const frameKeys = (prev.frameColumnKeys || defaultFrameColumnKeys).filter(k => k !== colKey);
         const inEpKeys = (prev.inEpColumnKeys || defaultInEpColumnKeys).filter(k => k !== colKey);
+
+        const currentMatCols: Record<string, string[]> = { ...(prev.materialColumnKeys || {}) };
+        Object.keys(currentMatCols).forEach(tid => {
+          currentMatCols[tid] = currentMatCols[tid].filter(k => k !== colKey);
+        });
 
         const removeColFromRows = (rows: any[]) => (rows || []).map(r => {
           const copy = { ...r };
@@ -487,6 +690,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         return {
           ...prev,
           columnLabels: newColLabels,
+          materialColumnKeys: currentMatCols,
           frameColumnKeys: frameKeys,
           inEpColumnKeys: inEpKeys,
           goLua: removeColFromRows(prev.goLua),
@@ -504,7 +708,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       setLocalStudioPricing(prev => applyDeleteCol(prev));
       setLocalFreelancePricing(prev => applyDeleteCol(prev));
 
-      showToast(`Đã xóa cột khung "${colTitle}" thành công!`);
+      showToast(`Đã xóa cột "${colTitle}" khỏi tất cả các bảng thành công!`);
     }
   };
 
@@ -572,10 +776,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   };
 
   // Save Frames handler
-  const handleSaveAllFrames = async (newFramesList: FrameSpecItem[]) => {
+  const handleSaveAllFrames = async (newFramesList?: FrameSpecItem[]) => {
+    const toSave = newFramesList || localFrames;
     try {
-      await saveFrames(newFramesList);
-      showToast('Đã lưu danh mục khung lên Firestore thành công!');
+      await saveFrames(toSave);
+      setLocalFrames(toSave);
+      showToast('Đã lưu danh mục mẫu khung & chú thích lên Firestore thành công!');
     } catch (e) {
       showToast('Lỗi khi lưu khung lên Firestore!', 'error');
     }
@@ -1073,75 +1279,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </div>
               </div>
 
-              {/* Tùy biến Tên Cột Khung */}
-              <div className="pt-3 border-t border-neutral-800/80 space-y-2.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
-                    b. Tên Cột Hệ Khung & In Ép
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingColumnModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Thêm Cột Khung Mới</span>
-                  </button>
-                </div>
+              {/* Tùy biến Tên Cột Khung theo chất liệu đang chọn */}
+              <div className="pt-3 border-t border-neutral-800/80 space-y-3">
+                {(() => {
+                  const currentActiveMaterial = adminMaterialTabs.find(t => t.id === activeMaterialTabId) || adminMaterialTabs[0];
+                  const activeMatTitle = currentActiveMaterial?.title || 'Chất liệu đang chọn';
+                  const currentColumns = getMaterialColumns(activePricing, activeMaterialTabId);
+                  
+                  // All known columns in system
+                  const allSystemColKeys = Array.from(new Set([
+                    ...(activePricing.frameColumnKeys || defaultFrameColumnKeys),
+                    ...(activePricing.inEpColumnKeys || defaultInEpColumnKeys),
+                    ...Object.keys(activePricing.columnLabels || defaultColumnLabels)
+                  ]));
+                  const unusedColumns = allSystemColKeys.filter(k => !currentColumns.includes(k));
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                  {/* DongKhung frame columns */}
-                  {(activePricing.frameColumnKeys || defaultFrameColumnKeys).map((colKey) => {
-                    const currentVal = activePricing.columnLabels?.[colKey] ?? (defaultColumnLabels as any)[colKey] ?? colKey;
-                    return (
-                      <div key={colKey} className="bg-neutral-950 p-2 rounded-xl border border-neutral-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-[10px] font-mono text-neutral-400 truncate">Hệ Khung</label>
+                  return (
+                    <div className="space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-neutral-950/60 p-3 rounded-xl border border-neutral-800">
+                        <div>
+                          <div className="text-[11px] font-mono text-[#E7C184] uppercase tracking-wider font-bold">
+                            b. Cấu hình Cột Khung riêng cho Tab:
+                          </div>
+                          <div className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
+                            <span className="text-[#E7C184]">{activeMatTitle}</span>
+                            <span className="text-xs font-normal text-neutral-400">({currentColumns.length} cột đang hiển thị)</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             type="button"
-                            onClick={() => handleDeleteColumn(colKey, currentVal)}
-                            className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-950/60 transition-colors"
-                            title={`Xóa cột khung "${currentVal}"`}
+                            onClick={() => {
+                              setNewColumnTitle('');
+                              setSelectedTargetTabIds([activeMaterialTabId]);
+                              setIsAddingColumnModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ Thêm Cột Khung Mới</span>
                           </button>
                         </div>
-                        <input
-                          type="text"
-                          value={currentVal}
-                          onChange={(e) => updateColumnLabel(colKey, e.target.value)}
-                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
-                        />
                       </div>
-                    );
-                  })}
 
-                  {/* InEp columns */}
-                  {(activePricing.inEpColumnKeys || defaultInEpColumnKeys).map((colKey) => {
-                    const currentVal = activePricing.columnLabels?.[colKey] ?? (defaultColumnLabels as any)[colKey] ?? colKey;
-                    return (
-                      <div key={colKey} className="bg-neutral-950 p-2 rounded-xl border border-neutral-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-[10px] font-mono text-neutral-400 truncate">Hệ In Ép</label>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteColumn(colKey, currentVal)}
-                            className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-950/60 transition-colors"
-                            title={`Xóa cột "${currentVal}"`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          value={currentVal}
-                          onChange={(e) => updateColumnLabel(colKey, e.target.value)}
-                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
-                        />
+                      {/* Danh sách các cột khung của chất liệu này */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                        {currentColumns.map((colKey) => {
+                          const currentVal = activePricing.columnLabels?.[colKey] ?? (defaultColumnLabels as any)[colKey] ?? colKey;
+                          return (
+                            <div key={colKey} className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-1.5 hover:border-neutral-700 transition-colors">
+                              <div className="flex items-center justify-between gap-1">
+                                <label className="block text-[10px] font-mono text-neutral-400 truncate">
+                                  {colKey}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteColumnFromMaterial(activeMaterialTabId, colKey, currentVal)}
+                                  className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                  title={`Xóa cột "${currentVal}" khỏi riêng "${activeMatTitle}"`}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={currentVal}
+                                onChange={(e) => updateColumnLabel(colKey, e.target.value)}
+                                title="Đổi tên cột này"
+                                className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-xs text-[#E7C184] focus:outline-none focus:border-[#E7C184] font-semibold"
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Thêm lại cột đã có trong hệ thống nếu có */}
+                      {unusedColumns.length > 0 && (
+                        <div className="pt-2 border-t border-neutral-800/60 flex items-center gap-2 flex-wrap text-xs">
+                          <span className="text-neutral-400 text-[11px] font-medium">+ Thêm lại cột có sẵn vào {activeMatTitle}:</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {unusedColumns.slice(0, 8).map(k => {
+                              const label = activePricing.columnLabels?.[k] || (defaultColumnLabels as any)[k] || k;
+                              return (
+                                <button
+                                  key={k}
+                                  type="button"
+                                  onClick={() => handleAddExistingColumnToMaterial(activeMaterialTabId, k)}
+                                  className="px-2 py-0.5 rounded-md bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                                  title={`Bấm để thêm lại cột ${label}`}
+                                >
+                                  <Plus className="w-3 h-3 text-emerald-400" />
+                                  <span>{label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1212,6 +1450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <p className="text-xs text-neutral-400">Chỉnh sửa đơn giá VNĐ, tùy biến size & sắp xếp vị trí dòng</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => {
                           const newRow: InEpMikaPriceRow = {
                             stt: activePricing.inEpMika.length + 1,
@@ -1240,9 +1479,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
                             <th className="p-3 w-16 text-center">Xếp</th>
                             <th className="p-3 w-24">Kích Thước</th>
-                            {(activePricing.inEpColumnKeys || defaultInEpColumnKeys).map(colKey => (
-                              <th key={colKey} className="p-3">{activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey}</th>
-                            ))}
+                            {getMaterialColumns(activePricing, 'in-ep-mika').map(colKey => {
+                              const colTitle = activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
+                              return (
+                                <th key={colKey} className="p-3">
+                                  <div className="flex items-center justify-between gap-1 group">
+                                    <span className="truncate">{colTitle}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteColumnFromMaterial('in-ep-mika', colKey, colTitle)}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      title={`Xóa cột "${colTitle}" khỏi tab In Ép`}
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </th>
+                              );
+                            })}
                             <th className="p-3 w-12 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -1252,6 +1506,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               <td className="p-2 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button
+                                    type="button"
                                     disabled={idx === 0}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1265,6 +1520,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <ChevronUp className="w-3.5 h-3.5" />
                                   </button>
                                   <button
+                                    type="button"
                                     disabled={idx === activePricing.inEpMika.length - 1}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1294,7 +1550,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              {(activePricing.inEpColumnKeys || defaultInEpColumnKeys).map((colKey) => (
+                              {getMaterialColumns(activePricing, 'in-ep-mika').map((colKey) => (
                                 <td key={colKey} className="p-2 align-top">
                                   <div className="flex flex-col gap-1">
                                     <input
@@ -1330,6 +1586,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               ))}
                               <td className="p-3 text-center">
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     updateActivePricing(prev => ({
                                       ...prev,
@@ -1366,18 +1623,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <div className="p-4 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between">
                       <div>
                         <h3 className="font-bold text-sm text-[#E7C184]">{activeItem.title}</h3>
-                        <p className="text-xs text-neutral-400">Danh mục Gỗ Lụa Bo Viền gồm Cỡ Ảnh, Đơn Giá Bo Viền và Mã SKU chuẩn</p>
+                        <p className="text-xs text-neutral-400">Danh mục Gỗ Lụa Bo Viền gồm Cỡ Ảnh, Đơn Giá và Mã SKU cho từng hệ khung</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => {
                           const newRow: DongKhungPriceRow = {
                             size: 'Mới',
                             boVien: 0,
-                            k0_k3: null,
-                            k4_k6: null,
-                            k7_k9: null,
-                            k10: null,
-                            k11: null,
+                            kx: null,
+                            ht10: null,
+                            k12: null,
+                            b10: null,
                             titan1: null,
                             titan2: null
                           };
@@ -1398,8 +1655,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <thead className="sticky top-0 bg-neutral-950 text-neutral-400 border-b border-neutral-800 z-10 shadow-sm">
                           <tr>
                             <th className="p-2.5 w-16 text-center">Xếp</th>
-                            <th className="p-2.5 w-28">Cỡ Ảnh</th>
-                            <th className="p-2.5">Bo Viền (VNĐ)</th>
+                            <th className="p-2.5 w-24">Cỡ Ảnh</th>
+                            {getMaterialColumns(activePricing, 'go-lua').map(colKey => {
+                              const colTitle = activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
+                              return (
+                                <th key={colKey} className="p-2.5">
+                                  <div className="flex items-center justify-between gap-1 group">
+                                    <span className="truncate">{colTitle}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteColumnFromMaterial('go-lua', colKey, colTitle)}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      title={`Xóa cột "${colTitle}" khỏi riêng tab Gỗ Lụa Bo Viền`}
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </th>
+                              );
+                            })}
                             <th className="p-2.5 w-12 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -1409,6 +1683,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               <td className="p-2 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button
+                                    type="button"
                                     disabled={idx === 0}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1422,6 +1697,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <ChevronUp className="w-3.5 h-3.5" />
                                   </button>
                                   <button
+                                    type="button"
                                     disabled={idx === rows.length - 1}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1441,36 +1717,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   type="text"
                                   value={row.size}
                                   onChange={(e) => updateCell(idx, 'size', e.target.value)}
-                                  className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-24 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
+                                  className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              <td className="p-2 align-top">
-                                <div className="flex flex-col gap-1">
-                                  <input
-                                    type="number"
-                                    value={row.boVien ?? ''}
-                                    placeholder="-"
-                                    onChange={(e) => {
-                                      const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateCell(idx, 'boVien', val);
-                                    }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-32 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
-                                  />
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                              {getMaterialColumns(activePricing, 'go-lua').map((colKey) => (
+                                <td key={colKey} className="p-2 align-top">
+                                  <div className="flex flex-col gap-1">
                                     <input
-                                      type="text"
-                                      value={getCellSKU(row, 'boVien', 'go-lua', activePricingSubTab)}
-                                      onChange={(e) => updateRowSKU('go-lua', idx, 'boVien', e.target.value)}
-                                      placeholder={getDefaultSKU('go-lua', activePricingSubTab, 'boVien', row.size)}
-                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
-                                      title="Sửa mã SKU thủ công"
+                                      type="number"
+                                      value={(row as any)[colKey] ?? ''}
+                                      placeholder="-"
+                                      onChange={(e) => {
+                                        const val = e.target.value === '' ? null : Number(e.target.value);
+                                        updateCell(idx, colKey, val);
+                                      }}
+                                      className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-28 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
                                     />
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                      <input
+                                        type="text"
+                                        value={getCellSKU(row, colKey, 'go-lua', activePricingSubTab)}
+                                        onChange={(e) => updateRowSKU('go-lua', idx, colKey, e.target.value)}
+                                        placeholder={getDefaultSKU('go-lua', activePricingSubTab, colKey, row.size)}
+                                        className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-24"
+                                        title="Sửa mã SKU thủ công"
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
+                                </td>
+                              ))}
                               <td className="p-2 text-center">
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     updateActivePricing(prev => ({
                                       ...prev,
@@ -1512,15 +1791,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <p className="text-xs text-neutral-400">Chỉnh sửa giá trực tiếp cho từng hệ khung, tùy biến cỡ ảnh & thứ tự dòng</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => {
                           const newRow: DongKhungPriceRow = {
                             size: 'Mới',
                             boVien: 0,
-                            k0_k3: 0,
-                            k4_k6: 0,
-                            k7_k9: null,
-                            k10: null,
-                            k11: null,
+                            kx: 0,
+                            ht10: 0,
+                            k12: null,
+                            b10: null,
                             titan1: 0,
                             titan2: 0
                           };
@@ -1542,9 +1821,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <tr>
                             <th className="p-2.5 w-16 text-center">Xếp</th>
                             <th className="p-2.5 w-24">Cỡ Ảnh</th>
-                            {(activePricing.frameColumnKeys || defaultFrameColumnKeys).map(colKey => (
-                              <th key={colKey} className="p-2.5">{colConfig[colKey as keyof typeof colConfig] || colKey}</th>
-                            ))}
+                            {getMaterialColumns(activePricing, activeItem.id).map(colKey => {
+                              const colTitle = colConfig[colKey as keyof typeof colConfig] || colKey;
+                              return (
+                                <th key={colKey} className="p-2.5">
+                                  <div className="flex items-center justify-between gap-1 group">
+                                    <span className="truncate">{colTitle}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteColumnFromMaterial(activeItem.id, colKey, colTitle)}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      title={`Xóa cột "${colTitle}" khỏi riêng "${activeItem.title}"`}
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </th>
+                              );
+                            })}
                             <th className="p-2.5 w-12 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -1554,6 +1848,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               <td className="p-2 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button
+                                    type="button"
                                     disabled={idx === 0}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1567,6 +1862,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <ChevronUp className="w-3.5 h-3.5" />
                                   </button>
                                   <button
+                                    type="button"
                                     disabled={idx === rows.length - 1}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1589,7 +1885,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              {(activePricing.frameColumnKeys || defaultFrameColumnKeys).map((colKey) => (
+                              {getMaterialColumns(activePricing, activeItem.id).map((colKey) => (
                                 <td key={colKey} className="p-2 align-top">
                                   <div className="flex flex-col gap-1">
                                     <input
@@ -1618,6 +1914,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               ))}
                               <td className="p-2 text-center">
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     updateActivePricing(prev => ({
                                       ...prev,
@@ -1648,6 +1945,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <p className="text-xs text-neutral-400">Danh mục Album - Photobook gồm Kích Thước, Đơn Giá và Mã SKU chuẩn</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => {
                           const newRow: any = {
                             size: 'Mới',
@@ -1672,7 +1970,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <tr className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
                             <th className="p-3 w-16 text-center">Xếp</th>
                             <th className="p-3 w-36">Kích Thước</th>
-                            <th className="p-3">Đơn Giá VNĐ (Trọn gói)</th>
+                            {getMaterialColumns(activePricing, 'anh-4k').map(colKey => {
+                              const colTitle = activePricing.columnLabels?.[colKey] || (colKey === 'donGia' ? 'Đơn Giá VNĐ (Trọn gói)' : colKey);
+                              return (
+                                <th key={colKey} className="p-3">
+                                  <div className="flex items-center justify-between gap-1 group">
+                                    <span className="truncate">{colTitle}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteColumnFromMaterial('anh-4k', colKey, colTitle)}
+                                      className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                      title={`Xóa cột "${colTitle}" khỏi riêng tab Album`}
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </th>
+                              );
+                            })}
                             <th className="p-3 w-14 text-center">Xóa</th>
                           </tr>
                         </thead>
@@ -1682,6 +1997,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                               <td className="p-2 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button
+                                    type="button"
                                     disabled={idx === 0}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1695,6 +2011,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                     <ChevronUp className="w-3.5 h-3.5" />
                                   </button>
                                   <button
+                                    type="button"
                                     disabled={idx === activePricing.anh4K.length - 1}
                                     onClick={() => {
                                       updateActivePricing(prev => ({
@@ -1724,37 +2041,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-white w-32 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                                 />
                               </td>
-                              <td className="p-2 align-top">
-                                <div className="flex flex-col gap-1">
-                                  <input
-                                    type="number"
-                                    value={row.donGia ?? row.k4_k6 ?? ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value === '' ? null : Number(e.target.value);
-                                      updateActivePricing(prev => {
-                                        const copy = [...prev.anh4K];
-                                        (copy[idx] as any).donGia = val;
-                                        (copy[idx] as any).k4_k6 = val;
-                                        return { ...prev, anh4K: copy };
-                                      }, false);
-                                    }}
-                                    className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
-                                  />
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                              {getMaterialColumns(activePricing, 'anh-4k').map(colKey => (
+                                <td key={colKey} className="p-2 align-top">
+                                  <div className="flex flex-col gap-1">
                                     <input
-                                      type="text"
-                                      value={getCellSKU(row, 'donGia', 'anh-4k', activePricingSubTab)}
-                                      onChange={(e) => updateRowSKU('anh-4k', idx, 'donGia', e.target.value)}
-                                      placeholder={getDefaultSKU('anh-4k', activePricingSubTab, 'donGia', row.size)}
-                                      className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
-                                      title="Sửa mã SKU thủ công"
+                                      type="number"
+                                      value={row[colKey] ?? (colKey === 'donGia' ? (row.donGia ?? row.k4_k6 ?? '') : '')}
+                                      placeholder="-"
+                                      onChange={(e) => {
+                                        const val = e.target.value === '' ? null : Number(e.target.value);
+                                        updateActivePricing(prev => {
+                                          const copy = [...prev.anh4K];
+                                          (copy[idx] as any)[colKey] = val;
+                                          if (colKey === 'donGia') {
+                                            (copy[idx] as any).k4_k6 = val;
+                                          }
+                                          return { ...prev, anh4K: copy };
+                                        }, false);
+                                      }}
+                                      className="bg-neutral-800 border border-neutral-700 rounded px-2.5 py-1 text-emerald-400 w-36 font-mono text-xs focus:outline-none focus:border-emerald-400 font-semibold"
                                     />
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9px] font-mono text-neutral-500 font-bold select-none">SKU:</span>
+                                      <input
+                                        type="text"
+                                        value={getCellSKU(row, colKey, 'anh-4k', activePricingSubTab)}
+                                        onChange={(e) => updateRowSKU('anh-4k', idx, colKey, e.target.value)}
+                                        placeholder={getDefaultSKU('anh-4k', activePricingSubTab, colKey, row.size)}
+                                        className="bg-neutral-950/90 border border-neutral-800 focus:border-[#E7C184] rounded px-1.5 py-0.5 text-[10px] text-amber-200/90 font-mono tracking-tight focus:outline-none w-28"
+                                        title="Sửa mã SKU thủ công"
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
+                                </td>
+                              ))}
                               <td className="p-3 text-center">
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     updateActivePricing(prev => ({
                                       ...prev,
@@ -1789,6 +2112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       </p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => addSizeToCustomTab(activeItem.id)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
                     >
@@ -1803,9 +2127,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <tr>
                           <th className="p-2.5 w-16 text-center">Xếp</th>
                           <th className="p-2.5 w-24">Cỡ Ảnh</th>
-                          {(isDongKhungCustom ? (activePricing.frameColumnKeys || defaultFrameColumnKeys) : (activePricing.inEpColumnKeys || defaultInEpColumnKeys)).map(colKey => (
-                            <th key={colKey} className="p-2.5">{colConfig[colKey as keyof typeof colConfig] || colKey}</th>
-                          ))}
+                          {getMaterialColumns(activePricing, activeItem.id).map(colKey => {
+                            const colTitle = colConfig[colKey as keyof typeof colConfig] || colKey;
+                            return (
+                              <th key={colKey} className="p-2.5">
+                                <div className="flex items-center justify-between gap-1 group">
+                                  <span className="truncate">{colTitle}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteColumnFromMaterial(activeItem.id, colKey, colTitle)}
+                                    className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                                    title={`Xóa cột "${colTitle}" khỏi riêng "${activeItem.title}"`}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </th>
+                            );
+                          })}
                           <th className="p-2.5 w-12 text-center">Xóa</th>
                         </tr>
                       </thead>
@@ -1815,6 +2154,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             <td className="p-2 text-center">
                               <div className="flex items-center justify-center gap-1">
                                 <button
+                                  type="button"
                                   disabled={idx === 0}
                                   onClick={() => moveCustomTabRow(activeItem.id, idx, 'up')}
                                   className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
@@ -1823,6 +2163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                   <ChevronUp className="w-3.5 h-3.5" />
                                 </button>
                                 <button
+                                  type="button"
                                   disabled={idx === activeItem.rows.length - 1}
                                   onClick={() => moveCustomTabRow(activeItem.id, idx, 'down')}
                                   className="p-0.5 text-neutral-400 hover:text-white disabled:opacity-20 cursor-pointer"
@@ -1840,7 +2181,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                                 className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-white w-20 font-mono text-xs focus:outline-none focus:border-[#E7C184]"
                               />
                             </td>
-                            {(isDongKhungCustom ? (activePricing.frameColumnKeys || defaultFrameColumnKeys) : (activePricing.inEpColumnKeys || defaultInEpColumnKeys)).map((colKey) => (
+                            {getMaterialColumns(activePricing, activeItem.id).map((colKey) => (
                               <td key={colKey} className="p-2 align-top">
                                 <div className="flex flex-col gap-1">
                                   <input
@@ -1872,6 +2213,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             ))}
                             <td className="p-2 text-center">
                               <button
+                                type="button"
                                 onClick={() => deleteRowFromCustomTab(activeItem.id, idx)}
                                 className="text-neutral-500 hover:text-red-400 p-1"
                               >
@@ -1894,18 +2236,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900/60 border border-neutral-800 p-4 rounded-2xl">
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white font-serif-display">
-                  Quản Lý Danh Mục Khung Mẫu & Tải Ảnh Lên Firebase Storage
+                <h2 className="text-base sm:text-lg font-bold text-white font-serif-display flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#E7C184]" />
+                  <span>Quản Lý Danh Mục Khung Mẫu & Chú Thích Kỹ Thuật</span>
                 </h2>
-                <p className="text-xs text-neutral-400">
-                  Thêm mẫu khung mới, chỉnh sửa thông số viền, mô tả kỹ thuật và tải ảnh chụp thật trực tiếp từ điện thoại / máy tính lên Storage.
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  Thêm mẫu khung mới, chỉnh sửa thông số viền, từng dòng chú thích kỹ thuật và tải ảnh chụp thật trực tiếp từ điện thoại / máy tính lên Firestore.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
+                  type="button"
                   onClick={() => {
+                    const newId = `frame_${Date.now()}`;
                     setFrameFormData({
+                      id: newId,
                       code: `K${frames.length}`,
                       name: '',
                       dimensions: 'Bản rộng 2.0 cm',
@@ -1913,24 +2259,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       suitableFor: '',
                       variants: '',
                       hasRealPhotos: true,
-                      images: []
+                      images: [],
+                      notes: []
                     });
                     setIsAddingNewFrame(true);
                     setEditingFrameIndex(null);
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#E7C184] hover:bg-[#D4AF37] text-[#1C1917] font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#E7C184] hover:bg-[#D4AF37] text-[#1C1917] font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Thêm Mẫu Khung Mới</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleSaveAllFrames();
+                  }}
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSaving ? 'Đang lưu...' : 'Lưu Danh Mục Khung'}</span>
                 </button>
               </div>
             </div>
 
             {/* List of Frames */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {frames.map((frame, idx) => (
+              {frames.map((frame, index) => (
                 <div
-                  key={frame.code + idx}
+                  key={frame.id || frame.code || index}
                   className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col justify-between hover:border-neutral-700 transition-colors shadow-lg space-y-3"
                 >
                   <div>
@@ -1943,9 +2302,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button
+                          type="button"
                           onClick={() => {
-                            setFrameFormData({ ...frame });
-                            setEditingFrameIndex(idx);
+                            setFrameFormData({
+                              ...frame,
+                              id: frame.id || frame.code || `frame_${index}_${Date.now()}`,
+                              images: (frame.images || []).map((img, i) => ({
+                                ...img,
+                                id: img.id || `img_${index}_${i}_${Date.now()}`
+                              })),
+                              notes: (frame.notes || []).map((n: any, i: number) => ({
+                                id: n?.id || `note_${index}_${i}_${Date.now()}`,
+                                text: typeof n === 'string' ? n : n?.text || ''
+                              }))
+                            });
+                            setEditingFrameIndex(index);
                             setIsAddingNewFrame(false);
                           }}
                           className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
@@ -1954,14 +2325,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           <Edit3 className="w-4 h-4 text-[#E7C184]" />
                         </button>
                         <button
-                          onClick={async () => {
-                            if (window.confirm(`Bạn có chắc muốn xóa mẫu khung ${frame.code} (${frame.name})?`)) {
-                              const updated = frames.filter((_, i) => i !== idx);
-                              await handleSaveAllFrames(updated);
-                            }
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteFrame(frame.id || index);
                           }}
                           className="p-1.5 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-neutral-800 transition-colors cursor-pointer"
-                          title="Xóa mẫu khung"
+                          title="Xóa mẫu khung này"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -1976,6 +2347,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <p className="mt-2 text-xs text-neutral-400 line-clamp-3 leading-relaxed">
                       {frame.description}
                     </p>
+
+                    {/* Notes preview if any with direct single-click delete */}
+                    {frame.notes && frame.notes.length > 0 && (
+                      <div className="mt-2.5 space-y-1.5 bg-neutral-950/50 p-2.5 rounded-lg border border-neutral-800/80">
+                        <span className="text-[10px] font-mono text-[#E7C184] font-bold block uppercase tracking-wider">
+                          Chú thích kỹ thuật ({frame.notes.length}):
+                        </span>
+                        {frame.notes.map((n, noteIndex) => (
+                          <div key={n.id || noteIndex} className="group/note text-[11px] text-neutral-300 flex items-center justify-between gap-1.5 py-0.5 hover:bg-neutral-900/60 rounded px-1">
+                            <div className="flex items-start gap-1 min-w-0">
+                              <span className="text-neutral-500">•</span>
+                              <span className="break-words">{n.text}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                deleteFrameNote(frame.id || index, noteIndex);
+                              }}
+                              className="text-neutral-500 hover:text-red-400 p-0.5 rounded transition-colors shrink-0 cursor-pointer"
+                              title="Xóa dòng chú thích này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Photos preview */}
@@ -1988,7 +2388,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
                       {frame.images && frame.images.length > 0 ? (
                         frame.images.map((img, imgIdx) => (
-                          <div key={imgIdx} className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10 group">
+                          <div key={img.id || imgIdx} className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10 group">
                             <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[9px] text-white text-center p-1 font-mono">
                               {img.tag || 'Ảnh'}
@@ -2013,6 +2413,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       {isAddingNewFrame ? 'Thêm Mẫu Khung Mới' : `Chỉnh Sửa Mẫu Khung: ${frameFormData.code}`}
                     </h3>
                     <button
+                      type="button"
                       onClick={() => {
                         setEditingFrameIndex(null);
                         setIsAddingNewFrame(false);
@@ -2057,14 +2458,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">Mô Tả Kỹ Thuật Cho Thợ</label>
+                    <label className="block text-xs font-semibold text-neutral-300 mb-1">Mô Tả Tổng Quan Cho Thợ</label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       value={frameFormData.description}
                       onChange={(e) => setFrameFormData({ ...frameFormData, description: e.target.value })}
                       placeholder="Chi tiết cấu tạo, độ chịu lực, lưu ý gia cố khung xương cho ảnh lớn..."
                       className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#E7C184]"
                     />
+                  </div>
+
+                  {/* DÒNG CHÚ THÍCH KỸ THUẬT VỚI ID ĐỊNH DANH DUY NHẤT */}
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-[#E7C184]" />
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">
+                          Dòng Chú Thích Kỹ Thuật ({(frameFormData.notes || []).length})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddNote}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-[#E7C184] text-xs font-bold transition-colors cursor-pointer border border-neutral-700"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Thêm dòng chú thích</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {frameFormData.notes && frameFormData.notes.length > 0 ? (
+                        frameFormData.notes.map((note, noteIdx) => (
+                          <div key={note.id || noteIdx} className="flex items-center gap-2 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+                            <span className="text-[11px] font-mono text-[#E7C184] font-bold w-6 text-center shrink-0">
+                              #{noteIdx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={note.text}
+                              onChange={(e) => handleUpdateNote(note.id, e.target.value)}
+                              placeholder="vd: Bản rộng 2.0 cm, chống cong vênh..."
+                              className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#E7C184]"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteNote(note.id, noteIdx);
+                                if (editingFrameIndex !== null) {
+                                  deleteFrameNote(frameFormData.id || editingFrameIndex, noteIdx);
+                                }
+                              }}
+                              className="p-1 text-neutral-400 hover:text-red-400 hover:bg-red-950/60 rounded transition-colors cursor-pointer shrink-0"
+                              title="Xóa dòng chú thích này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-neutral-500 italic py-2 text-center">
+                          Chưa có dòng chú thích nào. Bấm <strong>"+ Thêm dòng chú thích"</strong> để thêm chi tiết kỹ thuật riêng biệt.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2096,7 +2555,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       <div className="flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 text-[#E7C184]" />
                         <span className="text-xs font-bold text-white uppercase tracking-wider">
-                          Ảnh Chụp Thật (Lưu Trực Tiếp Vào Firestore)
+                          Ảnh Chụp Thật ({(frameFormData.images || []).length})
                         </span>
                       </div>
                       
@@ -2115,7 +2574,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             try {
                               setUploadingImage(true);
                               const base64Url = await compressImageFile(file, 1200, 1200, 0.75);
-                              const newImageItem = {
+                              const newImageItem: FrameImageVariant = {
+                                id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
                                 name: `${frameFormData.name || frameFormData.code}: ${file.name}`,
                                 url: base64Url,
                                 tag: frameFormData.code || 'Mẫu mới',
@@ -2138,11 +2598,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       </label>
                     </div>
 
-                    {/* Image list */}
+                    {/* Image list with individual delete */}
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {frameFormData.images && frameFormData.images.length > 0 ? (
                         frameFormData.images.map((img, i) => (
-                          <div key={i} className="flex items-center justify-between gap-3 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+                          <div key={img.id || i} className="flex items-center justify-between gap-3 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
                             <div className="flex items-center gap-2.5 overflow-hidden">
                               <img src={img.url} alt={img.name} className="w-10 h-10 object-cover rounded-md shrink-0 border border-white/10" />
                               <div className="text-xs truncate">
@@ -2162,11 +2622,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             </div>
                             <button
                               type="button"
-                              onClick={() => {
-                                const copy = (frameFormData.images || []).filter((_, idx2) => idx2 !== i);
-                                setFrameFormData({ ...frameFormData, images: copy });
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteImage(img.id || i);
                               }}
-                              className="text-neutral-500 hover:text-red-400 p-1"
+                              className="text-neutral-500 hover:text-red-400 p-1.5 transition-colors cursor-pointer"
+                              title="Xóa ảnh này"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -2188,7 +2650,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         setEditingFrameIndex(null);
                         setIsAddingNewFrame(false);
                       }}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 transition-colors"
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
                     >
                       Hủy bỏ
                     </button>
@@ -2199,17 +2661,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           alert('Vui lòng nhập mã khung!');
                           return;
                         }
+                        const itemToSave: FrameSpecItem = {
+                          ...frameFormData,
+                          id: frameFormData.id || `frame_${Date.now()}`,
+                          images: (frameFormData.images || []).map((img, i) => ({
+                            ...img,
+                            id: img.id || `img_${Date.now()}_${i}`
+                          })),
+                          notes: (frameFormData.notes || []).map((n, i) => ({
+                            ...n,
+                            id: n.id || `note_${Date.now()}_${i}`
+                          }))
+                        };
                         let updatedList = [...frames];
                         if (isAddingNewFrame) {
-                          updatedList = [frameFormData, ...updatedList];
+                          updatedList = [itemToSave, ...updatedList];
                         } else if (editingFrameIndex !== null) {
-                          updatedList[editingFrameIndex] = frameFormData;
+                          updatedList[editingFrameIndex] = itemToSave;
                         }
+                        setFrames(updatedList);
                         await handleSaveAllFrames(updatedList);
                         setEditingFrameIndex(null);
                         setIsAddingNewFrame(false);
                       }}
-                      className="px-5 py-2 rounded-xl text-xs font-bold text-[#1C1917] bg-[#E7C184] hover:bg-[#D4AF37] transition-colors shadow-md flex items-center gap-1.5"
+                      className="px-5 py-2 rounded-xl text-xs font-bold text-[#1C1917] bg-[#E7C184] hover:bg-[#D4AF37] transition-colors shadow-md flex items-center gap-1.5 cursor-pointer"
                     >
                       <Save className="w-4 h-4" />
                       <span>Lưu Lên Firestore</span>
@@ -2235,34 +2710,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (window.confirm('Bạn có chắc chắn muốn XÓA SẠCH toàn bộ ảnh thực tế khỏi hệ thống?')) {
-                      setLocalRealPhotos([]);
-                      if (typeof window !== 'undefined') {
-                        localStorage.removeItem('hung_decor_real_photos');
-                      }
-                      try {
-                        await saveRealPhotos([]);
-                        showToast('Đã xóa sạch toàn bộ ảnh thực tế trên Firestore thành công!');
-                      } catch (e) {
-                        showToast('Lỗi khi xóa ảnh trên Firestore', 'error');
-                      }
-                    }
-                  }}
-                  disabled={isSaving || localRealPhotos.length === 0}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 font-bold text-xs sm:text-sm transition-all shadow-md cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Xóa Hết Ảnh Mẫu</span>
-                </button>
-
+              <div className="flex items-center gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={async () => {
                     try {
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('hung_decor_real_photos', JSON.stringify(localRealPhotos));
+                      }
                       await saveRealPhotos(localRealPhotos);
                       showToast('Đã lưu danh sách Ảnh Thực Tế lên Firestore thành công!');
                     } catch (e) {
@@ -2394,9 +2849,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {localRealPhotos.map((photo, idx) => (
+                  {localRealPhotos.map((photo, index) => (
                     <div
-                      key={photo.id || idx}
+                      key={photo.id || index}
                       className="bg-neutral-950 border border-neutral-800 rounded-xl p-3 flex flex-col justify-between space-y-3 relative group"
                     >
                       {/* Image Preview */}
@@ -2407,7 +2862,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-mono font-bold text-[#E7C184]">
-                          #{idx + 1}
+                          #{index + 1}
                         </div>
                       </div>
 
@@ -2420,7 +2875,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             value={photo.title}
                             onChange={(e) => {
                               const copy = [...localRealPhotos];
-                              copy[idx] = { ...copy[idx], title: e.target.value };
+                              copy[index] = { ...copy[index], title: e.target.value };
                               setLocalRealPhotos(copy);
                             }}
                             className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#E7C184]"
@@ -2434,7 +2889,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                             value={photo.caption || ''}
                             onChange={(e) => {
                               const copy = [...localRealPhotos];
-                              copy[idx] = { ...copy[idx], caption: e.target.value };
+                              copy[index] = { ...copy[index], caption: e.target.value };
                               setLocalRealPhotos(copy);
                             }}
                             className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-neutral-300 focus:outline-none focus:border-[#E7C184]"
@@ -2447,9 +2902,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            disabled={idx === 0}
+                            disabled={index === 0}
                             onClick={() => {
-                              const updated = moveRowInArray(localRealPhotos, idx, 'up');
+                              const updated = moveRowInArray(localRealPhotos, index, 'up');
                               setLocalRealPhotos(updated);
                             }}
                             className="p-1 rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
@@ -2459,9 +2914,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           </button>
                           <button
                             type="button"
-                            disabled={idx === localRealPhotos.length - 1}
+                            disabled={index === localRealPhotos.length - 1}
                             onClick={() => {
-                              const updated = moveRowInArray(localRealPhotos, idx, 'down');
+                              const updated = moveRowInArray(localRealPhotos, index, 'down');
                               setLocalRealPhotos(updated);
                             }}
                             className="p-1 rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
@@ -2476,11 +2931,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            if (window.confirm('Bạn có chắc muốn xóa ảnh này?')) {
-                              const photoId = photo.id;
-                              setLocalRealPhotos(prev => prev.filter((p, i) => photoId ? p.id !== photoId : i !== idx));
-                              showToast('Đã xóa ảnh khỏi danh sách!');
-                            }
+                            setLocalRealPhotos(prev => prev.filter((_, idx) => idx !== index));
                           }}
                           className="relative z-20 inline-flex items-center justify-center p-2 text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 border border-red-500/30 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
                           title="Xóa ngay ảnh này"
@@ -2848,46 +3299,71 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Áp dụng cho loại bảng
-                </label>
-                <div className="space-y-2">
-                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                    newColumnTargetType === 'dongKhung'
-                      ? 'bg-neutral-800 border-[#E7C184] text-white'
-                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="columnTargetType"
-                      checked={newColumnTargetType === 'dongKhung'}
-                      onChange={() => setNewColumnTargetType('dongKhung')}
-                      className="mt-0.5 accent-[#E7C184]"
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-white">Bảng Các Hệ Khung (Mặc định)</div>
-                      <p className="text-[11px] text-neutral-400 mt-0.5">Thêm cột này vào các dòng sản phẩm Gỗ Lụa, HD Gương, Mika...</p>
-                    </div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-neutral-300">
+                    Áp dụng cho các tab chất liệu:
                   </label>
-
-                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                    newColumnTargetType === 'inEpMika'
-                      ? 'bg-neutral-800 border-[#E7C184] text-white'
-                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="columnTargetType"
-                      checked={newColumnTargetType === 'inEpMika'}
-                      onChange={() => setNewColumnTargetType('inEpMika')}
-                      className="mt-0.5 accent-[#E7C184]"
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-white">Bảng In Ép & Gia Cố</div>
-                      <p className="text-[11px] text-neutral-400 mt-0.5">Thêm cột này vào dòng sản phẩm In Ép & Giá khung gia cố</p>
-                    </div>
-                  </label>
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTargetTabIds(adminMaterialTabs.map(t => t.id))}
+                      className="text-[#E7C184] hover:underline font-medium px-1 cursor-pointer"
+                    >
+                      Chọn tất cả
+                    </button>
+                    <span className="text-neutral-600">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTargetTabIds([])}
+                      className="text-neutral-400 hover:text-white hover:underline font-medium px-1 cursor-pointer"
+                    >
+                      Bỏ chọn
+                    </button>
+                  </div>
                 </div>
+
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {adminMaterialTabs.map((tab, idx) => {
+                    const isChecked = selectedTargetTabIds.includes(tab.id);
+                    return (
+                      <label
+                        key={tab.id}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-neutral-800/90 border-[#E7C184] text-white shadow-sm'
+                            : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) {
+                              setSelectedTargetTabIds(prev => prev.filter(id => id !== tab.id));
+                            } else {
+                              setSelectedTargetTabIds(prev => [...prev, tab.id]);
+                            }
+                          }}
+                          className="w-4 h-4 rounded accent-[#E7C184] cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0 flex items-center justify-between">
+                          <span className={`text-xs font-semibold truncate ${isChecked ? 'text-white' : 'text-neutral-300'}`}>
+                            {tab.title}
+                          </span>
+                          <span className="text-[10px] font-mono text-neutral-500 uppercase ml-2 shrink-0">
+                            {tab.type === 'inEpMika' ? 'Hệ In Ép' : tab.type === 'album' ? 'Album' : 'Hệ Khung'}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedTargetTabIds.length === 0 && (
+                  <p className="text-[11px] text-amber-400 mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Vui lòng chọn ít nhất 1 tab chất liệu để áp dụng cột mới</span>
+                  </p>
+                )}
               </div>
             </div>
 

@@ -3,7 +3,7 @@ import { useAppData } from '../context/AppDataContext';
 import { usePriceMultiplier, applyMultiplier } from '../hooks/usePriceMultiplier';
 import { MaterialTabId } from '../types';
 import { Search } from 'lucide-react';
-import { getAllMaterialTabs } from '../firebase/dataService';
+import { getAllMaterialTabs, getMaterialColumns } from '../firebase/dataService';
 
 interface OfficialPricingTablesProps {
   onSelectSizeForCalculator?: (productLine: string, size: string) => void;
@@ -29,12 +29,17 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   const colLabels = useMemo(() => {
     return {
       boVien: pricing.columnLabels?.boVien || 'Bo Viền',
+      kx: pricing.columnLabels?.kx || 'Khung KX',
+      ht10: pricing.columnLabels?.ht10 || 'Khung HT10',
+      k12: pricing.columnLabels?.k12 || 'Khung K12',
+      b10: pricing.columnLabels?.b10 || 'Khung bản 10cm',
+      titan1: pricing.columnLabels?.titan1 || 'Khung nhôm Titan M',
+      titan2: pricing.columnLabels?.titan2 || 'Khung nhôm Titan C',
+      // Legacy fallback keys
       k0_k3: pricing.columnLabels?.k0_k3 || 'Khung KX',
       k4_k6: pricing.columnLabels?.k4_k6 || 'Khung HT10',
       k10: pricing.columnLabels?.k10 || 'Khung K12',
       k11: pricing.columnLabels?.k11 || 'Khung bản 10cm',
-      titan1: pricing.columnLabels?.titan1 || 'Khung nhôm Titan M',
-      titan2: pricing.columnLabels?.titan2 || 'Khung nhôm Titan C',
       inAnh: pricing.columnLabels?.inAnh || 'In Ảnh',
       inEpLua: pricing.columnLabels?.inEpLua || 'In Ép Lụa',
       inEpMikaCol: pricing.columnLabels?.inEpMikaCol || 'In Ép Mika',
@@ -132,34 +137,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[120px]">
                       Cỡ Ảnh
                     </th>
-                    <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                      {colLabels.boVien || 'Bo Viền'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0EBE3]">
-                  {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
-                    <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
-                      <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
-                        {row.size}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        {formatPrice(applyMultiplier(row.boVien, multiplier))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {activeTabItem && activeTabItem.type === 'dongKhung' && activeTabItem.id !== 'go-lua' && (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
-                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
-                      Cỡ Ảnh
-                    </th>
-                    {(pricing.frameColumnKeys || ['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2']).map(k => (
+                    {getMaterialColumns(pricing, activeTabItem.id).map(k => (
                       <th key={k} className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
                         {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
                       </th>
@@ -172,7 +150,38 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                         {row.size}
                       </td>
-                      {(pricing.frameColumnKeys || ['boVien', 'k0_k3', 'k4_k6', 'k10', 'k11', 'titan1', 'titan2']).map(k => (
+                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
+                        <td key={k} className="py-2.5 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row[k], multiplier))}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {activeTabItem && (activeTabItem.type === 'dongKhung' || activeTabItem.isCustom) && activeTabItem.id !== 'go-lua' && activeTabItem.type !== 'inEpMika' && activeTabItem.type !== 'album' && (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
+                    <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
+                      Cỡ Ảnh
+                    </th>
+                    {getMaterialColumns(pricing, activeTabItem.id).map(k => (
+                      <th key={k} className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F0EBE3]">
+                  {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                    <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
+                      <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
+                        {row.size}
+                      </td>
+                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
                         <td key={k} className="py-2.5 px-3 text-right whitespace-nowrap">
                           {formatPrice(applyMultiplier(row[k], multiplier))}
                         </td>
@@ -198,7 +207,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[90px]">
                         Kích Thước
                       </th>
-                      {(pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo']).map(k => (
+                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
                         <th key={k} className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
                           {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || k}
                         </th>
@@ -211,7 +220,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                         <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
                         </td>
-                        {(pricing.inEpColumnKeys || ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo']).map(k => (
+                        {getMaterialColumns(pricing, activeTabItem.id).map(k => (
                           <td key={k} className="py-2.5 px-3 text-right whitespace-nowrap">
                             {formatPrice(applyMultiplier(row[k] ?? (k === 'inEpMikaCol' ? row.inEpMika : null), multiplier))}
                           </td>
@@ -230,9 +239,11 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     <th className="py-3 px-3.5 font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap min-w-[120px]">
                       Kích Thước
                     </th>
-                    <th className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                      Đơn Giá
-                    </th>
+                    {getMaterialColumns(pricing, activeTabItem.id).map(k => (
+                      <th key={k} className="py-3 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                        {colLabels[k as keyof typeof colLabels] || pricing.columnLabels?.[k] || (k === 'donGia' ? 'Đơn Giá' : k)}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0EBE3]">
@@ -241,9 +252,11 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       <td className="py-2.5 px-3.5 font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                         {row.size}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
-                        {formatPrice(applyMultiplier(row.donGia ?? row.k4_k6 ?? row.boVien, multiplier))}
-                      </td>
+                      {getMaterialColumns(pricing, activeTabItem.id).map(k => (
+                        <td key={k} className="py-2.5 px-3 text-right font-bold text-[#1C1917] whitespace-nowrap">
+                          {formatPrice(applyMultiplier(row[k] ?? row.donGia ?? row.k4_k6 ?? row.boVien, multiplier))}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
