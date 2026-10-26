@@ -83,7 +83,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
       setShowSwipeGuide(true);
       const timer = setTimeout(() => {
         setShowSwipeGuide(false);
-      }, 4000);
+      }, 9000); // 9 seconds
       return () => clearTimeout(timer);
     } else {
       setShowSwipeGuide(false);
@@ -92,7 +92,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
 
   const handleTableScroll = () => {
     if (scrollContainerRef.current) {
-      if (scrollContainerRef.current.scrollLeft > 10) {
+      if (scrollContainerRef.current.scrollLeft > 25) {
         setShowSwipeGuide(false);
       }
     }
@@ -104,14 +104,48 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
 
   return (
     <section id="bang-gia-chi-tiet" className="py-6 md:py-12 bg-[#FAF9F5] w-full max-w-full overflow-hidden">
-      {/* CSS Keyframes for Swipe Gesture Finger Animation */}
+      {/* CSS Keyframes for Upgraded Swipe Gesture Simulation */}
       <style>{`
-        @keyframes swipeLeftRight {
-          0%, 100% { transform: translateX(12px); opacity: 0.7; }
-          50% { transform: translateX(-12px); opacity: 1; }
+        @keyframes swipeLeftMotion {
+          0% {
+            transform: translateX(80px);
+            opacity: 0.1;
+          }
+          20% {
+            transform: translateX(80px);
+            opacity: 1;
+          }
+          75% {
+            transform: translateX(-80px);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(-80px);
+            opacity: 0.1;
+          }
         }
-        .animate-swipe-hand {
-          animation: swipeLeftRight 1.5s ease-in-out infinite;
+        @keyframes trailGlowPulse {
+          0% {
+            width: 10px;
+            opacity: 0.2;
+            transform: translateX(70px);
+          }
+          40% {
+            width: 140px;
+            opacity: 0.9;
+            transform: translateX(0px);
+          }
+          100% {
+            width: 10px;
+            opacity: 0.1;
+            transform: translateX(-70px);
+          }
+        }
+        .animate-swipe-hand-long {
+          animation: swipeLeftMotion 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        .animate-trail-glow {
+          animation: trailGlowPulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
       `}</style>
 
@@ -175,24 +209,46 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
             <span className="font-mono font-bold text-[#1C1917] shrink-0 ml-2">Đơn vị: VNĐ</span>
           </div>
 
-          {/* SWIPE GESTURE GUIDE OVERLAY (MOBILE ONLY, POINTER-EVENTS-NONE) */}
-          <div
-            className={`md:hidden pointer-events-none absolute left-0 right-0 top-16 z-30 flex justify-center items-center px-4 transition-all duration-500 ease-out ${
-              showSwipeGuide && activeColumnsCount > 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none hidden'
-            }`}
-          >
-            <div className="bg-[#1C1917]/95 border border-[#FF0000]/50 text-white px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2">
-              <span className="text-base text-[#FF0000] inline-block animate-swipe-hand font-bold shrink-0">
-                👉
-              </span>
-              <span className="text-[11px] font-bold text-white tracking-tight whitespace-nowrap">
-                Vuốt ngang để xem thêm các mẫu khung
-              </span>
-              <span className="text-xs text-[#E7C184] font-bold animate-pulse">
-                ➔
-              </span>
+          {/* UPGRADED SWIPE GESTURE GUIDE OVERLAY (MOBILE ONLY, POINTER-EVENTS-NONE) */}
+          {showSwipeGuide && activeColumnsCount > 2 && (
+            <div
+              className="md:hidden pointer-events-none absolute inset-x-0 top-10 z-30 flex flex-col justify-center items-center px-3 transition-all duration-500 ease-out animate-in fade-in zoom-in-95"
+            >
+              {/* Hand Icon & Light Trail Container */}
+              <div className="relative flex items-center justify-center h-14 w-full max-w-xs mb-1">
+                {/* Glowing light trail */}
+                <div className="absolute h-2.5 bg-gradient-to-l from-red-500/80 via-amber-400/90 to-transparent rounded-full animate-trail-glow shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
+                
+                {/* Large Neon Red Finger Hand */}
+                <div className="animate-swipe-hand-long text-4xl text-[#EF4444] filter drop-shadow-[0_0_12px_rgba(239,68,68,0.9)] shrink-0 select-none">
+                  👈
+                </div>
+              </div>
+
+              {/* Notification Card */}
+              <div className="bg-slate-900/95 border-2 border-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.4)] text-white px-3.5 py-2 rounded-2xl backdrop-blur-md flex items-center justify-between gap-2 max-w-xs w-auto">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-red-500 font-black text-sm animate-pulse">👈</span>
+                  <span className="text-[11px] sm:text-xs font-black text-amber-300 uppercase tracking-tight whitespace-nowrap">
+                    VUỐT SANG TRÁI ĐỂ XEM THÊM CỘT KHUNG
+                  </span>
+                </div>
+
+                {/* Dismiss Button with pointer-events-auto */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSwipeGuide(false);
+                  }}
+                  className="pointer-events-auto bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded-full shadow-md transition-all shrink-0 cursor-pointer border border-red-400/50"
+                  title="Tắt hướng dẫn"
+                >
+                  Đã hiểu
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div
             ref={scrollContainerRef}
