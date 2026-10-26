@@ -314,17 +314,31 @@ export function sanitizePricingState(d: any): FullPricingState {
       .filter((k, idx, arr) => arr.indexOf(k) === idx && !['k7_k9'].includes(k));
   };
 
-  const rawMap = d.materialColumnsMap || d.materialColumnKeys || defaultMaterialColumnKeys;
+  let rawMap = d.materialColumnsMap || d.materialColumnKeys;
+  if (!rawMap && typeof window !== 'undefined') {
+    const cachedCols = localStorage.getItem('hung_decor_material_cols');
+    if (cachedCols) {
+      try {
+        rawMap = JSON.parse(cachedCols);
+      } catch (e) {
+        console.warn('Could not parse cached material cols', e);
+      }
+    }
+  }
+  if (!rawMap) {
+    rawMap = defaultMaterialColumnKeys;
+  }
+
   const cleanMap: Record<string, string[]> = {};
   Object.keys(rawMap).forEach(key => {
     cleanMap[key] = sanitizeCols(rawMap[key]);
   });
 
-  if (!cleanMap['go-lua']) cleanMap['go-lua'] = ['boVien'];
-  if (!cleanMap['hd-guong-sieu-bong']) cleanMap['hd-guong-sieu-bong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
-  if (!cleanMap['mika-pho-thong']) cleanMap['mika-pho-thong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
-  if (!cleanMap['in-ep-mika']) cleanMap['in-ep-mika'] = defaultInEpColumnKeys;
-  if (!cleanMap['anh-4k']) cleanMap['anh-4k'] = ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'];
+  if (cleanMap['go-lua'] === undefined) cleanMap['go-lua'] = ['boVien'];
+  if (cleanMap['hd-guong-sieu-bong'] === undefined) cleanMap['hd-guong-sieu-bong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
+  if (cleanMap['mika-pho-thong'] === undefined) cleanMap['mika-pho-thong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
+  if (cleanMap['in-ep-mika'] === undefined) cleanMap['in-ep-mika'] = defaultInEpColumnKeys;
+  if (cleanMap['anh-4k'] === undefined) cleanMap['anh-4k'] = ['donGia', 'kx', 'ht10', 'k12', 'titan1', 'titan2'];
 
   return {
     inEpMika: d.inEpMika || defaultInEpMika,
@@ -364,9 +378,31 @@ export async function fetchPricingFromFirestore(): Promise<{ data: FullPricingSt
         };
       }
     }
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('hung_decor_custom_pricing');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          return { data: sanitizePricingState(parsed) };
+        } catch (e) {
+          console.warn('Could not parse cached custom pricing');
+        }
+      }
+    }
     return null;
   } catch (error) {
-    console.warn('Could not fetch pricing from Firestore, falling back to local defaults:', error);
+    console.warn('Could not fetch pricing from Firestore, falling back to local storage:', error);
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('hung_decor_custom_pricing');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          return { data: sanitizePricingState(parsed) };
+        } catch (e) {
+          console.warn('Could not parse cached custom pricing');
+        }
+      }
+    }
     return null;
   }
 }
@@ -393,10 +429,10 @@ export async function savePricingToFirestore(pricing: FullPricingState): Promise
       updatedAt: new Date().toISOString(),
     }, { merge: true });
 
-
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('hung_decor_custom_pricing', JSON.stringify(toSave));
+        localStorage.setItem('hung_decor_material_cols', JSON.stringify(matCols));
       } catch (err) {
         console.warn('Could not cache custom pricing to localStorage:', err);
       }
@@ -679,6 +715,7 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('hung_decor_freelance_pricing', JSON.stringify(toSave));
+        localStorage.setItem('hung_decor_material_cols', JSON.stringify(matCols));
       } catch (err) {
         console.warn('Could not cache freelance pricing to localStorage:', err);
       }

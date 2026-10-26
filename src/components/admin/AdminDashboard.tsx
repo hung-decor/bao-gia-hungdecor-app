@@ -291,7 +291,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       }
       return updated;
     });
-    showToast('Đã xóa dòng chú thích kỹ thuật!');
+    deleteFrameNote(frameIndex, noteIndex);
+    showToast('Đã xóa dòng chú thích kỹ thuật và tự động lưu!');
   };
 
   const handleUpdateNote = (noteId: string, text: string) => {
@@ -594,15 +595,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       };
     };
 
-    setLocalStudioPricing(prev => applyAddCol(prev));
-    setLocalFreelancePricing(prev => applyAddCol(prev));
+    const newStudio = applyAddCol(localStudioPricing);
+    const newFreelance = applyAddCol(localFreelancePricing);
+    setLocalStudioPricing(newStudio);
+    setLocalFreelancePricing(newFreelance);
+    saveAllPricing(newStudio, newFreelance).catch(console.warn);
 
     setNewColumnTitle('');
     setIsAddingColumnModalOpen(false);
-    showToast(`Đã thêm cột khung "${title}" vào ${selectedTargetTabIds.length} chất liệu đã chọn!`);
+    showToast(`Đã thêm cột khung "${title}" vào ${selectedTargetTabIds.length} chất liệu và tự động lưu!`);
   };
 
-  // Delete frame column handler for a SPECIFIC material tab ONLY (Instant, No blocking modal)
+  // Delete frame column handler for a SPECIFIC material tab ONLY (Instant, No blocking modal, Auto-save)
   const handleDeleteColumnFromMaterial = (materialTabId: string, colKey: string, colTitle?: string) => {
     const currentTab = adminMaterialTabs.find(t => t.id === materialTabId);
     const tabName = currentTab?.title || materialTabId;
@@ -638,7 +642,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setLocalFreelancePricing(prev => applyDelete(prev));
     deleteMaterialColumn(materialTabId, colKey);
 
-    showToast(`Đã xóa cột "${title}" khỏi riêng "${tabName}"! Hãy bấm "Lưu Bảng Giá" để lưu.`);
+    showToast(`Đã xóa cột "${title}" khỏi riêng "${tabName}" và tự động lưu!`);
   };
 
   // Add an existing column to the current material tab
@@ -678,7 +682,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     addMaterialColumn(materialTabId, colKey);
 
     const colTitle = activePricing.columnLabels?.[colKey] || (defaultColumnLabels as any)[colKey] || colKey;
-    showToast(`Đã thêm lại cột "${colTitle}" vào chất liệu này!`);
+    showToast(`Đã thêm lại cột "${colTitle}" vào chất liệu này và tự động lưu!`);
   };
 
   // Optional: Global delete frame column handler
@@ -722,10 +726,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       };
     };
 
-    setLocalStudioPricing(prev => applyDeleteCol(prev));
-    setLocalFreelancePricing(prev => applyDeleteCol(prev));
+    const newStudio = applyDeleteCol(localStudioPricing);
+    const newFreelance = applyDeleteCol(localFreelancePricing);
+    setLocalStudioPricing(newStudio);
+    setLocalFreelancePricing(newFreelance);
+    saveAllPricing(newStudio, newFreelance).catch(console.warn);
 
-    showToast(`Đã xóa cột "${colTitle}" khỏi tất cả các bảng thành công!`);
+    showToast(`Đã xóa cột "${colTitle}" khỏi tất cả các bảng và tự động lưu!`);
   };
 
   // Update SKU for a row cell

@@ -164,7 +164,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (typeof window !== 'undefined') {
         const localVersion = localStorage.getItem('HUNG_DECOR_CACHE_VERSION');
         if (localVersion !== CACHE_VERSION) {
-          localStorage.clear();
           localStorage.setItem('HUNG_DECOR_CACHE_VERSION', CACHE_VERSION);
         }
       }
@@ -187,21 +186,65 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       let loadedStudio = initialPricing;
       if (pricingResult && pricingResult.data) {
         loadedStudio = pricingResult.data;
+        // Merge cached material columns if available and custom
+        if (typeof window !== 'undefined') {
+          const cachedCols = localStorage.getItem('hung_decor_material_cols');
+          if (cachedCols) {
+            try {
+              const parsed = JSON.parse(cachedCols);
+              if (parsed && typeof parsed === 'object') {
+                loadedStudio.materialColumnsMap = { ...(loadedStudio.materialColumnsMap || {}), ...parsed };
+                loadedStudio.materialColumnKeys = loadedStudio.materialColumnsMap;
+              }
+            } catch (e) {}
+          }
+        }
         setStudioPricing(loadedStudio);
         hasFirestoreData = true;
         if (pricingResult.updatedAt) setLastUpdated(pricingResult.updatedAt);
       } else {
-        setStudioPricing(initialPricing);
-        savePricingToFirestore(initialPricing).catch(console.warn);
-        hasFirestoreData = true;
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('hung_decor_custom_pricing');
+          if (cached) {
+            try {
+              loadedStudio = JSON.parse(cached);
+              setStudioPricing(loadedStudio);
+              hasFirestoreData = true;
+            } catch (e) {}
+          }
+        }
+        if (!hasFirestoreData) {
+          setStudioPricing(initialPricing);
+          savePricingToFirestore(initialPricing).catch(console.warn);
+          hasFirestoreData = true;
+        }
       }
 
       if (freelanceResult && freelanceResult.data) {
-        setFreelancePricing(freelanceResult.data);
+        let loadedFreelance = freelanceResult.data;
+        if (loadedStudio.materialColumnsMap) {
+          loadedFreelance.materialColumnsMap = loadedStudio.materialColumnsMap;
+          loadedFreelance.materialColumnKeys = loadedStudio.materialColumnsMap;
+        }
+        setFreelancePricing(loadedFreelance);
       } else {
-        const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
-        setFreelancePricing(generatedFreelance);
-        saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
+        if (typeof window !== 'undefined') {
+          const cachedFl = localStorage.getItem('hung_decor_freelance_pricing');
+          if (cachedFl) {
+            try {
+              const parsedFl = JSON.parse(cachedFl);
+              setFreelancePricing(parsedFl);
+            } catch (e) {}
+          } else {
+            const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
+            setFreelancePricing(generatedFreelance);
+            saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
+          }
+        } else {
+          const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
+          setFreelancePricing(generatedFreelance);
+          saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
+        }
       }
 
       if (framesResult && framesResult.frames && framesResult.frames.length > 0) {
@@ -339,6 +382,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
         return true;
       });
+      // Immediately persist frames to Firestore
+      saveFramesToFirestore(newFrames).catch(err => {
+        console.warn('Could not auto-save deleted frame to Firestore:', err);
+      });
       return [...newFrames];
     });
   };
@@ -364,6 +411,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       currentNotes.splice(noteIdx, 1);
       targetFrame.notes = currentNotes;
       newFrames[targetIdx] = targetFrame;
+      
+      // Immediately persist updated notes to Firestore
+      saveFramesToFirestore(newFrames).catch(err => {
+        console.warn('Could not auto-save deleted note to Firestore:', err);
+      });
       return [...newFrames];
     });
   };
@@ -393,8 +445,40 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
     };
 
-    setStudioPricing(prev => applyDelete(prev));
-    setFreelancePricing(prev => applyDelete(prev));
+    setStudioPricing(prevStudio => {
+      const updatedStudio = applyDelete(prevStudio);
+      
+      setFreelancePricing(prevFreelance => {
+        const updatedFreelance = applyDelete(prevFreelance);
+
+        // 1. Instantly write to localStorage so F5 reload retains the deletion immediately
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hung_decor_custom_pricing', JSON.stringify(updatedStudio));
+            localStorage.setItem('hung_decor_freelance_pricing', JSON.stringify(updatedFreelance));
+            localStorage.setItem('hung_decor_material_cols', JSON.stringify(updatedStudio.materialColumnsMap));
+          } catch (e) {
+            console.warn('Could not cache deleted column to localStorage:', e);
+          }
+        }
+
+        // 2. Persist to Firestore database in background
+        Promise.all([
+          savePricingToFirestore(updatedStudio),
+          saveFreelancePricingToFirestore(updatedFreelance),
+          saveCatalogToFirestore(updatedStudio, updatedFreelance)
+        ]).then(() => {
+          setDataSource('firestore');
+          setLastUpdated(new Date().toISOString());
+        }).catch(err => {
+          console.warn('Could not auto-save deleted column to Firestore:', err);
+        });
+
+        return updatedFreelance;
+      });
+
+      return updatedStudio;
+    });
   };
 
   const addMaterialColumn = (materialTabId: string, colKey: string) => {
@@ -428,8 +512,40 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
     };
 
-    setStudioPricing(prev => applyAdd(prev));
-    setFreelancePricing(prev => applyAdd(prev));
+    setStudioPricing(prevStudio => {
+      const updatedStudio = applyAdd(prevStudio);
+
+      setFreelancePricing(prevFreelance => {
+        const updatedFreelance = applyAdd(prevFreelance);
+
+        // 1. Instantly write to localStorage so F5 reload retains the added column immediately
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hung_decor_custom_pricing', JSON.stringify(updatedStudio));
+            localStorage.setItem('hung_decor_freelance_pricing', JSON.stringify(updatedFreelance));
+            localStorage.setItem('hung_decor_material_cols', JSON.stringify(updatedStudio.materialColumnsMap));
+          } catch (e) {
+            console.warn('Could not cache added column to localStorage:', e);
+          }
+        }
+
+        // 2. Persist to Firestore database in background
+        Promise.all([
+          savePricingToFirestore(updatedStudio),
+          saveFreelancePricingToFirestore(updatedFreelance),
+          saveCatalogToFirestore(updatedStudio, updatedFreelance)
+        ]).then(() => {
+          setDataSource('firestore');
+          setLastUpdated(new Date().toISOString());
+        }).catch(err => {
+          console.warn('Could not auto-save added column to Firestore:', err);
+        });
+
+        return updatedFreelance;
+      });
+
+      return updatedStudio;
+    });
   };
 
   const handleSaveShopInfo = async (newShopInfo?: B2BShopInfo): Promise<boolean> => {
