@@ -31,6 +31,7 @@ import {
   generateDefaultFreelancePricing,
   fetchFramesFromFirestore,
   saveFramesToFirestore,
+  deleteFrameFromFirestore,
   fetchRealPhotosFromFirestore,
   saveRealPhotosToFirestore,
   fetchShopInfoFromFirestore,
@@ -118,6 +119,7 @@ const normalizeFramesList = (list: FrameSpecItem[]): FrameSpecItem[] => {
 
   return source.map((f, idx) => ({
     ...f,
+    displayOrder: f.displayOrder ?? idx,
     id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
     images: (f.images || []).map((img, i) => ({
       ...img,
@@ -127,7 +129,7 @@ const normalizeFramesList = (list: FrameSpecItem[]): FrameSpecItem[] => {
       id: n?.id || `note_${idx}_${i}_${Date.now()}`,
       text: typeof n === 'string' ? n : n?.text || ''
     }))
-  }));
+  })).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -242,13 +244,34 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (framesResult && framesResult.frames && framesResult.frames.length > 0) {
-        setFrames(framesResult.frames);
+        const sortedFrames = [...framesResult.frames].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+        setFrames(sortedFrames);
         hasFirestoreData = true;
         if (framesResult.updatedAt && !lastUpdated) setLastUpdated(framesResult.updatedAt);
       } else {
-        setFrames(defaultFrames);
-        saveFramesToFirestore(defaultFrames).catch(console.warn);
-        hasFirestoreData = true;
+        let cachedFrames: FrameSpecItem[] | null = null;
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('hung_decor_custom_frames');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                cachedFrames = parsed;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (cachedFrames) {
+          cachedFrames.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+          setFrames(cachedFrames);
+          hasFirestoreData = true;
+        } else {
+          const defaultNormalized = normalizeFramesList(defaultFrames);
+          setFrames(defaultNormalized);
+          saveFramesToFirestore(defaultNormalized).catch(console.warn);
+          hasFirestoreData = true;
+        }
       }
 
       if (realPhotosResult && Array.isArray(realPhotosResult.realPhotos)) {
@@ -336,7 +359,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const handleSaveFrames = async (newFrames?: FrameSpecItem[]): Promise<boolean> => {
     setIsSaving(true);
-    const toSave = newFrames || frames;
+    const raw = newFrames || frames;
+    const toSave = raw.map((f, idx) => ({
+      ...f,
+      displayOrder: f.displayOrder ?? idx
+    })).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
     try {
       await saveFramesToFirestore(toSave);
       setFrames(toSave);
@@ -364,23 +392,32 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteFrame = (idOrIndex: string | number) => {
     setFrames(prev => {
+      let deletedFrameId: string | undefined = undefined;
       const newFrames = prev.filter((item, idx) => {
-        if (typeof idOrIndex === 'number') {
-          return idx !== idOrIndex;
-        }
-        if (item.id === idOrIndex || item.code === idOrIndex) {
+        if (typeof idOrIndex === 'number' && idx === idOrIndex) {
+          deletedFrameId = item.id;
           return false;
         }
-        if (String(idx) === String(idOrIndex)) {
+        if (item.id === idOrIndex || item.code === idOrIndex || String(idx) === String(idOrIndex)) {
+          deletedFrameId = item.id;
           return false;
         }
         return true;
       });
-      // Immediately persist frames to Firestore
-      saveFramesToFirestore(newFrames).catch(err => {
-        console.warn('Could not auto-save deleted frame to Firestore:', err);
+
+      const reordered = newFrames.map((f, idx) => ({ ...f, displayOrder: idx }));
+
+      if (deletedFrameId) {
+        deleteFrameFromFirestore(deletedFrameId).catch(err => {
+          console.warn('Could not delete frame doc from Firestore:', err);
+        });
+      }
+
+      saveFramesToFirestore(reordered).catch(err => {
+        console.warn('Could not auto-save updated frames to Firestore:', err);
       });
-      return [...newFrames];
+
+      return reordered;
     });
   };
 

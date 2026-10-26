@@ -324,8 +324,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   const handleSaveReorderedFrames = async () => {
     try {
-      await saveFrames(reorderFramesList);
-      setLocalFrames(reorderFramesList);
+      const withOrder = reorderFramesList.map((f, idx) => ({
+        ...f,
+        displayOrder: idx
+      }));
+      await saveFrames(withOrder);
+      setLocalFrames(withOrder);
       setIsReorderingFrames(false);
       showToast('Đã lưu thứ tự hiển thị mẫu khung mới thành công!');
     } catch (e) {
@@ -413,10 +417,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   const handleDeleteFrameItem = (frameIndex: number, deleteId?: string) => {
     const itemToDelete = localFrames[frameIndex];
+    const targetId = deleteId || itemToDelete?.id || itemToDelete?.code;
     const title = itemToDelete ? `${itemToDelete.code} - ${itemToDelete.name}` : `Mẫu khung #${frameIndex + 1}`;
     if (window.confirm(`Bạn có chắc muốn xóa mẫu khung "${title}" không?`)) {
       setLocalFrames(prev => prev.filter((item, idx) => idx !== frameIndex && (!deleteId || item.id !== deleteId)));
-      showToast(`Đã xóa mẫu khung "${title}"! Hãy bấm "Lưu Danh Mục Khung" để lưu vĩnh viễn.`);
+      if (targetId) {
+        deleteFrame(targetId);
+      } else {
+        deleteFrame(frameIndex);
+      }
+      showToast(`Đã xóa mẫu khung "${title}" và tự động lưu!`);
     }
   };
 

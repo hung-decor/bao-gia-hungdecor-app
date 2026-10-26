@@ -5,7 +5,10 @@ import { Eye, X, ChevronLeft, ChevronRight, Ruler, Camera, Box, Check, Sparkles 
 import { useModalBackHandler } from '../hooks/useModalBackHandler';
 
 export const FrameReferenceGuide: React.FC = () => {
-  const { frames: frameReferenceGuide } = useAppData();
+  const { frames: rawFrames } = useAppData();
+  const frameReferenceGuide = React.useMemo(() => {
+    return [...rawFrames].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [rawFrames]);
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
   const [activeImageVariantIndex, setActiveImageVariantIndex] = useState<number>(0);
   const [filterType, setFilterType] = useState<'all' | 'real_only'>('all');

@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from './config';
 import { 
   InEpMikaPriceRow, 
@@ -764,6 +764,32 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
 
 export const FRAMES_VERSION = '2026_FRAMES_HUNG_DECOR_V4_STANDARDIZED';
 
+// Delete single frame document from Firestore
+export async function deleteFrameFromFirestore(frameId: string): Promise<boolean> {
+  try {
+    const docId = String(frameId).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const itemRef = doc(db, 'hung_decor_frame_items', docId);
+    await deleteDoc(itemRef);
+
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem('hung_decor_frames');
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((f: any) => f.id !== frameId && f.id !== docId && f.code !== frameId);
+            localStorage.setItem('hung_decor_frames', JSON.stringify(filtered));
+          }
+        } catch (e) {}
+      }
+    }
+    return true;
+  } catch (error) {
+    console.warn('Could not delete frame document from Firestore:', error);
+    return false;
+  }
+}
+
 // 3. Fetch Frames from Firestore
 export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecItem[]; updatedAt?: string } | null> {
   try {
@@ -777,6 +803,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
           frames.push({
             ...item,
             id: item.id || d.id,
+            displayOrder: typeof item.displayOrder === 'number' ? item.displayOrder : 999,
             images: (item.images || []).map((img, i) => ({
               ...img,
               id: img.id || `img_${i}_${Date.now()}`
@@ -789,6 +816,8 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         }
       });
       if (frames.length > 0) {
+        // Sort strictly by displayOrder
+        frames.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
         return {
           frames,
           updatedAt: new Date().toISOString()
@@ -804,7 +833,8 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
       if (Array.isArray(d.framesList) && d.framesList.length > 0) {
         const normalized = d.framesList.map((f: FrameSpecItem, idx: number) => ({
           ...f,
-          id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}_${Date.now()}`,
+          id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}`,
+          displayOrder: typeof f.displayOrder === 'number' ? f.displayOrder : idx,
           images: (f.images || []).map((img, i) => ({
             ...img,
             id: img.id || `img_${idx}_${i}_${Date.now()}`
@@ -813,7 +843,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
             id: n?.id || `note_${idx}_${i}_${Date.now()}`,
             text: typeof n === 'string' ? n : n?.text || ''
           }))
-        }));
+        })).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
         return {
           frames: normalized,
           updatedAt: d.updatedAt || undefined,
@@ -827,6 +857,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
             return { frames: parsed };
           }
         } catch (e) {}
@@ -841,6 +872,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
             return { frames: parsed };
           }
         } catch (e) {}
@@ -859,6 +891,7 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
       return {
         ...f,
         id: frameId,
+        displayOrder: idx, // Explicit order index
         images: (f.images || []).slice(0, 3).map((img, i) => ({
           ...img,
           id: img.id || `img_${idx}_${i}_${Date.now()}`
@@ -870,10 +903,23 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
       };
     });
 
-    // Save each frame as its own document in 'hung_decor_frame_items' collection
-    // This completely bypasses the 1MB document size limit forever!
+    // Fetch existing document IDs in 'hung_decor_frame_items'
+    const colRef = collection(db, 'hung_decor_frame_items');
+    const existingSnap = await getDocs(colRef);
+    const currentDocIds = new Set(normalized.map(f => f.id));
+
+    // Permanently delete any Firestore document that is no longer in normalized
+    const deletePromises: Promise<void>[] = [];
+    existingSnap.forEach(d => {
+      if (!currentDocIds.has(d.id)) {
+        deletePromises.push(deleteDoc(doc(db, 'hung_decor_frame_items', d.id)));
+      }
+    });
+    await Promise.all(deletePromises);
+
+    // Save each current frame with its explicit displayOrder
     const savePromises = normalized.map(frame => {
-      const docId = frame.id || frame.code ? String(frame.code || frame.id).replace(/[^a-zA-Z0-9_-]/g, '_') : `frame_${Math.random()}`;
+      const docId = frame.id;
       const itemRef = doc(db, 'hung_decor_frame_items', docId);
       return setDoc(itemRef, cleanUndefined({
         ...frame,

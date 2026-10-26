@@ -84,6 +84,7 @@ export interface FrameSpecItem {
   hasRealPhotos?: boolean;
   images?: FrameImageVariant[];
   notes?: FrameAnnotationItem[];
+  displayOrder?: number;
 }
 
 export interface B2BShopInfo {
