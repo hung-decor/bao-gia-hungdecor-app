@@ -59,7 +59,13 @@ import {
   Copy,
   ChevronUp,
   ChevronDown,
-  Camera
+  Camera,
+  ArrowUpDown,
+  GripVertical,
+  Move,
+  CheckCircle2,
+  ChevronsUp,
+  ChevronsDown
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -245,6 +251,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     notes: []
   });
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+
+  // Frame reordering drag-and-drop states
+  const [isReorderingFrames, setIsReorderingFrames] = useState<boolean>(false);
+  const [draggedFrameIndex, setDraggedFrameIndex] = useState<number | null>(null);
+  const [dragOverFrameIndex, setDragOverFrameIndex] = useState<number | null>(null);
+  const [reorderFramesList, setReorderFramesList] = useState<FrameSpecItem[]>([]);
+
+  const handleStartReorderFrames = () => {
+    setReorderFramesList([...frames]);
+    setIsReorderingFrames(true);
+    setEditingFrameIndex(null);
+    setIsAddingNewFrame(false);
+  };
+
+  const handleFrameDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedFrameIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', String(index));
+    } catch (_) {}
+  };
+
+  const handleFrameDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverFrameIndex !== index) {
+      setDragOverFrameIndex(index);
+    }
+  };
+
+  const handleFrameDragLeave = () => {
+    // leave
+  };
+
+  const handleFrameDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedFrameIndex === null || draggedFrameIndex === targetIndex) {
+      setDraggedFrameIndex(null);
+      setDragOverFrameIndex(null);
+      return;
+    }
+    const updated = [...reorderFramesList];
+    const [movedItem] = updated.splice(draggedFrameIndex, 1);
+    updated.splice(targetIndex, 0, movedItem);
+    setReorderFramesList(updated);
+    setDraggedFrameIndex(null);
+    setDragOverFrameIndex(null);
+  };
+
+  const handleFrameDragEnd = () => {
+    setDraggedFrameIndex(null);
+    setDragOverFrameIndex(null);
+  };
+
+  const moveReorderFrame = (index: number, direction: 'up' | 'down' | 'top' | 'bottom') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === reorderFramesList.length - 1) return;
+    const updated = [...reorderFramesList];
+    const [moved] = updated.splice(index, 1);
+    if (direction === 'up') {
+      updated.splice(index - 1, 0, moved);
+    } else if (direction === 'down') {
+      updated.splice(index + 1, 0, moved);
+    } else if (direction === 'top') {
+      updated.unshift(moved);
+    } else if (direction === 'bottom') {
+      updated.push(moved);
+    }
+    setReorderFramesList(updated);
+  };
+
+  const handleSaveReorderedFrames = async () => {
+    try {
+      await saveFrames(reorderFramesList);
+      setLocalFrames(reorderFramesList);
+      setIsReorderingFrames(false);
+      showToast('Đã lưu thứ tự hiển thị mẫu khung mới thành công!');
+    } catch (e) {
+      showToast('Lỗi khi lưu thứ tự mẫu khung!', 'error');
+    }
+  };
+
+  const handleCancelReorder = () => {
+    setIsReorderingFrames(false);
+    setDraggedFrameIndex(null);
+    setDragOverFrameIndex(null);
+  };
 
   // Note / Annotation handlers
   const handleAddNote = () => {
@@ -2295,6 +2388,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
+                  onClick={handleStartReorderFrames}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md active:scale-95 cursor-pointer ${
+                    isReorderingFrames
+                      ? 'bg-amber-500 text-neutral-950 ring-2 ring-amber-400'
+                      : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                  }`}
+                  title="Kéo thả đến vị trí phù hợp để thay đổi thứ tự hiển thị mẫu khung"
+                >
+                  <ArrowUpDown className="w-4 h-4 text-amber-300" />
+                  <span>Thay Đổi Vị Trí Hiển Thị Mẫu Khung</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => {
                     const newId = `frame_${Date.now()}`;
                     setFrameFormData({
@@ -2311,6 +2418,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     });
                     setIsAddingNewFrame(true);
                     setEditingFrameIndex(null);
+                    setIsReorderingFrames(false);
                   }}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#E7C184] hover:bg-[#D4AF37] text-[#1C1917] font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer"
                 >
@@ -2332,124 +2440,301 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               </div>
             </div>
 
-            {/* List of Frames */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {frames.map((frame, index) => (
-                <div
-                  key={frame.id || frame.code || index}
-                  className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col justify-between hover:border-neutral-700 transition-colors shadow-lg space-y-3"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-xs bg-[#E7C184]/20 text-[#E7C184] border border-[#E7C184]/30 px-2.5 py-1 rounded-lg">
-                          {frame.code}
-                        </span>
-                        <h4 className="font-bold text-white text-sm leading-snug">{frame.name}</h4>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFrameFormData({
-                              ...frame,
-                              id: frame.id || frame.code || `frame_${index}_${Date.now()}`,
-                              images: (frame.images || []).map((img, i) => ({
-                                ...img,
-                                id: img.id || `img_${index}_${i}_${Date.now()}`
-                              })),
-                              notes: (frame.notes || []).map((n: any, i: number) => ({
-                                id: n?.id || `note_${index}_${i}_${Date.now()}`,
-                                text: typeof n === 'string' ? n : n?.text || ''
-                              }))
-                            });
-                            setEditingFrameIndex(index);
-                            setIsAddingNewFrame(false);
-                          }}
-                          className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
-                          title="Sửa thông tin & ảnh"
-                        >
-                          <Edit3 className="w-4 h-4 text-[#E7C184]" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            deleteFrame(frame.id || index);
-                          }}
-                          className="p-1.5 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-neutral-800 transition-colors cursor-pointer"
-                          title="Xóa mẫu khung này"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+            {/* DRAG-AND-DROP REORDER WORKSPACE */}
+            {isReorderingFrames ? (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Reorder Mode Banner */}
+                <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shrink-0">
+                      <Move className="w-5 h-5 animate-pulse" />
                     </div>
-
-                    <div className="mt-2 text-xs text-neutral-300 font-mono flex items-center gap-1.5">
-                      <Ruler className="w-3.5 h-3.5 text-[#E7C184]" />
-                      <span>{frame.dimensions}</span>
-                    </div>
-
-                    <p className="mt-2 text-xs text-neutral-400 line-clamp-3 leading-relaxed">
-                      {frame.description}
-                    </p>
-
-                    {/* Notes preview if any with direct single-click delete */}
-                    {frame.notes && frame.notes.length > 0 && (
-                      <div className="mt-2.5 space-y-1.5 bg-neutral-950/50 p-2.5 rounded-lg border border-neutral-800/80">
-                        <span className="text-[10px] font-mono text-[#E7C184] font-bold block uppercase tracking-wider">
-                          Chú thích kỹ thuật ({frame.notes.length}):
+                    <div>
+                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+                        <span>Thay Đổi Vị Trí Hiển Thị Mẫu Khung</span>
+                        <span className="text-xs bg-amber-500/30 text-amber-200 border border-amber-500/50 px-2.5 py-0.5 rounded-full font-mono">
+                          {reorderFramesList.length} mẫu khung
                         </span>
-                        {frame.notes.map((n, noteIndex) => (
-                          <div key={n.id || noteIndex} className="group/note text-[11px] text-neutral-300 flex items-center justify-between gap-1.5 py-0.5 hover:bg-neutral-900/60 rounded px-1">
-                            <div className="flex items-start gap-1 min-w-0">
-                              <span className="text-neutral-500">•</span>
-                              <span className="break-words">{n.text}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                deleteFrameNote(frame.id || index, noteIndex);
-                              }}
-                              className="text-neutral-500 hover:text-red-400 p-0.5 rounded transition-colors shrink-0 cursor-pointer"
-                              title="Xóa dòng chú thích này"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                      </h3>
+                      <p className="text-xs text-neutral-300 mt-1">
+                        Giữ chuột vào biểu tượng <GripVertical className="w-3.5 h-3.5 inline text-amber-400" /> rồi kéo thả đến vị trí phù hợp, hoặc dùng các nút mũi tên (↑ / ↓) để đổi thứ tự.
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Photos preview */}
-                  <div className="pt-2 border-t border-neutral-800">
-                    <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-2">
-                      <span>Ảnh chụp thật ({frame.images?.length || 0})</span>
-                      <span className="text-[#E7C184] font-medium">{frame.variants}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                      {frame.images && frame.images.length > 0 ? (
-                        frame.images.map((img, imgIdx) => (
-                          <div key={img.id || imgIdx} className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10 group">
-                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[9px] text-white text-center p-1 font-mono">
-                              {img.tag || 'Ảnh'}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-xs text-neutral-500 italic py-2">Chưa có ảnh thực tế</div>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCancelReorder}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-300 bg-white/10 hover:bg-white/15 transition-colors cursor-pointer"
+                    >
+                      Hủy Bỏ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveReorderedFrames}
+                      disabled={isSaving}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{isSaving ? 'Đang lưu...' : 'Lưu Vị Trí Mới'}</span>
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Draggable Frame Cards List */}
+                <div className="space-y-2.5">
+                  {reorderFramesList.map((frame, index) => {
+                    const isDragging = draggedFrameIndex === index;
+                    const isOver = dragOverFrameIndex === index && draggedFrameIndex !== index;
+
+                    return (
+                      <div
+                        key={frame.id || frame.code || index}
+                        draggable
+                        onDragStart={(e) => handleFrameDragStart(e, index)}
+                        onDragOver={(e) => handleFrameDragOver(e, index)}
+                        onDragLeave={handleFrameDragLeave}
+                        onDrop={(e) => handleFrameDrop(e, index)}
+                        onDragEnd={handleFrameDragEnd}
+                        className={`flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-all select-none ${
+                          isDragging
+                            ? 'opacity-40 border-dashed border-amber-400 bg-neutral-900 scale-95'
+                            : isOver
+                            ? 'border-2 border-amber-400 bg-amber-500/15 shadow-2xl scale-[1.01]'
+                            : 'bg-neutral-900/90 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-850'
+                        }`}
+                      >
+                        {/* Left: Drag handle & order number & details */}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div 
+                            className="p-2 rounded-lg bg-neutral-800/80 hover:bg-amber-500/20 hover:text-amber-300 text-neutral-400 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                            title="Giữ chuột và kéo để di chuyển vị trí"
+                          >
+                            <GripVertical className="w-5 h-5" />
+                          </div>
+
+                          <div className="w-8 h-8 rounded-lg bg-[#E7C184]/20 border border-[#E7C184]/30 flex items-center justify-center font-mono font-bold text-xs text-[#E7C184] shrink-0">
+                            #{index + 1}
+                          </div>
+
+                          {/* Thumbnail */}
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-950 border border-neutral-800 shrink-0">
+                            {frame.images && frame.images.length > 0 ? (
+                              <img src={frame.images[0].url} alt={frame.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-600 font-mono text-center p-1">
+                                Chưa ảnh
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Title & Info */}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-bold text-xs bg-[#E7C184]/20 text-[#E7C184] border border-[#E7C184]/30 px-2 py-0.5 rounded-md">
+                                {frame.code}
+                              </span>
+                              <span className="font-bold text-white text-sm truncate">{frame.name}</span>
+                            </div>
+                            <div className="text-xs text-neutral-400 font-mono mt-0.5 truncate">
+                              {frame.dimensions} • {frame.variants || 'Tùy chọn bản viền'}
+                              {frame.notes && frame.notes.length > 0 && (
+                                <span className="ml-2 text-amber-300/80">({frame.notes.length} chú thích)</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Quick reorder arrow buttons */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveReorderFrame(index, 'top')}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-20 cursor-pointer transition-colors"
+                            title="Đưa lên đầu danh sách"
+                          >
+                            <ChevronsUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveReorderFrame(index, 'up')}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-20 cursor-pointer transition-colors"
+                            title="Lên trên 1 vị trí"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === reorderFramesList.length - 1}
+                            onClick={() => moveReorderFrame(index, 'down')}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-20 cursor-pointer transition-colors"
+                            title="Xuống dưới 1 vị trí"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === reorderFramesList.length - 1}
+                            onClick={() => moveReorderFrame(index, 'bottom')}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-20 cursor-pointer transition-colors"
+                            title="Đưa xuống cuối danh sách"
+                          >
+                            <ChevronsDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom Action Bar */}
+                <div className="sticky bottom-4 z-20 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-2xl p-3.5 flex items-center justify-between shadow-2xl">
+                  <div className="text-xs text-neutral-300 font-mono">
+                    💡 Kéo thả hoặc dùng mũi tên để đổi vị trí, sau đó bấm <span className="text-emerald-400 font-bold">Lưu Vị Trí Mới</span>.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCancelReorder}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-300 bg-white/10 hover:bg-white/15 transition-colors cursor-pointer"
+                    >
+                      Hủy Bỏ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveReorderedFrames}
+                      disabled={isSaving}
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{isSaving ? 'Đang lưu...' : 'Lưu Vị Trí Mới'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Standard Grid of Frames */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {frames.map((frame, index) => (
+                  <div
+                    key={frame.id || frame.code || index}
+                    className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col justify-between hover:border-neutral-700 transition-colors shadow-lg space-y-3"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs bg-[#E7C184]/20 text-[#E7C184] border border-[#E7C184]/30 px-2.5 py-1 rounded-lg">
+                            {frame.code}
+                          </span>
+                          <h4 className="font-bold text-white text-sm leading-snug">{frame.name}</h4>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFrameFormData({
+                                ...frame,
+                                id: frame.id || frame.code || `frame_${index}_${Date.now()}`,
+                                images: (frame.images || []).map((img, i) => ({
+                                  ...img,
+                                  id: img.id || `img_${index}_${i}_${Date.now()}`
+                                })),
+                                notes: (frame.notes || []).map((n: any, i: number) => ({
+                                  id: n?.id || `note_${index}_${i}_${Date.now()}`,
+                                  text: typeof n === 'string' ? n : n?.text || ''
+                                }))
+                              });
+                              setEditingFrameIndex(index);
+                              setIsAddingNewFrame(false);
+                            }}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                            title="Sửa thông tin & ảnh"
+                          >
+                            <Edit3 className="w-4 h-4 text-[#E7C184]" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteFrame(frame.id || index);
+                            }}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-neutral-800 transition-colors cursor-pointer"
+                            title="Xóa mẫu khung này"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-xs text-neutral-300 font-mono flex items-center gap-1.5">
+                        <Ruler className="w-3.5 h-3.5 text-[#E7C184]" />
+                        <span>{frame.dimensions}</span>
+                      </div>
+
+                      <p className="mt-2 text-xs text-neutral-400 line-clamp-3 leading-relaxed">
+                        {frame.description}
+                      </p>
+
+                      {/* Notes preview if any with direct single-click delete */}
+                      {frame.notes && frame.notes.length > 0 && (
+                        <div className="mt-2.5 space-y-1.5 bg-neutral-950/50 p-2.5 rounded-lg border border-neutral-800/80">
+                          <span className="text-[10px] font-mono text-[#E7C184] font-bold block uppercase tracking-wider">
+                            Chú thích kỹ thuật ({frame.notes.length}):
+                          </span>
+                          {frame.notes.map((n, noteIndex) => (
+                            <div key={n.id || noteIndex} className="group/note text-[11px] text-neutral-300 flex items-center justify-between gap-1.5 py-0.5 hover:bg-neutral-900/60 rounded px-1">
+                              <div className="flex items-start gap-1 min-w-0">
+                                <span className="text-neutral-500">•</span>
+                                <span className="break-words">{n.text}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  deleteFrameNote(frame.id || index, noteIndex);
+                                }}
+                                className="text-neutral-500 hover:text-red-400 p-0.5 rounded transition-colors shrink-0 cursor-pointer"
+                                title="Xóa dòng chú thích này"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Photos preview */}
+                    <div className="pt-2 border-t border-neutral-800">
+                      <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-2">
+                        <span>Ảnh chụp thật ({frame.images?.length || 0})</span>
+                        <span className="text-[#E7C184] font-medium">{frame.variants}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        {frame.images && frame.images.length > 0 ? (
+                          frame.images.map((img, imgIdx) => (
+                            <div key={img.id || imgIdx} className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10 group">
+                              <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[9px] text-white text-center p-1 font-mono">
+                                {img.tag || 'Ảnh'}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-neutral-500 italic py-2">Chưa có ảnh thực tế</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Frame Edit / Add Modal */}
             {(editingFrameIndex !== null || isAddingNewFrame) && (

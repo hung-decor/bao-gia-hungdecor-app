@@ -738,23 +738,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      if (Array.isArray(d.framesList)) {
-        // Check if frames list contains legacy 194 frames with K0-K11
-        const hasLegacy194 = d.framesList.some((f: FrameSpecItem) => {
-          const code = (f.code || '').toUpperCase();
-          return code.includes('K0') || code.includes('K1') || code.includes('K2') || code.includes('K3') ||
-                 code.includes('K4') || code.includes('K5') || code.includes('K6') || code.includes('K7') ||
-                 code.includes('K8') || code.includes('K9') || code.includes('K10') || code.includes('K11');
-        });
-
-        // If legacy items are found, purge them and return standardized default frames
-        if (hasLegacy194) {
-          return {
-            frames: defaultFrames,
-            updatedAt: d.updatedAt || undefined,
-          };
-        }
-
+      if (Array.isArray(d.framesList) && d.framesList.length > 0) {
         const normalized = d.framesList.map((f: FrameSpecItem, idx: number) => ({
           ...f,
           id: f.id || `frame_${f.code ? f.code.replace(/\s+/g, '_').toLowerCase() : idx}_${Date.now()}`,
@@ -773,9 +757,31 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
         };
       }
     }
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem('hung_decor_frames');
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return { frames: parsed };
+          }
+        } catch (e) {}
+      }
+    }
     return null;
   } catch (error) {
     console.warn('Could not fetch frames from Firestore, falling back to local defaults:', error);
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem('hung_decor_frames');
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return { frames: parsed };
+          }
+        } catch (e) {}
+      }
+    }
     return null;
   }
 }
@@ -801,6 +807,15 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
       version: FRAMES_VERSION,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hung_decor_frames', JSON.stringify(normalized));
+      } catch (e) {
+        console.warn('Could not cache frames to localStorage:', e);
+      }
+    }
+
     return true;
   } catch (error) {
     console.error('Error saving frames to Firestore:', error);

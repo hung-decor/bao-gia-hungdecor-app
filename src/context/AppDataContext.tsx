@@ -114,13 +114,7 @@ const initialPricing: FullPricingState = {
 };
 
 const normalizeFramesList = (list: FrameSpecItem[]): FrameSpecItem[] => {
-  const isLegacy = (list || []).some(f => {
-    const code = (f.code || '').toUpperCase();
-    return code.includes('K0') || code.includes('K1') || code.includes('K2') || code.includes('K3') ||
-           code.includes('K4') || code.includes('K5') || code.includes('K6') || code.includes('K7') ||
-           code.includes('K8') || code.includes('K9') || code.includes('K10') || code.includes('K11');
-  });
-  const source = isLegacy ? defaultFrames : (list || defaultFrames);
+  const source = list && list.length > 0 ? list : defaultFrames;
 
   return source.map((f, idx) => ({
     ...f,
