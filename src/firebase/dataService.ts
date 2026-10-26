@@ -35,6 +35,9 @@ export const defaultColumnLabels: ColumnLabelsConfig = {
   kx: 'Khung KX',
   ht10: 'Khung HT10',
   k12: 'Khung K12',
+  b25: 'Bản khung 2.5cm',
+  b4: 'Bản khung 4cm',
+  b8: 'Bản khung 8cm',
   b10: 'Khung bản 10cm',
   titan1: 'Khung nhôm Titan M',
   titan2: 'Khung nhôm Titan C',
@@ -50,6 +53,9 @@ export const defaultFrameColumnKeys: string[] = [
   'kx',
   'ht10',
   'k12',
+  'b25',
+  'b4',
+  'b8',
   'b10',
   'titan1',
   'titan2',
@@ -64,7 +70,7 @@ export const defaultInEpColumnKeys: string[] = [
 ];
 
 export const defaultMaterialColumnKeys: Record<string, string[]> = {
-  'mika-pho-thong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
+  'mika-pho-thong': ['boVien', 'kx', 'ht10', 'k12', 'b25', 'b4', 'b8', 'b10', 'titan1', 'titan2'],
   'hd-guong-sieu-bong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
   'anh-4k': ['donGia'],
   'in-ep-mika': ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'],
@@ -75,6 +81,13 @@ export const defaultMaterialColumnsMap = defaultMaterialColumnKeys;
 export function getMaterialColumns(pricing: FullPricingState, tabId: string): string[] {
   if (tabId === 'anh-4k' || tabId === 'album' || tabId === 'album-photobook') {
     return ['donGia'];
+  }
+  if (tabId === 'mika-pho-thong' || tabId === 'anh-mika' || tabId === 'mikaPhoThong') {
+    const lockedMikaCols = ['boVien', 'kx', 'ht10', 'k12', 'b25', 'b4', 'b8', 'b10', 'titan1', 'titan2'];
+    const map = pricing.materialColumnsMap || pricing.materialColumnKeys;
+    const customMapCols = map?.['mika-pho-thong'] || map?.['mikaPhoThong'] || [];
+    const extraCols = customMapCols.filter(k => !lockedMikaCols.includes(k));
+    return [...lockedMikaCols, ...extraCols];
   }
   const map = pricing.materialColumnsMap || pricing.materialColumnKeys;
   if (map && Array.isArray(map[tabId]) && map[tabId].length > 0) {
@@ -324,6 +337,9 @@ export function sanitizePricingState(d: any): FullPricingState {
       kx: r.kx ?? r.k0_k3 ?? null,
       ht10: r.ht10 ?? r.k4_k6 ?? null,
       k12: r.k12 ?? r.k10 ?? null,
+      b25: r.b25 ?? null,
+      b4: r.b4 ?? null,
+      b8: r.b8 ?? null,
       b10: r.b10 ?? r.k11 ?? null,
       titan1: r.titan1 ?? null,
       titan2: r.titan2 ?? null,
@@ -372,7 +388,11 @@ export function sanitizePricingState(d: any): FullPricingState {
 
   if (cleanMap['go-lua'] === undefined) cleanMap['go-lua'] = ['boVien'];
   if (cleanMap['hd-guong-sieu-bong'] === undefined) cleanMap['hd-guong-sieu-bong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
-  if (cleanMap['mika-pho-thong'] === undefined) cleanMap['mika-pho-thong'] = ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'];
+  
+  // Ensure mika-pho-thong has b25, b4, b8 in exact position
+  if (cleanMap['mika-pho-thong'] === undefined || !cleanMap['mika-pho-thong'].includes('b25')) {
+    cleanMap['mika-pho-thong'] = ['boVien', 'kx', 'ht10', 'k12', 'b25', 'b4', 'b8', 'b10', 'titan1', 'titan2'];
+  }
   if (cleanMap['in-ep-mika'] === undefined) cleanMap['in-ep-mika'] = defaultInEpColumnKeys;
   cleanMap['anh-4k'] = ['donGia'];
 
@@ -540,13 +560,20 @@ export function applyPercentageIncrease(targetPricing: FullPricingState, percent
   const bumpDongKhungRow = (r: DongKhungPriceRow): DongKhungPriceRow => ({
     ...r,
     boVien: bumpValue(r.boVien),
+    kx: bumpValue(r.kx),
+    ht10: bumpValue(r.ht10),
+    k12: bumpValue(r.k12),
+    b25: bumpValue(r.b25),
+    b4: bumpValue(r.b4),
+    b8: bumpValue(r.b8),
+    b10: bumpValue(r.b10),
+    titan1: bumpValue(r.titan1),
+    titan2: bumpValue(r.titan2),
     k0_k3: bumpValue(r.k0_k3),
     k4_k6: bumpValue(r.k4_k6),
     k7_k9: bumpValue(r.k7_k9),
     k10: bumpValue(r.k10),
     k11: bumpValue(r.k11),
-    titan1: bumpValue(r.titan1),
-    titan2: bumpValue(r.titan2),
   });
 
   const bumpInEpRow = (r: InEpMikaPriceRow): InEpMikaPriceRow => ({
@@ -1220,6 +1247,9 @@ export function getDefaultSKU(
   else if (colKey === 'kx' || colKey === 'k0_k3') frameSuffix = 'kx';
   else if (colKey === 'ht10' || colKey === 'k4_k6') frameSuffix = 'ht10';
   else if (colKey === 'k12' || colKey === 'k10') frameSuffix = 'k12';
+  else if (colKey === 'b25') frameSuffix = 'b25';
+  else if (colKey === 'b4') frameSuffix = 'b4';
+  else if (colKey === 'b8') frameSuffix = 'b8';
   else if (colKey === 'b10' || colKey === 'k11') frameSuffix = 'b10';
   else if (colKey === 'titan1') frameSuffix = 'ttm';
   else if (colKey === 'titan2') frameSuffix = 'ttc';

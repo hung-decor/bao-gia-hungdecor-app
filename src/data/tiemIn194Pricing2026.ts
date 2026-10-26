@@ -46,21 +46,21 @@ export const goLuaDongKhungData: DongKhungPriceRow[] = [
 // 3. MIKA PHỔ THÔNG ĐÓNG KHUNG (TAB 3)
 // Đầy đủ Bo viền, Khung KX, HT10, K12, Bản 10cm, Titan M, Titan C theo chuẩn xưởng Hùng Decor
 export const mikaPhoThongData: DongKhungPriceRow[] = [
-  { size: '13x18', boVien: 20000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '15x21', boVien: 27000, kx: null, ht10: null, k12: null, b10: null, titan1: 35000, titan2: 45000 },
-  { size: '20x30', boVien: 37000, kx: null, ht10: null, k12: null, b10: null, titan1: 80000, titan2: 70000 },
-  { size: '25x38', boVien: 60000, kx: null, ht10: 150000, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '30x45', boVien: 75000, kx: null, ht10: null, k12: 150000, b10: null, titan1: 120000, titan2: 170000 },
-  { size: '35x50', boVien: 85000, kx: null, ht10: null, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '40x60', boVien: 105000, kx: 220000, ht10: 240000, k12: 170000, b10: null, titan1: 140000, titan2: 240000 },
-  { size: '50x75', boVien: 130000, kx: 300000, ht10: 320000, k12: 230000, b10: null, titan1: 190000, titan2: 270000 },
-  { size: '60x90', boVien: 190000, kx: 350000, ht10: 370000, k12: 300000, b10: null, titan1: 240000, titan2: 320000 },
-  { size: '60x120', boVien: 320000, kx: null, ht10: null, k12: 400000, b10: null, titan1: null, titan2: 450000 },
-  { size: '70x110', boVien: 300000, kx: 470000, ht10: 470000, k12: 360000, b10: 652000, titan1: 430000, titan2: 470000 },
-  { size: '80x120', boVien: 460000, kx: 660000, ht10: 660000, k12: 510000, b10: 844000, titan1: null, titan2: 660000 },
-  { size: '90x140', boVien: 560000, kx: 740000, ht10: 900000, k12: 700000, b10: 992000, titan1: null, titan2: null },
-  { size: '100x150', boVien: null, kx: 1014000, ht10: 1082000, k12: null, b10: null, titan1: null, titan2: null },
-  { size: '100x180', boVien: null, kx: null, ht10: 1780000, k12: null, b10: null, titan1: null, titan2: null }
+  { size: '13x18', boVien: 20000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
+  { size: '15x21', boVien: 27000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: 35000, titan2: 45000 },
+  { size: '20x30', boVien: 37000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: 80000, titan2: 70000 },
+  { size: '25x38', boVien: 60000, kx: null, ht10: 150000, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
+  { size: '30x45', boVien: 75000, kx: null, ht10: null, k12: 150000, b25: null, b4: null, b8: null, b10: null, titan1: 120000, titan2: 170000 },
+  { size: '35x50', boVien: 85000, kx: null, ht10: null, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
+  { size: '40x60', boVien: 105000, kx: 220000, ht10: 240000, k12: 170000, b25: null, b4: null, b8: null, b10: null, titan1: 140000, titan2: 240000 },
+  { size: '50x75', boVien: 130000, kx: 300000, ht10: 320000, k12: 230000, b25: null, b4: null, b8: null, b10: null, titan1: 190000, titan2: 270000 },
+  { size: '60x90', boVien: 190000, kx: 350000, ht10: 370000, k12: 300000, b25: null, b4: null, b8: null, b10: null, titan1: 240000, titan2: 320000 },
+  { size: '60x120', boVien: 320000, kx: null, ht10: null, k12: 400000, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: 450000 },
+  { size: '70x110', boVien: 300000, kx: 470000, ht10: 470000, k12: 360000, b25: null, b4: null, b8: null, b10: 652000, titan1: 430000, titan2: 470000 },
+  { size: '80x120', boVien: 460000, kx: 660000, ht10: 660000, k12: 510000, b25: null, b4: null, b8: null, b10: 844000, titan1: null, titan2: 660000 },
+  { size: '90x140', boVien: 560000, kx: 740000, ht10: 900000, k12: 700000, b25: null, b4: null, b8: null, b10: 992000, titan1: null, titan2: null },
+  { size: '100x150', boVien: null, kx: 1014000, ht10: 1082000, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null },
+  { size: '100x180', boVien: null, kx: null, ht10: 1780000, k12: null, b25: null, b4: null, b8: null, b10: null, titan1: null, titan2: null }
 ];
 // Backwards compatibility alias
 export const micaPhoThongData = mikaPhoThongData;

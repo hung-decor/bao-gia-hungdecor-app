@@ -31,6 +31,9 @@ export interface DongKhungPriceRow {
   kx: number | null;
   ht10: number | null;
   k12: number | null;
+  b25?: number | null;
+  b4?: number | null;
+  b8?: number | null;
   b10: number | null;
   titan1: number | null; // Titan 1 (đen, bạc)
   titan2: number | null; // Titan 2 (xanh, hồng)
@@ -109,6 +112,9 @@ export interface ColumnLabelsConfig {
   kx?: string;
   ht10?: string;
   k12?: string;
+  b25?: string;
+  b4?: string;
+  b8?: string;
   b10?: string;
   titan1?: string;
   titan2?: string;

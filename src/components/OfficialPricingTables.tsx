@@ -32,6 +32,9 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
       kx: pricing.columnLabels?.kx || 'Khung KX',
       ht10: pricing.columnLabels?.ht10 || 'Khung HT10',
       k12: pricing.columnLabels?.k12 || 'Khung K12',
+      b25: pricing.columnLabels?.b25 || 'Bản khung 2.5cm',
+      b4: pricing.columnLabels?.b4 || 'Bản khung 4cm',
+      b8: pricing.columnLabels?.b8 || 'Bản khung 8cm',
       b10: pricing.columnLabels?.b10 || 'Khung bản 10cm',
       titan1: pricing.columnLabels?.titan1 || 'Khung nhôm Titan M',
       titan2: pricing.columnLabels?.titan2 || 'Khung nhôm Titan C',
@@ -66,8 +69,52 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
     return allMaterialTabs.find((t: any) => t.id === activeTab) || allMaterialTabs[0];
   }, [allMaterialTabs, activeTab]);
 
+  const activeColumnsCount = useMemo(() => {
+    return activeTabItem ? getMaterialColumns(pricing, activeTabItem.id).length : 0;
+  }, [pricing, activeTabItem]);
+
+  // Swipe Gesture Guide State
+  const [showSwipeGuide, setShowSwipeGuide] = useState<boolean>(true);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Re-trigger gesture guide when switching activeTab if table has > 2 columns
+  React.useEffect(() => {
+    if (activeColumnsCount > 2) {
+      setShowSwipeGuide(true);
+      const timer = setTimeout(() => {
+        setShowSwipeGuide(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSwipeGuide(false);
+    }
+  }, [activeTab, activeColumnsCount]);
+
+  const handleTableScroll = () => {
+    if (scrollContainerRef.current) {
+      if (scrollContainerRef.current.scrollLeft > 10) {
+        setShowSwipeGuide(false);
+      }
+    }
+  };
+
+  const handleTouchStart = () => {
+    setShowSwipeGuide(false);
+  };
+
   return (
     <section id="bang-gia-chi-tiet" className="py-6 md:py-12 bg-[#FAF9F5] w-full max-w-full overflow-hidden">
+      {/* CSS Keyframes for Swipe Gesture Finger Animation */}
+      <style>{`
+        @keyframes swipeLeftRight {
+          0%, 100% { transform: translateX(12px); opacity: 0.7; }
+          50% { transform: translateX(-12px); opacity: 1; }
+        }
+        .animate-swipe-hand {
+          animation: swipeLeftRight 1.5s ease-in-out infinite;
+        }
+      `}</style>
+
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4 sm:space-y-6 w-full max-w-full">
         
         {/* Header & Controls */}
@@ -121,14 +168,38 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
         {/* ------------------------------------------------------------- */}
         {/* DẠNG BẢNG DUY NHẤT (STICKY CỘT CỠ ẢNH BÊN TRÁI)               */}
         {/* ------------------------------------------------------------- */}
-        <div className="bg-white rounded-2xl border border-[#E7E2DA] overflow-hidden shadow-xs w-full max-w-full">
+        <div className="bg-white rounded-2xl border border-[#E7E2DA] overflow-hidden shadow-xs w-full max-w-full relative">
           
           <div className="p-3 bg-[#FAF9F5] border-b border-[#E7E2DA] flex items-center justify-between text-xs text-[#78716C] max-w-full">
             <span>💡 Cột <strong>CỠ ẢNH</strong> được cố định bên trái khi bạn vuốt ngang</span>
             <span className="font-mono font-bold text-[#1C1917] shrink-0 ml-2">Đơn vị: VNĐ</span>
           </div>
 
-          <div className="overflow-x-auto max-w-full relative p-1">
+          {/* SWIPE GESTURE GUIDE OVERLAY (MOBILE ONLY, POINTER-EVENTS-NONE) */}
+          <div
+            className={`md:hidden pointer-events-none absolute left-0 right-0 top-16 z-30 flex justify-center items-center px-4 transition-all duration-500 ease-out ${
+              showSwipeGuide && activeColumnsCount > 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none hidden'
+            }`}
+          >
+            <div className="bg-[#1C1917]/95 border border-[#FF0000]/50 text-white px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2">
+              <span className="text-base text-[#FF0000] inline-block animate-swipe-hand font-bold shrink-0">
+                👉
+              </span>
+              <span className="text-[11px] font-bold text-white tracking-tight whitespace-nowrap">
+                Vuốt ngang để xem thêm các mẫu khung
+              </span>
+              <span className="text-xs text-[#E7C184] font-bold animate-pulse">
+                ➔
+              </span>
+            </div>
+          </div>
+
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleTableScroll}
+            onTouchStart={handleTouchStart}
+            className="overflow-x-auto max-w-full relative p-1"
+          >
             
             {activeTabItem && (activeTabItem.type === 'goLuaBoVien' || activeTabItem.id === 'go-lua') && (
               <div className="max-w-2xl mx-auto">
