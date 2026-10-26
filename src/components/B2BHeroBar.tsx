@@ -34,30 +34,22 @@ export const B2BHeroBar: React.FC = () => {
 
             {/* Core Technical Description - Compact on mobile */}
             <p className="text-[11px] sm:text-xs md:text-sm text-neutral-300 leading-tight md:leading-relaxed max-w-2xl line-clamp-2 sm:line-clamp-none">
-              Bộ bảng giá chuẩn năm 2026: Đầy đủ các dòng <strong>Gỗ Lụa Đóng Khung</strong>, <strong>Mika HD Gương 8K</strong>, <strong>Mika Phổ Thông</strong>, <strong>In Ép và Giá Khung Xương Gia Cố</strong>, và dòng <strong>Cao Cấp 8K</strong>. Tra cứu giá tự động theo các hệ khung chuyên dụng: Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C.
+              Bộ bảng giá chuẩn năm 2026: Đầy đủ các dòng <strong>1. Ảnh Mika</strong>, <strong>2. Mika HD Gương 8K</strong>, <strong>3. Album – Photobook</strong>, <strong>4. In Ép</strong>, và <strong>5. Gỗ Lụa Bo Viền</strong>. Tra cứu giá tự động theo các hệ khung chuyên dụng: Khung KX, Khung HT10, Khung K12, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C.
             </p>
 
             {/* Quick Action Navigation Buttons */}
             <div className="flex flex-wrap items-center gap-2 md:gap-3 pt-0.5 md:pt-2">
               <a
-                href="#bang-tinh-gia"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-5 md:py-2.5 text-[11px] md:text-xs font-bold text-[#1C1917] bg-[#E7C184] hover:bg-[#D4AF37] rounded-xl transition-all shadow-md active:scale-95"
-              >
-                <Calculator className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#1C1917]" />
-                <span>Dùng Bảng Tính Giá Tự Động</span>
-              </a>
-
-              <a
                 href="#bang-gia-chi-tiet"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2.5 text-[11px] md:text-xs font-semibold text-white bg-white/10 hover:bg-white/15 rounded-xl transition-all border border-white/10 active:scale-95"
+                className="inline-flex items-center gap-1.5 px-4 py-2 md:px-5 md:py-2.5 text-[11px] md:text-xs font-bold text-[#1C1917] bg-[#E7C184] hover:bg-[#D4AF37] rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
               >
                 <span>Xem Bảng Giá 5 Chất Liệu</span>
-                <ArrowDown className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#E7C184]" />
+                <ArrowDown className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#1C1917]" />
               </a>
 
               <a
                 href="#tra-cuu-khung"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2.5 text-[11px] md:text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2.5 text-[11px] md:text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition-colors border border-white/10"
               >
                 <Ruler className="w-3.5 h-3.5 text-[#E7C184]" />
                 <span>Quy cách các hệ khung</span>

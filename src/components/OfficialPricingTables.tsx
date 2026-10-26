@@ -15,7 +15,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
 }) => {
   const { pricing } = useAppData();
   const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing), [pricing]);
-  const [activeTab, setActiveTab] = useState<string>(() => allMaterialTabs[0]?.id || 'go-lua');
+  const [activeTab, setActiveTab] = useState<string>(() => allMaterialTabs[0]?.id || 'mika-pho-thong');
   const [searchSize, setSearchSize] = useState<string>('');
   const multiplier = usePriceMultiplier();
 

@@ -110,7 +110,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'pricing' | 'frames' | 'gallery' | 'shop' | 'security'>('pricing');
-  const [activeMaterialTabId, setActiveMaterialTabId] = useState<string>('go-lua');
+  const [activeMaterialTabId, setActiveMaterialTabId] = useState<string>('mika-pho-thong');
 
   // Real photos state
   const [localRealPhotos, setLocalRealPhotos] = useState<RealGalleryPhoto[]>(realPhotos);
@@ -1398,11 +1398,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">a. Tên 5 Tab Chất Liệu</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                   {[
-                    { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 1' },
+                    { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 1' },
                     { key: 'hdGuong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.hdGuong, sub: 'Tab 2' },
-                    { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 3' },
+                    { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 3' },
                     { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.inEpMika, sub: 'Tab 4' },
-                    { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 5' },
+                    { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 5' },
                   ].map((item) => (
                     <div key={item.key}>
                       <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.sub}</label>

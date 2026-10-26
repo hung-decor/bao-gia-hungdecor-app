@@ -23,11 +23,11 @@ import {
 } from '../data/tiemIn194Pricing2026';
 
 export const defaultTabLabels: TabLabelsConfig = {
-  goLua: '1. Gỗ Lụa Bo Viền',
+  mikaPhoThong: '1. Ảnh Mika',
   hdGuong: '2. Mika HD Gương 8K',
-  mikaPhoThong: '3. Mika Phổ Thông',
-  inEpMika: '4. In Ép và Giá Khung Xương Gia Cố',
-  anh4K: '5. Album - Photobook',
+  anh4K: '3. Album – Photobook',
+  inEpMika: '4. In Ép',
+  goLua: '5. Gỗ Lụa Bo Viền',
 };
 
 export const defaultColumnLabels: ColumnLabelsConfig = {
@@ -64,11 +64,11 @@ export const defaultInEpColumnKeys: string[] = [
 ];
 
 export const defaultMaterialColumnKeys: Record<string, string[]> = {
-  'go-lua': ['boVien'],
-  'hd-guong-sieu-bong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
   'mika-pho-thong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
-  'in-ep-mika': ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'],
+  'hd-guong-sieu-bong': ['boVien', 'kx', 'ht10', 'k12', 'b10', 'titan1', 'titan2'],
   'anh-4k': ['donGia'],
+  'in-ep-mika': ['inAnh', 'inEpLua', 'inEpMikaCol', 'inEpPlastic', 'khungGiaCo'],
+  'go-lua': ['boVien'],
 };
 export const defaultMaterialColumnsMap = defaultMaterialColumnKeys;
 
@@ -131,22 +131,7 @@ export function getAllMaterialTabs(pricing: FullPricingState): ActiveMaterialTab
   const tabs = pricing.tabLabels || defaultTabLabels;
   const list: ActiveMaterialTabItem[] = [];
 
-  if (!deleted.includes('go-lua')) {
-    list.push({
-      id: 'go-lua',
-      title: tabs.goLua || defaultTabLabels.goLua,
-      type: 'goLuaBoVien',
-      rows: pricing.goLua || []
-    });
-  }
-  if (!deleted.includes('hd-guong-sieu-bong')) {
-    list.push({
-      id: 'hd-guong-sieu-bong',
-      title: tabs.hdGuong || defaultTabLabels.hdGuong,
-      type: 'dongKhung',
-      rows: pricing.hdGuong || []
-    });
-  }
+  // Tab 1: 1. Ảnh Mika (mika-pho-thong)
   if (!deleted.includes('mika-pho-thong')) {
     list.push({
       id: 'mika-pho-thong',
@@ -155,6 +140,28 @@ export function getAllMaterialTabs(pricing: FullPricingState): ActiveMaterialTab
       rows: pricing.mikaPhoThong || []
     });
   }
+
+  // Tab 2: 2. Mika HD Gương 8K (hd-guong-sieu-bong)
+  if (!deleted.includes('hd-guong-sieu-bong')) {
+    list.push({
+      id: 'hd-guong-sieu-bong',
+      title: tabs.hdGuong || defaultTabLabels.hdGuong,
+      type: 'dongKhung',
+      rows: pricing.hdGuong || []
+    });
+  }
+
+  // Tab 3: 3. Album – Photobook (anh-4k)
+  if (!deleted.includes('anh-4k')) {
+    list.push({
+      id: 'anh-4k',
+      title: tabs.anh4K || defaultTabLabels.anh4K,
+      type: 'album',
+      rows: pricing.anh4K || []
+    });
+  }
+
+  // Tab 4: 4. In Ép (in-ep-mika)
   if (!deleted.includes('in-ep-mika')) {
     list.push({
       id: 'in-ep-mika',
@@ -163,12 +170,14 @@ export function getAllMaterialTabs(pricing: FullPricingState): ActiveMaterialTab
       rows: pricing.inEpMika || []
     });
   }
-  if (!deleted.includes('anh-4k')) {
+
+  // Tab 5: 5. Gỗ Lụa Bo Viền (go-lua)
+  if (!deleted.includes('go-lua')) {
     list.push({
-      id: 'anh-4k',
-      title: tabs.anh4K || defaultTabLabels.anh4K,
-      type: 'album',
-      rows: pricing.anh4K || []
+      id: 'go-lua',
+      title: tabs.goLua || defaultTabLabels.goLua,
+      type: 'goLuaBoVien',
+      rows: pricing.goLua || []
     });
   }
 
@@ -377,13 +386,35 @@ export function sanitizePricingState(d: any): FullPricingState {
     }
   }
 
+  const mergedTabLabels: TabLabelsConfig = {
+    ...defaultTabLabels,
+    ...(loadedTabLabels || {})
+  };
+
+  // Auto-correct outdated numbering in stored tab labels if found
+  if (!mergedTabLabels.mikaPhoThong || mergedTabLabels.mikaPhoThong.startsWith('3.') || mergedTabLabels.mikaPhoThong.startsWith('Mika Phổ')) {
+    mergedTabLabels.mikaPhoThong = '1. Ảnh Mika';
+  }
+  if (!mergedTabLabels.hdGuong) {
+    mergedTabLabels.hdGuong = '2. Mika HD Gương 8K';
+  }
+  if (!mergedTabLabels.anh4K || mergedTabLabels.anh4K.startsWith('5.') || mergedTabLabels.anh4K.startsWith('4.')) {
+    mergedTabLabels.anh4K = '3. Album – Photobook';
+  }
+  if (!mergedTabLabels.inEpMika || mergedTabLabels.inEpMika.includes('Giá Khung Xương') || mergedTabLabels.inEpMika.startsWith('3.')) {
+    mergedTabLabels.inEpMika = '4. In Ép';
+  }
+  if (!mergedTabLabels.goLua || mergedTabLabels.goLua.startsWith('1.')) {
+    mergedTabLabels.goLua = '5. Gỗ Lụa Bo Viền';
+  }
+
   return {
     inEpMika: d.inEpMika || defaultInEpMika,
     goLua: (d.goLua || defaultGoLua).map(sanitizeDongKhungRow),
     mikaPhoThong: (d.mikaPhoThong || defaultMikaPhoThong).map(sanitizeDongKhungRow),
     hdGuong: (d.hdGuong || defaultHdGuong).map(sanitizeDongKhungRow),
     anh4K: (d.anh4K || defaultAnh4K).map(sanitizeAlbumRow),
-    tabLabels: loadedTabLabels || defaultTabLabels,
+    tabLabels: mergedTabLabels,
     columnLabels: {
       ...defaultColumnLabels,
       ...(d.columnLabels || {})

@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { B2BHeader } from './components/B2BHeader';
-import { MobileQuickQuoter } from './components/MobileQuickQuoter';
 import { B2BHeroBar } from './components/B2BHeroBar';
 import { OfficialPricingTables } from './components/OfficialPricingTables';
 import { FrameReferenceGuide } from './components/FrameReferenceGuide';
@@ -86,9 +85,6 @@ function MainAppContent() {
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FAF9F5] text-[#1C1917] antialiased selection:bg-[#E2D4C0] selection:text-[#1C1917]">
       {/* 1. Header (Sticky Top Bar with Admin access - hidden in freelance mode) */}
       <B2BHeader onOpenAdmin={isFreelance ? undefined : handleOpenAdmin} />
-
-      {/* 2. BỘ TÍNH GIÁ NHANH TRÊN MOBILE (ĐẶT TRÊN CÙNG) */}
-      <MobileQuickQuoter zaloTho={shopInfo.zaloTho} />
 
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
         {/* 3. Hero Overview Bar */}

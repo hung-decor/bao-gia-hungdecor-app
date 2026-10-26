@@ -30,12 +30,9 @@ export const B2BHeader: React.FC<B2BHeaderProps> = ({ onOpenAdmin }) => {
 
           {/* Zone 2: Clean Nav Links */}
           <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-neutral-300">
-            <a href="#bang-tinh-gia" className="hover:text-white transition-colors flex items-center gap-1.5">
+            <a href="#bang-gia-chi-tiet" className="hover:text-white transition-colors flex items-center gap-1.5">
               <Calculator className="w-3.5 h-3.5 text-[#E7C184]" />
-              <span>Bảng Tính Giá Thợ</span>
-            </a>
-            <a href="#bang-gia-chi-tiet" className="hover:text-white transition-colors">
-              Bảng Giá 5 Chất Liệu
+              <span>Bảng Giá 5 Chất Liệu</span>
             </a>
             <a href="#tra-cuu-khung" className="hover:text-white transition-colors flex items-center gap-1.5">
               <Ruler className="w-3.5 h-3.5 text-[#E7C184]" />
