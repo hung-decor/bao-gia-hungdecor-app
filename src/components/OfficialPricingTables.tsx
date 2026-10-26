@@ -141,25 +141,25 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
         {/* ------------------------------------------------------------- */}
         <div className="bg-white rounded-2xl border border-[#E7E2DA] overflow-hidden shadow-xs w-full max-w-full relative">
           
-          <div className="p-2.5 sm:p-3 bg-[#FAF9F5] border-b border-[#E7E2DA] flex items-center justify-between gap-2 text-xs text-[#78716C] max-w-full">
-            {/* FIXED SWIPE BANNER FOR MOBILE ONLY */}
-            <div className="md:hidden inline-flex items-center gap-1.5 bg-red-50 border border-red-200/90 text-red-700 px-3 py-1.5 rounded-full shadow-2xs font-bold text-[11px] sm:text-xs tracking-tight">
-              <span className="text-sm text-[#FF0000] inline-block animate-swipe-hand-infinite font-bold shrink-0">
+          {/* DEDICATED HIGH-VISIBILITY FIXED BANNER FOR MOBILE ONLY */}
+          <div className="md:hidden bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white py-2.5 px-3 flex items-center justify-between shadow-sm border-b border-red-700">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className="text-xl text-yellow-300 inline-block animate-swipe-hand-infinite font-bold shrink-0 drop-shadow-xs">
                 👈
               </span>
-              <span className="text-red-700 font-extrabold whitespace-nowrap">
+              <span className="text-xs sm:text-sm font-black tracking-tight text-white uppercase drop-shadow-xs whitespace-nowrap">
                 Vuốt sang trái để xem thêm các mẫu khung
               </span>
             </div>
-
-            {/* DESKTOP NOTE */}
-            <span className="hidden md:inline text-xs text-[#78716C]">
-              💡 Cột <strong>CỠ ẢNH</strong> được cố định bên trái khi bạn vuốt ngang
-            </span>
-
-            <span className="font-mono font-bold text-[#1C1917] shrink-0 ml-auto text-[11px] sm:text-xs">
+            <span className="font-mono font-extrabold text-[10px] text-amber-200 bg-black/25 px-2 py-0.5 rounded-md shrink-0 border border-white/20 ml-1">
               Đơn vị: VNĐ
             </span>
+          </div>
+
+          {/* DESKTOP TOP BAR */}
+          <div className="hidden md:flex p-3 bg-[#FAF9F5] border-b border-[#E7E2DA] items-center justify-between text-xs text-[#78716C] max-w-full">
+            <span>💡 Cột <strong>CỠ ẢNH</strong> được cố định bên trái khi bạn vuốt ngang</span>
+            <span className="font-mono font-bold text-[#1C1917] shrink-0 ml-2">Đơn vị: VNĐ</span>
           </div>
 
           <div className="overflow-x-auto max-w-full relative p-1">
