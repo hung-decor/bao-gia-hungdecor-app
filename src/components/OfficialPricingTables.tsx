@@ -73,79 +73,16 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
     return activeTabItem ? getMaterialColumns(pricing, activeTabItem.id).length : 0;
   }, [pricing, activeTabItem]);
 
-  // Swipe Gesture Guide State
-  const [showSwipeGuide, setShowSwipeGuide] = useState<boolean>(true);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-
-  // Re-trigger gesture guide when switching activeTab if table has > 2 columns
-  React.useEffect(() => {
-    if (activeColumnsCount > 2) {
-      setShowSwipeGuide(true);
-      const timer = setTimeout(() => {
-        setShowSwipeGuide(false);
-      }, 9000); // 9 seconds
-      return () => clearTimeout(timer);
-    } else {
-      setShowSwipeGuide(false);
-    }
-  }, [activeTab, activeColumnsCount]);
-
-  const handleTableScroll = () => {
-    if (scrollContainerRef.current) {
-      if (scrollContainerRef.current.scrollLeft > 25) {
-        setShowSwipeGuide(false);
-      }
-    }
-  };
-
-  const handleTouchStart = () => {
-    setShowSwipeGuide(false);
-  };
-
   return (
     <section id="bang-gia-chi-tiet" className="py-6 md:py-12 bg-[#FAF9F5] w-full max-w-full overflow-hidden">
-      {/* CSS Keyframes for Upgraded Swipe Gesture Simulation */}
+      {/* CSS Keyframes for Fixed Mobile Banner Finger Animation */}
       <style>{`
-        @keyframes swipeLeftMotion {
-          0% {
-            transform: translateX(80px);
-            opacity: 0.1;
-          }
-          20% {
-            transform: translateX(80px);
-            opacity: 1;
-          }
-          75% {
-            transform: translateX(-80px);
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(-80px);
-            opacity: 0.1;
-          }
+        @keyframes swipeHandInfinite {
+          0%, 100% { transform: translateX(5px); opacity: 0.8; }
+          50% { transform: translateX(-5px); opacity: 1; }
         }
-        @keyframes trailGlowPulse {
-          0% {
-            width: 10px;
-            opacity: 0.2;
-            transform: translateX(70px);
-          }
-          40% {
-            width: 140px;
-            opacity: 0.9;
-            transform: translateX(0px);
-          }
-          100% {
-            width: 10px;
-            opacity: 0.1;
-            transform: translateX(-70px);
-          }
-        }
-        .animate-swipe-hand-long {
-          animation: swipeLeftMotion 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-        .animate-trail-glow {
-          animation: trailGlowPulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        .animate-swipe-hand-infinite {
+          animation: swipeHandInfinite 1.2s ease-in-out infinite;
         }
       `}</style>
 
@@ -204,58 +141,28 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
         {/* ------------------------------------------------------------- */}
         <div className="bg-white rounded-2xl border border-[#E7E2DA] overflow-hidden shadow-xs w-full max-w-full relative">
           
-          <div className="p-3 bg-[#FAF9F5] border-b border-[#E7E2DA] flex items-center justify-between text-xs text-[#78716C] max-w-full">
-            <span>💡 Cột <strong>CỠ ẢNH</strong> được cố định bên trái khi bạn vuốt ngang</span>
-            <span className="font-mono font-bold text-[#1C1917] shrink-0 ml-2">Đơn vị: VNĐ</span>
+          <div className="p-2.5 sm:p-3 bg-[#FAF9F5] border-b border-[#E7E2DA] flex items-center justify-between gap-2 text-xs text-[#78716C] max-w-full">
+            {/* FIXED SWIPE BANNER FOR MOBILE ONLY */}
+            <div className="md:hidden inline-flex items-center gap-1.5 bg-red-50 border border-red-200/90 text-red-700 px-3 py-1.5 rounded-full shadow-2xs font-bold text-[11px] sm:text-xs tracking-tight">
+              <span className="text-sm text-[#FF0000] inline-block animate-swipe-hand-infinite font-bold shrink-0">
+                👈
+              </span>
+              <span className="text-red-700 font-extrabold whitespace-nowrap">
+                Vuốt sang trái để xem thêm các mẫu khung
+              </span>
+            </div>
+
+            {/* DESKTOP NOTE */}
+            <span className="hidden md:inline text-xs text-[#78716C]">
+              💡 Cột <strong>CỠ ẢNH</strong> được cố định bên trái khi bạn vuốt ngang
+            </span>
+
+            <span className="font-mono font-bold text-[#1C1917] shrink-0 ml-auto text-[11px] sm:text-xs">
+              Đơn vị: VNĐ
+            </span>
           </div>
 
-          {/* UPGRADED SWIPE GESTURE GUIDE OVERLAY (MOBILE ONLY, POINTER-EVENTS-NONE) */}
-          {showSwipeGuide && activeColumnsCount > 2 && (
-            <div
-              className="md:hidden pointer-events-none absolute inset-x-0 top-10 z-30 flex flex-col justify-center items-center px-3 transition-all duration-500 ease-out animate-in fade-in zoom-in-95"
-            >
-              {/* Hand Icon & Light Trail Container */}
-              <div className="relative flex items-center justify-center h-14 w-full max-w-xs mb-1">
-                {/* Glowing light trail */}
-                <div className="absolute h-2.5 bg-gradient-to-l from-red-500/80 via-amber-400/90 to-transparent rounded-full animate-trail-glow shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
-                
-                {/* Large Neon Red Finger Hand */}
-                <div className="animate-swipe-hand-long text-4xl text-[#EF4444] filter drop-shadow-[0_0_12px_rgba(239,68,68,0.9)] shrink-0 select-none">
-                  👈
-                </div>
-              </div>
-
-              {/* Notification Card */}
-              <div className="bg-slate-900/95 border-2 border-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.4)] text-white px-3.5 py-2 rounded-2xl backdrop-blur-md flex items-center justify-between gap-2 max-w-xs w-auto">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-red-500 font-black text-sm animate-pulse">👈</span>
-                  <span className="text-[11px] sm:text-xs font-black text-amber-300 uppercase tracking-tight whitespace-nowrap">
-                    VUỐT SANG TRÁI ĐỂ XEM THÊM CỘT KHUNG
-                  </span>
-                </div>
-
-                {/* Dismiss Button with pointer-events-auto */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSwipeGuide(false);
-                  }}
-                  className="pointer-events-auto bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded-full shadow-md transition-all shrink-0 cursor-pointer border border-red-400/50"
-                  title="Tắt hướng dẫn"
-                >
-                  Đã hiểu
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div
-            ref={scrollContainerRef}
-            onScroll={handleTableScroll}
-            onTouchStart={handleTouchStart}
-            className="overflow-x-auto max-w-full relative p-1"
-          >
+          <div className="overflow-x-auto max-w-full relative p-1">
             
             {activeTabItem && (activeTabItem.type === 'goLuaBoVien' || activeTabItem.id === 'go-lua') && (
               <div className="max-w-2xl mx-auto">
