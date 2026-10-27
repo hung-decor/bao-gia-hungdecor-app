@@ -136,32 +136,6 @@ export const FRAMES: FrameConstantItem[] = [
     images: [
       { id: 'img_b10_1', name: 'Khung Bản 10cm: Cánh gián chỉ đen', url: '/images/frames/khung-k11.jpg', colorHex: '#4E2712', tag: 'Khung Bản 10cm' }
     ]
-  },
-  {
-    id: 'ttm',
-    code: 'Khung nhôm Titan M',
-    name: 'Khung Nhôm Titan M (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
-    imageUrl: '',
-    image: '',
-    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
-    description: 'Hệ Khung nhôm Titan M chính hãng tại xưởng Hùng Decor: Kết cấu hợp kim nhôm định hình cao cấp, bề mặt hoàn thiện tinh xảo, vuông vức và chống cong vênh, chuyên dụng cho dòng Ảnh Mika cao cấp.',
-    suitableFor: 'Ảnh Mika cao cấp, ảnh cưới hiện đại, ảnh chân dung nghệ thuật và ảnh trưng bày phòng khách.',
-    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
-    hasRealPhotos: false,
-    images: []
-  },
-  {
-    id: 'ttc',
-    code: 'Khung nhôm Titan C',
-    name: 'Khung Nhôm Titan C (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
-    imageUrl: '',
-    image: '',
-    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
-    description: 'Hệ Khung nhôm Titan C chính hãng tại xưởng Hùng Decor: Thiết kế viền nhôm hợp kim cứng cáp, sang trọng, gia công góc ghép chuẩn xác tại xưởng Hùng Decor.',
-    suitableFor: 'Ảnh Mika cổng cưới, ảnh gia đình và các tác phẩm ảnh phóng lớn sang trọng.',
-    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
-    hasRealPhotos: false,
-    images: []
   }
 ];
 
@@ -182,13 +156,7 @@ export const EXACT_FRAME_PATHS: Record<string, string> = {
   'Bản khung 8cm': '',
   'b10': '/images/frames/khung-k11.jpg',
   'Bản 10cm': '/images/frames/khung-k11.jpg',
-  'Khung bản 10cm': '/images/frames/khung-k11.jpg',
-  'ttm': '',
-  'Titan M': '',
-  'Khung nhôm Titan M': '',
-  'ttc': '',
-  'Titan C': '',
-  'Khung nhôm Titan C': ''
+  'Khung bản 10cm': '/images/frames/khung-k11.jpg'
 };
 
 export function getFrameImageSrc(urlOrCode: string): string {

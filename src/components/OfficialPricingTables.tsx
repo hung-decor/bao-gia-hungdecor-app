@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { usePriceMultiplier, applyMultiplier, useIsFreelanceMode } from '../hooks/usePriceMultiplier';
-import { Search } from 'lucide-react';
 import { getAllMaterialTabs, getMaterialColumns } from '../firebase/dataService';
 
 interface OfficialPricingTablesProps {
@@ -16,7 +15,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   const isRetailView = useIsFreelanceMode();
   const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing, isRetailView), [pricing, isRetailView]);
   const [activeTab, setActiveTab] = useState<string>(() => allMaterialTabs[0]?.id || 'mika-pho-thong');
-  const [searchSize, setSearchSize] = useState<string>('');
   const multiplier = usePriceMultiplier();
 
   // Keep activeTab valid if material tabs change
@@ -72,11 +70,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
     return size.includes('60x90') || size.includes('60*90') || size.includes('20x30') || size.includes('20*30') || size.includes('40x60') || size.includes('40*60');
   };
 
-  const matchesSearch = (size: string) => {
-    if (!searchSize.trim()) return true;
-    return size.toLowerCase().includes(searchSize.toLowerCase().trim());
-  };
-
   const activeTabItem = useMemo(() => {
     return allMaterialTabs.find((t: any) => t.id === activeTab) || allMaterialTabs[0];
   }, [allMaterialTabs, activeTab]);
@@ -113,18 +106,6 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                   <>Dữ liệu gốc từ xưởng Hùng <span className="text-[#FF0000] font-bold">Decor</span></>
                 )}
               </p>
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative w-full sm:w-64 max-w-full">
-              <Search className="w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Lọc cỡ ảnh (60x90, 20x30)..."
-                value={searchSize}
-                onChange={(e) => setSearchSize(e.target.value)}
-                className="w-full max-w-full h-11 pl-9 pr-3 text-xs bg-white border border-[#E7E2DA] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#936B34] shadow-xs"
-              />
             </div>
           </div>
 
@@ -203,7 +184,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
-                    {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                    {activeTabItem.rows.map((row: any) => (
                       <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                         <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
@@ -256,7 +237,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
-                    {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                    {activeTabItem.rows.map((row: any) => (
                       <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                         <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}
@@ -317,7 +298,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F0EBE3]">
-                      {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                      {activeTabItem.rows.map((row: any) => (
                         <tr key={row.stt || row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                           <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                             {row.size}
@@ -359,7 +340,7 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EBE3]">
-                    {activeTabItem.rows.filter((r: any) => matchesSearch(r.size)).map((row: any) => (
+                    {activeTabItem.rows.map((row: any) => (
                       <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
                         <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
                           {row.size}

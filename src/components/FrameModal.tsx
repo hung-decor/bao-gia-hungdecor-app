@@ -84,10 +84,6 @@ export const FrameModal: React.FC<FrameModalProps> = ({
             <span className="text-xs sm:text-sm font-bold text-white truncate">
               {frame.name}
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded-full shrink-0 hidden sm:flex items-center gap-1">
-              <Camera className="w-3 h-3 text-emerald-400" />
-              <span>Ảnh Chụp Thực Tế</span>
-            </span>
           </div>
 
           {/* Prominent Quay lại / Đóng [✕] button on mobile & desktop */}

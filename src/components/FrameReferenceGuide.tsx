@@ -21,10 +21,10 @@ const TAB1_MIKA_FRAME_CODES = new Set([
   'b8',
   'khung ban 10cm',
   'b10',
-  'khung nhom titan m',
-  'ttm',
-  'khung nhom titan c',
-  'ttc'
+  'titan-m',
+  'titan-c',
+  'khung titan m',
+  'khung titan c'
 ]);
 
 const normalizeFrameText = (str: string) =>
@@ -40,12 +40,17 @@ const isTab1MikaFrame = (f: FrameSpecItem): boolean => {
   const codeNorm = normalizeFrameText(f.code || '');
   const nameNorm = normalizeFrameText(f.name || '');
 
-  // Hide frames belonging to other product lines (e.g. Album - Photobook)
+  // Hide frames belonging to other product lines or duplicate default Titan placeholders
   if (
     idNorm.includes('album') ||
     codeNorm.includes('album') ||
     nameNorm.includes('album') ||
-    nameNorm.includes('photobook')
+    nameNorm.includes('photobook') ||
+    nameNorm.includes('he khung hop kim nhom hung decor') ||
+    idNorm === 'frame_ttm' ||
+    idNorm === 'ttm' ||
+    idNorm === 'frame_ttc' ||
+    idNorm === 'ttc'
   ) {
     return false;
   }
@@ -63,10 +68,8 @@ const isTab1MikaFrame = (f: FrameSpecItem): boolean => {
     codeNorm.includes('4cm') ||
     codeNorm.includes('8cm') ||
     codeNorm.includes('10cm') ||
-    codeNorm.includes('titan m') ||
-    codeNorm.includes('titan c') ||
-    codeNorm === 'ttm' ||
-    codeNorm === 'ttc'
+    codeNorm.includes('titan') ||
+    nameNorm.includes('titan')
   );
 };
 
@@ -246,17 +249,6 @@ export const FrameReferenceGuide: React.FC = () => {
                     <span className="font-mono text-xs sm:text-sm font-bold bg-[#1C1917] text-[#E7C184] px-2.5 py-1 rounded shadow-xs shrink-0">
                       {item.code}
                     </span>
-                    
-                    {hasReal ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                        <Camera className="w-3 h-3 text-emerald-700" />
-                        <span>Ảnh Thật {item.images!.length > 1 ? `(${item.images!.length} màu)` : ''}</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs font-mono font-bold text-[#936B34] shrink-0">
-                        {item.dimensions}
-                      </span>
-                    )}
                   </div>
 
                   {/* Thumbnail Preview: DIRECT REAL PHOTO FOR REAL PHOTO FRAMES (TITAN 1, TITAN 2, K4, K5, K6) */}
@@ -299,11 +291,10 @@ export const FrameReferenceGuide: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    /* 3D Placeholder for frames without uploaded photos */
+                    /* Placeholder for frames without uploaded photos */
                     <div className="mt-3 relative aspect-[4/3] rounded-xl overflow-hidden bg-[#EFEAE2]/60 border border-dashed border-[#D5CDBD] flex flex-col items-center justify-center text-center p-3">
                       <Ruler className="w-7 h-7 text-[#936B34]/70 mb-1" />
                       <span className="text-xs font-bold text-[#1C1917] font-mono">{item.dimensions}</span>
-                      <span className="text-[10px] text-[#78716C] mt-0.5">Mô phỏng 3D kỹ thuật</span>
                     </div>
                   )}
 
@@ -353,12 +344,6 @@ export const FrameReferenceGuide: React.FC = () => {
                   <span className="text-xs sm:text-sm font-bold text-white truncate">
                     {activeItem.name}
                   </span>
-                  {activeItem.hasRealPhotos && (
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded-full shrink-0 hidden sm:flex items-center gap-1">
-                      <Camera className="w-3 h-3 text-emerald-400" />
-                      <span>Ảnh Thật Tại Xưởng</span>
-                    </span>
-                  )}
                 </div>
 
                 {/* Prominent Quay lại / Đóng [✕] button on mobile & desktop */}
@@ -481,10 +466,6 @@ export const FrameReferenceGuide: React.FC = () => {
                 ) : (
                   /* Fallback placeholder if no image */
                   <div className="w-full aspect-[16/10] bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                    <div className="text-[10px] font-mono text-neutral-400 absolute top-2.5 left-3">
-                      MÔ PHỎNG 3D KỸ THUẬT (ĐANG CẬP NHẬT ẢNH THẬT)
-                    </div>
-
                     <div className="my-auto text-center space-y-2">
                       <div className="w-16 h-16 rounded-full border border-[#E7C184]/40 flex items-center justify-center mx-auto bg-black/40">
                         <Ruler className="w-8 h-8 text-[#E7C184]" />

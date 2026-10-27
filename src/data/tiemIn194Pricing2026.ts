@@ -248,36 +248,6 @@ export const frameReferenceGuide: FrameSpecItem[] = [
       { id: 'note_b10_2', text: 'Hệ khung gỗ đầm nặng, phù hợp kích thước từ 60x90 trở lên' }
     ],
     displayOrder: 7
-  },
-  {
-    id: 'frame_ttm',
-    code: 'Khung nhôm Titan M',
-    name: 'Khung Nhôm Titan M (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
-    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
-    description: 'Hệ Khung nhôm Titan M chính hãng tại xưởng Hùng Decor: Kết cấu hợp kim nhôm định hình cao cấp, bề mặt hoàn thiện tinh xảo, vuông vức và chống cong vênh, chuyên dụng cho dòng Ảnh Mika cao cấp.',
-    suitableFor: 'Ảnh Mika cao cấp, ảnh cưới hiện đại, ảnh chân dung nghệ thuật và ảnh trưng bày phòng khách.',
-    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
-    hasRealPhotos: false,
-    images: [],
-    notes: [
-      { id: 'note_ttm_1', text: 'Hệ khung hợp kim nhôm cao cấp gia công tại xưởng Hùng Decor' }
-    ],
-    displayOrder: 8
-  },
-  {
-    id: 'frame_ttc',
-    code: 'Khung nhôm Titan C',
-    name: 'Khung Nhôm Titan C (Hệ Khung Hợp Kim Nhôm Hùng Decor)',
-    dimensions: 'Hệ khung hợp kim nhôm cao cấp • Mô phỏng kỹ thuật Hùng Decor',
-    description: 'Hệ Khung nhôm Titan C chính hãng tại xưởng Hùng Decor: Thiết kế viền nhôm hợp kim cứng cáp, sang trọng, gia công góc ghép chuẩn xác tại xưởng Hùng Decor.',
-    suitableFor: 'Ảnh Mika cổng cưới, ảnh gia đình và các tác phẩm ảnh phóng lớn sang trọng.',
-    variants: 'Theo bảng màu tiêu chuẩn xưởng Hùng Decor',
-    hasRealPhotos: false,
-    images: [],
-    notes: [
-      { id: 'note_ttc_1', text: 'Kết cấu khung nhôm hợp kim đầm chắc, chịu lực cao cho mọi cỡ ảnh' }
-    ],
-    displayOrder: 9
   }
 ];
 

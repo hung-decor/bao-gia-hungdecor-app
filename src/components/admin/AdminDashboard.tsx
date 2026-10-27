@@ -623,7 +623,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }, true);
   };
 
-  // Helper updates for dynamic Tab Labels & Column Labels (updates BOTH datasets for 100% label sync)
+  // Helper updates for dynamic Tab Labels & Column Labels
   const updateTabLabel = (key: keyof TabLabelsConfig, val: string) => {
     const applyLabel = (prev: FullPricingState) => ({
       ...prev,
@@ -632,8 +632,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         [key]: val
       }
     });
-    setLocalStudioPricing(applyLabel);
-    setLocalFreelancePricing(applyLabel);
+    if (activePricingSubTab === 'freelance') {
+      setLocalFreelancePricing(applyLabel);
+    } else {
+      setLocalStudioPricing(applyLabel);
+      setLocalFreelancePricing(applyLabel);
+    }
   };
 
   const updateColumnLabel = (key: keyof ColumnLabelsConfig, val: string) => {
@@ -1402,25 +1406,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               {/* Tùy biến Tên 5 Tab */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">a. Tên 5 Tab Chất Liệu</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-                  {[
-                    { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 1' },
-                    { key: 'hdGuong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.hdGuong, sub: 'Tab 2' },
-                    { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 3' },
-                    { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.inEpMika, sub: 'Tab 4' },
-                    { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 5' },
-                  ].map((item) => (
-                    <div key={item.key}>
-                      <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.sub}</label>
-                      <input
-                        type="text"
-                        value={activePricing.tabLabels?.[item.key] ?? item.defaultVal}
-                        onChange={(e) => updateTabLabel(item.key, e.target.value)}
-                        className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#E7C184] font-semibold"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {activePricingSubTab === 'freelance' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl">
+                    {[
+                      { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: '1. Ảnh Mika', sub: 'Chất liệu 1' },
+                      { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: '2. In Ép', sub: 'Chất liệu 2' },
+                    ].map((item) => {
+                      const rawVal = activePricing.tabLabels?.[item.key];
+                      const displayVal =
+                        item.key === 'inEpMika' && (!rawVal || rawVal === defaultTabLabels.inEpMika)
+                          ? '2. In Ép'
+                          : rawVal ?? item.defaultVal;
+                      return (
+                        <div key={item.key}>
+                          <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.sub}</label>
+                          <input
+                            type="text"
+                            value={displayVal}
+                            onChange={(e) => updateTabLabel(item.key, e.target.value)}
+                            className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#E7C184] font-semibold"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                    {[
+                      { key: 'mikaPhoThong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.mikaPhoThong, sub: 'Tab 1' },
+                      { key: 'hdGuong' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.hdGuong, sub: 'Tab 2' },
+                      { key: 'anh4K' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.anh4K, sub: 'Tab 3' },
+                      { key: 'inEpMika' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.inEpMika, sub: 'Tab 4' },
+                      { key: 'goLua' as keyof TabLabelsConfig, defaultVal: defaultTabLabels.goLua, sub: 'Tab 5' },
+                    ].map((item) => (
+                      <div key={item.key}>
+                        <label className="block text-[10px] font-mono text-neutral-400 mb-1">{item.sub}</label>
+                        <input
+                          type="text"
+                          value={activePricing.tabLabels?.[item.key] ?? item.defaultVal}
+                          onChange={(e) => updateTabLabel(item.key, e.target.value)}
+                          className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#E7C184] font-semibold"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Tùy biến Tên Cột Khung theo chất liệu đang chọn */}

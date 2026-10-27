@@ -63,10 +63,6 @@ export const FrameSelector: React.FC<FrameSelectorProps> = ({
                   <span className="font-mono text-xs sm:text-sm font-bold bg-[#1C1917] text-[#E7C184] px-2.5 py-1 rounded shadow-xs shrink-0">
                     {item.code}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                    <Camera className="w-3 h-3 text-emerald-700" />
-                    <span>Ảnh Thật {item.images.length > 1 ? `(${item.images.length} màu)` : ''}</span>
-                  </span>
                 </div>
 
                 {/* Direct <img> Rendering with encodeURI - NO SVG MOCKUP */}
@@ -116,28 +112,16 @@ export const FrameSelector: React.FC<FrameSelectorProps> = ({
                   <div className="text-[11px] font-mono font-semibold text-[#936B34]">
                     {item.dimensions}
                   </div>
-                  <p className="text-xs text-[#57534E] leading-relaxed line-clamp-2">
+                  <p className="text-xs text-[#57534E] leading-relaxed">
                     {item.description}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2 border-t border-[#EFEAE2] w-full">
+              <div className="pt-2.5 border-t border-[#EFEAE2] w-full">
                 <div className="text-xs text-[#78716C]">
                   <div>Màu sắc: <strong className="text-[#1C1917] font-normal">{item.variants}</strong></div>
                 </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onSelectFrame) onSelectFrame(item);
-                    setActiveModalFrame(item);
-                  }}
-                  className="w-full h-11 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-emerald-700 hover:bg-emerald-800 text-white"
-                >
-                  <Eye className="w-4 h-4 text-emerald-200" />
-                  <span>Xem Chi Tiết Ảnh Chụp Thật</span>
-                </button>
               </div>
             </div>
           );

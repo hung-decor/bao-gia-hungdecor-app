@@ -53,16 +53,6 @@ export const FrameCard: React.FC<FrameCardProps> = ({
           <span className="font-mono text-xs sm:text-sm font-bold bg-[#1C1917] text-[#E7C184] px-2.5 py-1 rounded shadow-xs shrink-0">
             {frame.code}
           </span>
-          {hasReal ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-              <Camera className="w-3 h-3 text-emerald-700" />
-              <span>Ảnh Thật {images.length > 1 ? `(${images.length} màu)` : ''}</span>
-            </span>
-          ) : (
-            <span className="text-xs font-mono font-bold text-[#936B34] shrink-0">
-              {frame.dimensions}
-            </span>
-          )}
         </div>
 
         {/* Thumbnail or Technical Simulation Placeholder */}
@@ -110,7 +100,6 @@ export const FrameCard: React.FC<FrameCardProps> = ({
           <div className="mt-3 relative aspect-[4/3] rounded-xl overflow-hidden bg-[#EFEAE2]/60 border border-dashed border-[#D5CDBD] flex flex-col items-center justify-center text-center p-3">
             <Ruler className="w-7 h-7 text-[#936B34]/70 mb-1" />
             <span className="text-xs font-bold text-[#1C1917] font-mono">{frame.dimensions}</span>
-            <span className="text-[10px] text-[#78716C] mt-0.5">Mô phỏng kỹ thuật Hùng Decor</span>
           </div>
         )}
 

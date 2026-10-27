@@ -896,9 +896,10 @@ export async function saveFreelancePricingToFirestore(pricing: FullPricingState)
 
 export function isLegacy194Frame(frame: FrameSpecItem): boolean {
   if (!frame) return true;
-  const idStr = String(frame.id || '').toLowerCase();
+  const idStr = String(frame.id || '').toLowerCase().trim();
   const codeStr = String(frame.code || '').toLowerCase().trim();
-  const nameStr = String(frame.name || '').toLowerCase();
+  const nameStr = String(frame.name || '').toLowerCase().trim();
+  const dimStr = String(frame.dimensions || '').toLowerCase().trim();
 
   // Exclude Album - Photobook or non-Mika product lines from frame list
   if (
@@ -907,6 +908,24 @@ export function isLegacy194Frame(frame: FrameSpecItem): boolean {
     codeStr.includes('album') ||
     codeStr.includes('photobook') ||
     nameStr.includes('photobook')
+  ) {
+    return true;
+  }
+
+  // Permanently remove the 2 duplicate default Titan placeholder frames
+  if (
+    nameStr.includes('hệ khung hợp kim nhôm hùng decor') ||
+    dimStr.includes('mô phỏng kỹ thuật hùng decor') ||
+    idStr === 'frame_ttm' ||
+    idStr === 'ttm' ||
+    idStr === 'frame_ttc' ||
+    idStr === 'ttc' ||
+    idStr === 'frame_titan1' ||
+    idStr === 'titan1' ||
+    idStr === 'frame_titan2' ||
+    idStr === 'titan2' ||
+    codeStr === 'khung nhôm titan m' ||
+    codeStr === 'khung nhôm titan c'
   ) {
     return true;
   }
@@ -933,68 +952,29 @@ export function isLegacy194Frame(frame: FrameSpecItem): boolean {
 }
 
 export function migrateAndEnsureMikaFrames(framesList: FrameSpecItem[]): FrameSpecItem[] {
-  const defaultTtm = defaultFrames.find(f => f.id === 'frame_ttm')!;
-  const defaultTtc = defaultFrames.find(f => f.id === 'frame_ttc')!;
-
   const migrated = framesList
     .filter(f => !isLegacy194Frame(f))
     .map(f => {
       const copy = { ...f };
-      const codeLower = (copy.code || '').toLowerCase().trim();
-      const idLower = (copy.id || '').toLowerCase().trim();
-
-      if (idLower === 'frame_titan1' || idLower === 'titan1' || idLower === 'frame_ttm' || idLower === 'ttm' || codeLower.includes('titan m')) {
-        copy.id = 'frame_ttm';
-        copy.code = 'Khung nhôm Titan M';
-        const hasOldTitanPhoto = (copy.images || []).some(img => (img.url || '').toLowerCase().includes('khung-titan'));
-        const hasOldTitanText = (copy.name || '').includes('Mate') || (copy.description || '').includes('Mate') || (copy.variants || '').includes('Mate');
-        if (hasOldTitanPhoto || hasOldTitanText || !copy.images || copy.images.length === 0) {
-          copy.name = defaultTtm.name;
-          copy.dimensions = defaultTtm.dimensions;
-          copy.description = defaultTtm.description;
-          copy.suitableFor = defaultTtm.suitableFor;
-          copy.variants = defaultTtm.variants;
-          copy.hasRealPhotos = false;
-          copy.images = [];
-          copy.notes = defaultTtm.notes;
-        }
-      }
-
-      if (idLower === 'frame_titan2' || idLower === 'titan2' || idLower === 'frame_ttc' || idLower === 'ttc' || codeLower.includes('titan c')) {
-        copy.id = 'frame_ttc';
-        copy.code = 'Khung nhôm Titan C';
-        const hasOldTitanPhoto = (copy.images || []).some(img => (img.url || '').toLowerCase().includes('khung-titan'));
-        const hasOldTitanText = (copy.name || '').includes('Vàng Hồng') || (copy.description || '').includes('Vàng Hồng') || (copy.variants || '').includes('Vàng hồng');
-        if (hasOldTitanPhoto || hasOldTitanText || !copy.images || copy.images.length === 0) {
-          copy.name = defaultTtc.name;
-          copy.dimensions = defaultTtc.dimensions;
-          copy.description = defaultTtc.description;
-          copy.suitableFor = defaultTtc.suitableFor;
-          copy.variants = defaultTtc.variants;
-          copy.hasRealPhotos = false;
-          copy.images = [];
-          copy.notes = defaultTtc.notes;
-        }
-      }
-
       if (!copy.images || copy.images.length === 0) {
         copy.hasRealPhotos = false;
+      } else {
+        copy.hasRealPhotos = true;
       }
-
       return copy;
     });
 
-  // Ensure all 10 default frames of Tab 1 (Ảnh Mika) are present
+  // Ensure standard wooden/mika frames from defaultFrames are present without duplicating Titan M / Titan C
   const existingCodes = new Set(migrated.map(f => (f.code || '').toLowerCase().trim()));
   const existingIds = new Set(migrated.map(f => (f.id || '').toLowerCase().trim()));
 
   defaultFrames.forEach(defFrame => {
+    if (isLegacy194Frame(defFrame)) return;
     const defCode = (defFrame.code || '').toLowerCase().trim();
     const defId = (defFrame.id || '').toLowerCase().trim();
     if (!existingCodes.has(defCode) && !existingIds.has(defId)) {
       migrated.push({ ...defFrame });
     } else {
-      // Backfill default images if a standard frame had empty images from old seed
       const targetIdx = migrated.findIndex(
         f => (f.code || '').toLowerCase().trim() === defCode || (f.id || '').toLowerCase().trim() === defId
       );
@@ -1008,7 +988,6 @@ export function migrateAndEnsureMikaFrames(framesList: FrameSpecItem[]): FrameSp
     }
   });
 
-  // Sort according to standard Tab 1 order if displayOrder matches default or by displayOrder
   const standardOrderMap: Record<string, number> = {
     'bo viền': 0,
     'khung kx': 1,
@@ -1018,13 +997,13 @@ export function migrateAndEnsureMikaFrames(framesList: FrameSpecItem[]): FrameSp
     'bản khung 4cm': 5,
     'bản khung 8cm': 6,
     'khung bản 10cm': 7,
-    'khung nhôm titan m': 8,
-    'khung nhôm titan c': 9,
+    'titan-m': 8,
+    'titan-c': 9,
   };
 
   return migrated.sort((a, b) => {
-    const orderA = standardOrderMap[(a.code || '').toLowerCase().trim()] ?? a.displayOrder ?? 99;
-    const orderB = standardOrderMap[(b.code || '').toLowerCase().trim()] ?? b.displayOrder ?? 99;
+    const orderA = a.displayOrder ?? standardOrderMap[(a.code || '').toLowerCase().trim()] ?? 99;
+    const orderB = b.displayOrder ?? standardOrderMap[(b.code || '').toLowerCase().trim()] ?? 99;
     return orderA - orderB;
   });
 }
@@ -1037,8 +1016,16 @@ export async function purgeLegacy194FramesFromFirestoreAndStorage(): Promise<voi
 
     snap.forEach(d => {
       const item = d.data() as FrameSpecItem;
-      const fullItem = { ...item, id: d.id };
-      if (isLegacy194Frame(fullItem) || d.id === 'frame_titan1' || d.id === 'frame_titan2') {
+      const fullItem = { ...item, id: item?.id || d.id };
+      if (
+        isLegacy194Frame(fullItem) ||
+        d.id === 'frame_titan1' ||
+        d.id === 'frame_titan2' ||
+        d.id === 'frame_ttm' ||
+        d.id === 'ttm' ||
+        d.id === 'frame_ttc' ||
+        d.id === 'ttc'
+      ) {
         deletePromises.push(deleteDoc(doc(db, 'hung_decor_frame_items', d.id)));
       }
     });
@@ -1108,9 +1095,7 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
       snap.forEach(d => {
         const item = d.data() as FrameSpecItem;
         if (item) {
-          let resolvedId = item.id || d.id;
-          if (resolvedId === 'frame_titan1' || resolvedId === 'titan1') resolvedId = 'frame_ttm';
-          if (resolvedId === 'frame_titan2' || resolvedId === 'titan2') resolvedId = 'frame_ttc';
+          const resolvedId = item.id || d.id;
 
           const fullItem: FrameSpecItem = {
             ...item,
@@ -1126,7 +1111,15 @@ export async function fetchFramesFromFirestore(): Promise<{ frames: FrameSpecIte
             }))
           };
 
-          if (isLegacy194Frame(fullItem)) {
+          if (
+            isLegacy194Frame(fullItem) ||
+            d.id === 'frame_ttm' ||
+            d.id === 'ttm' ||
+            d.id === 'frame_ttc' ||
+            d.id === 'ttc' ||
+            d.id === 'frame_titan1' ||
+            d.id === 'frame_titan2'
+          ) {
             legacyDocIdsToDelete.push(d.id);
           } else {
             frames.push(fullItem);
@@ -1188,9 +1181,7 @@ export async function saveFramesToFirestore(framesList: FrameSpecItem[]): Promis
     const normalized = (framesList || [])
       .filter(f => !isLegacy194Frame(f))
       .map((f: FrameSpecItem, idx: number) => {
-        let rawId = f.id || f.code || `frame_${idx}`;
-        if (rawId === 'frame_titan1' || rawId === 'titan1') rawId = 'frame_ttm';
-        if (rawId === 'frame_titan2' || rawId === 'titan2') rawId = 'frame_ttc';
+        const rawId = f.id || f.code || `frame_${idx}`;
         const frameId = String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_');
         return {
           ...f,
