@@ -901,17 +901,6 @@ export function isLegacy194Frame(frame: FrameSpecItem): boolean {
   const nameStr = String(frame.name || '').toLowerCase().trim();
   const dimStr = String(frame.dimensions || '').toLowerCase().trim();
 
-  // Exclude Album - Photobook or non-Mika product lines from frame list
-  if (
-    idStr === 'frame_album' ||
-    idStr.includes('album') ||
-    codeStr.includes('album') ||
-    codeStr.includes('photobook') ||
-    nameStr.includes('photobook')
-  ) {
-    return true;
-  }
-
   // Permanently remove the 2 duplicate default Titan placeholder frames
   if (
     nameStr.includes('hệ khung hợp kim nhôm hùng decor') ||

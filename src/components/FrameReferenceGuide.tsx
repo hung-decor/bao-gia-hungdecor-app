@@ -3,6 +3,7 @@ import { useAppData } from '../context/AppDataContext';
 import { FrameSpecItem } from '../types';
 import { Eye, X, ChevronLeft, ChevronRight, Ruler, Camera, Box, Check, Sparkles } from 'lucide-react';
 import { useModalBackHandler } from '../hooks/useModalBackHandler';
+import { useIsFreelanceMode } from '../hooks/usePriceMultiplier';
 
 const TAB1_MIKA_FRAME_CODES = new Set([
   'bo vien',
@@ -35,25 +36,42 @@ const normalizeFrameText = (str: string) =>
     .replace(/đ/g, 'd')
     .trim();
 
-const isTab1MikaFrame = (f: FrameSpecItem): boolean => {
+const isDuplicateDefaultTitanPlaceholder = (f: FrameSpecItem): boolean => {
   const idNorm = normalizeFrameText(f.id || '');
-  const codeNorm = normalizeFrameText(f.code || '');
   const nameNorm = normalizeFrameText(f.name || '');
-
-  // Hide frames belonging to other product lines or duplicate default Titan placeholders
-  if (
-    idNorm.includes('album') ||
-    codeNorm.includes('album') ||
-    nameNorm.includes('album') ||
-    nameNorm.includes('photobook') ||
+  return (
     nameNorm.includes('he khung hop kim nhom hung decor') ||
     idNorm === 'frame_ttm' ||
     idNorm === 'ttm' ||
     idNorm === 'frame_ttc' ||
     idNorm === 'ttc'
-  ) {
+  );
+};
+
+const isAlbumFrameItem = (f: FrameSpecItem): boolean => {
+  const idNorm = normalizeFrameText(f.id || '');
+  const codeNorm = normalizeFrameText(f.code || '');
+  const nameNorm = normalizeFrameText(f.name || '');
+  return (
+    idNorm.includes('album') ||
+    idNorm.includes('abum') ||
+    codeNorm.includes('album') ||
+    codeNorm.includes('abum') ||
+    nameNorm.includes('album') ||
+    nameNorm.includes('abum') ||
+    codeNorm.includes('photobook') ||
+    nameNorm.includes('photobook') ||
+    nameNorm.includes('photobokk')
+  );
+};
+
+const isTab1MikaFrame = (f: FrameSpecItem): boolean => {
+  if (isDuplicateDefaultTitanPlaceholder(f) || isAlbumFrameItem(f)) {
     return false;
   }
+
+  const codeNorm = normalizeFrameText(f.code || '');
+  const nameNorm = normalizeFrameText(f.name || '');
 
   if (TAB1_MIKA_FRAME_CODES.has(codeNorm) || TAB1_MIKA_FRAME_CODES.has(nameNorm)) {
     return true;
@@ -75,11 +93,20 @@ const isTab1MikaFrame = (f: FrameSpecItem): boolean => {
 
 export const FrameReferenceGuide: React.FC = () => {
   const { frames: rawFrames } = useAppData();
+  const isRetailView = useIsFreelanceMode();
   const frameReferenceGuide = React.useMemo(() => {
     return [...rawFrames]
-      .filter(isTab1MikaFrame)
+      .filter((f) => {
+        if (isDuplicateDefaultTitanPlaceholder(f)) return false;
+        // Chế độ Khách Lẻ: chỉ hiển thị khung thuộc Tab 1. Ảnh Mika, ẩn hoàn toàn Album - Photobook
+        if (isRetailView) {
+          return isTab1MikaFrame(f);
+        }
+        // Chế độ Bảng Giá Sỉ Gốc Studio: hiển thị đầy đủ tất cả mẫu khung và Album - Photobook thực tế
+        return true;
+      })
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  }, [rawFrames]);
+  }, [rawFrames, isRetailView]);
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
   const [activeImageVariantIndex, setActiveImageVariantIndex] = useState<number>(0);
   const [filterType, setFilterType] = useState<'all' | 'real_only'>('all');
@@ -197,7 +224,15 @@ export const FrameReferenceGuide: React.FC = () => {
             màu ảnh khung có thể khác khung thật ở ngoài do sai lệch màu sắc hiển thị
           </p>
           <p className="text-xs sm:text-sm text-[#57534E]">
-            Danh sách các mẫu khung thuộc dòng sản phẩm <strong>1. Ảnh Mika</strong>: Bo Viền, Khung KX, Khung HT10, Khung K12, Bản khung 2.5cm, Bản khung 4cm, Bản khung 8cm, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
+            {isRetailView ? (
+              <>
+                Danh sách các mẫu khung thuộc dòng sản phẩm <strong>1. Ảnh Mika</strong>: Bo Viền, Khung KX, Khung HT10, Khung K12, Bản khung 2.5cm, Bản khung 4cm, Bản khung 8cm, Khung bản 10cm, Khung nhôm Titan M và Khung nhôm Titan C. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
+              </>
+            ) : (
+              <>
+                Đầy đủ danh mục mẫu khung thực tế (Bo Viền, Khung KX, Khung HT10, Khung K12, Bản khung 2.5cm – 10cm, Khung Titan M, Titan C) và dòng <strong>Album – Photobook mở phẳng</strong> tại xưởng Hùng Decor. Bấm vào từng mẫu để xem chi tiết ảnh chụp thật chất lượng cao.
+              </>
+            )}
           </p>
 
           {/* Filter Pills */}

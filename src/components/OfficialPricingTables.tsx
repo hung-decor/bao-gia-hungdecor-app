@@ -11,11 +11,31 @@ interface OfficialPricingTablesProps {
 export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
   zaloTho
 }) => {
-  const { pricing } = useAppData();
+  const { pricing, frames } = useAppData();
   const isRetailView = useIsFreelanceMode();
   const allMaterialTabs = useMemo(() => getAllMaterialTabs(pricing, isRetailView), [pricing, isRetailView]);
   const [activeTab, setActiveTab] = useState<string>(() => allMaterialTabs[0]?.id || 'mika-pho-thong');
   const multiplier = usePriceMultiplier();
+
+  const albumSampleItem = useMemo(() => {
+    if (isRetailView) return null;
+    return (frames || []).find((f) => {
+      const idStr = (f.id || '').toLowerCase();
+      const codeStr = (f.code || '').toLowerCase();
+      const nameStr = (f.name || '').toLowerCase();
+      return (
+        idStr.includes('album') ||
+        idStr.includes('abum') ||
+        codeStr.includes('album') ||
+        codeStr.includes('abum') ||
+        nameStr.includes('album') ||
+        nameStr.includes('abum') ||
+        codeStr.includes('photobook') ||
+        nameStr.includes('photobook') ||
+        nameStr.includes('photobokk')
+      );
+    }) || null;
+  }, [frames, isRetailView]);
 
   // Keep activeTab valid if material tabs change
   React.useEffect(() => {
@@ -326,32 +346,66 @@ export const OfficialPricingTables: React.FC<OfficialPricingTablesProps> = ({
               </div>
             )}
 
-            {activeTabItem && (activeTabItem.type === 'album' || activeTabItem.id === 'anh-4k' || activeTabItem.id === 'album') && (
-              <div className="max-w-2xl mx-auto">
-                <table className="w-full text-center text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
-                      <th className="py-3 px-3.5 text-center font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap w-32 min-w-[120px]">
-                        Kích Thước
-                      </th>
-                      <th className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[140px] w-44">
-                        Đơn Giá
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0EBE3]">
-                    {activeTabItem.rows.map((row: any) => (
-                      <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
-                        <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
-                          {row.size}
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap">
-                          {formatPrice(applyMultiplier(row.donGia ?? row.price, multiplier))}
-                        </td>
+            {!isRetailView && activeTabItem && (activeTabItem.type === 'album' || activeTabItem.id === 'anh-4k' || activeTabItem.id === 'album') && (
+              <div className="space-y-4 p-2 sm:p-4">
+                <div className="max-w-2xl mx-auto border border-[#E7E2DA] rounded-xl overflow-hidden">
+                  <table className="w-full text-center text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-[#FAF9F5] border-b border-[#E7E2DA] text-[#57534E]">
+                        <th className="py-3 px-3.5 text-center font-bold text-[#1C1917] sticky left-0 bg-[#FAF9F5] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap w-32 min-w-[120px]">
+                          Kích Thước
+                        </th>
+                        <th className="py-3 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap min-w-[140px] w-44">
+                          Đơn Giá
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-[#F0EBE3]">
+                      {activeTabItem.rows.map((row: any) => (
+                        <tr key={row.size} className={`hover:bg-[#FCFBF8] ${isHighlighted(row.size) ? 'bg-[#FFFDF9]' : ''}`}>
+                          <td className="py-2.5 px-3.5 text-center font-bold font-mono text-[#1C1917] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] border-r border-[#E7E2DA] whitespace-nowrap">
+                            {row.size}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-[#1C1917] whitespace-nowrap">
+                            {formatPrice(applyMultiplier(row.donGia ?? row.price, multiplier))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Khối ảnh mẫu thực tế & quy cách kỹ thuật dòng Album - Photobook dành riêng cho Bảng Giá Sỉ Studio */}
+                <div className="max-w-4xl mx-auto bg-[#FAF9F5] border border-[#E7E2DA] rounded-2xl p-4 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                  {albumSampleItem && albumSampleItem.images && albumSampleItem.images.length > 0 && (
+                    <div className="md:col-span-5">
+                      <div className="aspect-[4/3] rounded-xl overflow-hidden bg-neutral-900 border border-[#EFEAE2]">
+                        <img
+                          src={encodeURI(albumSampleItem.images[0].url)}
+                          alt={albumSampleItem.name}
+                          className="w-full h-full object-cover object-center"
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className={albumSampleItem && albumSampleItem.images && albumSampleItem.images.length > 0 ? 'md:col-span-7 space-y-2' : 'md:col-span-12 space-y-2'}>
+                    <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#936B34]">
+                      Quy Cách Kỹ Thuật Dòng Album – Photobook Tại Xưởng
+                    </div>
+                    <h4 className="font-serif-display text-base sm:text-lg font-bold text-[#1C1917]">
+                      {albumSampleItem?.name || 'Album – Photobook Mở Phẳng 180 Độ Cao Cấp'}
+                    </h4>
+                    <p className="text-xs text-[#57534E] leading-relaxed">
+                      {albumSampleItem?.description || 'Dạng album mở phẳng hiện đại & sang trọng, in chuẩn màu Lab sắc nét.'}
+                    </p>
+                    <ul className="text-xs text-[#57534E] space-y-1 pt-1">
+                      <li>• <strong>Quy cách bìa:</strong> Bìa cứng bọc da / bìa Mika tràn lề / bìa tạp chí sang trọng, chống cong vênh.</li>
+                      <li>• <strong>Quy cách gáy & ruột:</strong> Đóng gáy mở phẳng 180 độ không gãy gáy, ghép trang liền mạch cho ảnh phóng ngang.</li>
+                      <li>• <strong>Hoàn thiện bề mặt:</strong> Cán màng bảo vệ chống ẩm mốc, chống bám vân tay, độ bền màu lâu dài cho Studio.</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
 
