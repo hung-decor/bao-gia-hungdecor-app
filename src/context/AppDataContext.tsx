@@ -274,11 +274,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsSaving(true);
     const toSave = newPricing || studioPricing;
     try {
-      await savePricingToFirestore(toSave);
+      await Promise.all([
+        savePricingToFirestore(toSave),
+        saveCatalogToFirestore(toSave, freelancePricing)
+      ]);
       setStudioPricing(toSave);
       setDataSource('firestore');
       setLastUpdated(new Date().toISOString());
-      saveCatalogToFirestore(toSave, freelancePricing).catch(console.warn);
       return true;
     } catch (e) {
       console.error('Save studio pricing failed', e);
@@ -292,11 +294,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsSaving(true);
     const toSave = newPricing || freelancePricing;
     try {
-      await saveFreelancePricingToFirestore(toSave);
+      await Promise.all([
+        saveFreelancePricingToFirestore(toSave),
+        saveCatalogToFirestore(studioPricing, toSave)
+      ]);
       setFreelancePricing(toSave);
       setDataSource('firestore');
       setLastUpdated(new Date().toISOString());
-      saveCatalogToFirestore(studioPricing, toSave).catch(console.warn);
       return true;
     } catch (e) {
       console.error('Save freelance pricing failed', e);

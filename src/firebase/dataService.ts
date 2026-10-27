@@ -687,7 +687,7 @@ export function generateDefaultFreelancePricing(basePricing: FullPricingState): 
     b10: null,
     ttm: null,
     ttc: null,
-    skus: r.skus ? { ...r.skus } : {}
+    skus: {}
   });
 
   const emptyInEpRow = (r: InEpMikaPriceRow): InEpMikaPriceRow => ({
@@ -698,13 +698,13 @@ export function generateDefaultFreelancePricing(basePricing: FullPricingState): 
     inEpMika: null,
     inEpPlastic: null,
     khungGiaCo: null,
-    skus: r.skus ? { ...r.skus } : {}
+    skus: {}
   });
 
   const emptyAlbumRow = (r: Anh4KPriceRow): Anh4KPriceRow => ({
     size: r.size,
     donGia: null,
-    skus: r.skus ? { ...r.skus } : {}
+    skus: {}
   });
 
   return {
@@ -1430,7 +1430,12 @@ export function getCellSKU(
 ): string {
   const normKey = normalizeColKey(colKey);
   if (row && row.skus && typeof row.skus[normKey] === 'string' && row.skus[normKey].trim() !== '') {
-    return row.skus[normKey].trim();
+    const customSku = row.skus[normKey].trim();
+    const defaultStudioSku = getDefaultSKU(materialTabId, 'studio', normKey, row?.size || '');
+    if (mode === 'freelance' && customSku.toLowerCase() === defaultStudioSku.toLowerCase()) {
+      return getDefaultSKU(materialTabId, 'freelance', normKey, row?.size || '');
+    }
+    return customSku;
   }
   return getDefaultSKU(materialTabId, mode, normKey, row?.size || '');
 }
@@ -1449,6 +1454,8 @@ export interface CatalogSKUItem {
 
 export interface StandardFlatCatalogItem {
   sku: string;
+  skuStudio: string;
+  skuRetail: string;
   name: string;
   size: string;
   categoryId: string;
@@ -1466,7 +1473,8 @@ export const CATALOG_MASTER_DOC = 'catalog_master';
 
 /**
  * Làm phẳng toàn bộ ma trận bảng giá (cả 5 Tab chất liệu, mọi kích thước và hệ khung)
- * bao gồm cả các ô đã có giá lẫn ô chưa điền giá ('-'), gộp cả 2 cấp giá priceStudio và priceRetail.
+ * bao gồm cả các ô đã có giá lẫn ô chưa điền giá ('-'), gộp cả 2 cấp giá priceStudio và priceRetail
+ * cùng 2 mã SKU độc lập skuStudio và skuRetail.
  */
 export function generateStandardFlatCatalog(
   studioPricing: FullPricingState,
@@ -1478,6 +1486,17 @@ export function generateStandardFlatCatalog(
     ...defaultColumnLabels,
     ...(studioPricing.columnLabels || {}),
   };
+
+  // Nếu retailPricing chưa được truyền trực tiếp, tự động đọc từ state cache của Bảng Giá Khách Lẻ hiện hành
+  let activeRetailPricing: FullPricingState | undefined = retailPricing;
+  if (!activeRetailPricing && typeof window !== 'undefined') {
+    const cachedRetail = localStorage.getItem('hung_decor_freelance_pricing');
+    if (cachedRetail) {
+      try {
+        activeRetailPricing = sanitizePricingState(JSON.parse(cachedRetail), true);
+      } catch (e) {}
+    }
+  }
 
   const toStandardFrameKey = (normColKey: string): string => {
     if (normColKey === 'b10') return '10cm';
@@ -1493,18 +1512,35 @@ export function generateStandardFlatCatalog(
     return colLabels[normColKey] || (defaultColumnLabels as any)[normColKey] || normColKey;
   };
 
-  const extractCellPrice = (row: any, normColKey: string, isAlbumTab: boolean): number => {
+  const extractCellPrice = (row: any, normColKey: string, rawColKey: string, isAlbumTab: boolean): number => {
     if (!row) return 0;
     let raw: any = null;
     if (isAlbumTab) {
       raw = row.donGia ?? row.price ?? row.k4_k6 ?? null;
     } else if (normColKey === 'inEpMikaCol' || normColKey === 'inEpMika') {
-      raw = row.inEpMikaCol ?? row.inEpMika ?? null;
+      raw = row.inEpMikaCol !== undefined && row.inEpMikaCol !== null ? row.inEpMikaCol : (row.inEpMika ?? null);
+    } else if (normColKey === 'khungGiaCo') {
+      raw = row.khungGiaCo !== undefined && row.khungGiaCo !== null ? row.khungGiaCo : (row.khungXuongGiaCo ?? null);
     } else {
-      raw = row[normColKey] ?? null;
+      raw = row[normColKey] ?? row[rawColKey] ?? null;
     }
-    const num = typeof raw === 'number' ? raw : Number(raw);
+    if (raw === null || raw === undefined || raw === '' || raw === '-') return 0;
+    const num = typeof raw === 'number' ? raw : Number(String(raw).replace(/,/g, '').trim());
     return !isNaN(num) && num > 0 ? num : 0;
+  };
+
+  const normalizeSkuFormat = (rawSku: string): string => {
+    return String(rawSku || '')
+      .toLowerCase()
+      .trim()
+      .replace(/(\d+)\s*x\s*(\d+)/gi, '$1*$2');
+  };
+
+  const normalizeSizeKey = (sizeVal: string): string => {
+    return String(sizeVal || '')
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .trim();
   };
 
   const stripLeadingNumber = (label: string): string => {
@@ -1517,7 +1553,6 @@ export function generateStandardFlatCatalog(
     categoryName: string;
     shortCategoryName: string;
     isAlbum: boolean;
-    appliesToRetail: boolean;
     studioRows: any[];
     retailRows: any[];
     colKeys: string[];
@@ -1530,9 +1565,8 @@ export function generateStandardFlatCatalog(
       categoryName: tabs.mikaPhoThong || defaultTabLabels.mikaPhoThong,
       shortCategoryName: stripLeadingNumber(tabs.mikaPhoThong || defaultTabLabels.mikaPhoThong) || 'Ảnh Mika',
       isAlbum: false,
-      appliesToRetail: true,
       studioRows: studioPricing.mikaPhoThong || defaultMikaPhoThong,
-      retailRows: retailPricing?.mikaPhoThong || [],
+      retailRows: activeRetailPricing?.mikaPhoThong || [],
       colKeys: getMaterialColumns(studioPricing, 'mika-pho-thong'),
     },
     {
@@ -1541,9 +1575,8 @@ export function generateStandardFlatCatalog(
       categoryName: tabs.hdGuong || defaultTabLabels.hdGuong,
       shortCategoryName: stripLeadingNumber(tabs.hdGuong || defaultTabLabels.hdGuong) || 'Mika HD Gương 8K',
       isAlbum: false,
-      appliesToRetail: false,
       studioRows: studioPricing.hdGuong || defaultHdGuong,
-      retailRows: [],
+      retailRows: activeRetailPricing?.hdGuong || [],
       colKeys: getMaterialColumns(studioPricing, 'hd-guong-sieu-bong'),
     },
     {
@@ -1552,9 +1585,8 @@ export function generateStandardFlatCatalog(
       categoryName: tabs.anh4K || defaultTabLabels.anh4K,
       shortCategoryName: stripLeadingNumber(tabs.anh4K || defaultTabLabels.anh4K) || 'Album – Photobook',
       isAlbum: true,
-      appliesToRetail: false,
       studioRows: studioPricing.anh4K || defaultAnh4K,
-      retailRows: [],
+      retailRows: activeRetailPricing?.anh4K || [],
       colKeys: ['donGia'],
     },
     {
@@ -1563,9 +1595,8 @@ export function generateStandardFlatCatalog(
       categoryName: tabs.inEpMika || defaultTabLabels.inEpMika,
       shortCategoryName: stripLeadingNumber(tabs.inEpMika || defaultTabLabels.inEpMika) || 'In Ép',
       isAlbum: false,
-      appliesToRetail: true,
       studioRows: studioPricing.inEpMika || defaultInEpMika,
-      retailRows: retailPricing?.inEpMika || [],
+      retailRows: activeRetailPricing?.inEpMika || [],
       colKeys: getMaterialColumns(studioPricing, 'in-ep-mika'),
     },
     {
@@ -1574,9 +1605,8 @@ export function generateStandardFlatCatalog(
       categoryName: tabs.goLua || defaultTabLabels.goLua,
       shortCategoryName: 'Gỗ Lụa',
       isAlbum: false,
-      appliesToRetail: false,
       studioRows: studioPricing.goLua || defaultGoLua,
-      retailRows: [],
+      retailRows: activeRetailPricing?.goLua || [],
       colKeys: getMaterialColumns(studioPricing, 'go-lua'),
     },
   ];
@@ -1584,14 +1614,13 @@ export function generateStandardFlatCatalog(
   // Append any custom material tabs if present
   if (Array.isArray(studioPricing.customTabs) && studioPricing.customTabs.length > 0) {
     studioPricing.customTabs.forEach((ct) => {
-      const retailCustom = retailPricing?.customTabs?.find((rct) => rct.id === ct.id);
+      const retailCustom = activeRetailPricing?.customTabs?.find((rct) => rct.id === ct.id);
       standardTabDefs.push({
         tabId: ct.id,
         categoryId: ct.id.toLowerCase(),
         categoryName: ct.title,
         shortCategoryName: stripLeadingNumber(ct.title) || ct.title,
         isAlbum: ct.type === 'album' || ct.type === 'anh4K',
-        appliesToRetail: Boolean(retailCustom),
         studioRows: ct.rows || [],
         retailRows: retailCustom?.rows || [],
         colKeys: getMaterialColumns(studioPricing, ct.id),
@@ -1601,40 +1630,49 @@ export function generateStandardFlatCatalog(
 
   standardTabDefs.forEach((def) => {
     const retailRowBySize = new Map<string, any>();
-    if (def.appliesToRetail && Array.isArray(def.retailRows)) {
+    if (Array.isArray(def.retailRows)) {
       def.retailRows.forEach((r) => {
         if (r && r.size) {
-          retailRowBySize.set(String(r.size).trim().toLowerCase(), r);
+          retailRowBySize.set(normalizeSizeKey(r.size), r);
         }
       });
     }
 
-    (def.studioRows || []).forEach((studioRow) => {
+    (def.studioRows || []).forEach((studioRow, rowIndex) => {
       if (!studioRow || !studioRow.size) return;
       const cleanSizeStr = String(studioRow.size).trim();
-      const matchingRetailRow = def.appliesToRetail
-        ? retailRowBySize.get(cleanSizeStr.toLowerCase())
-        : undefined;
+      const sizeLookupKey = normalizeSizeKey(cleanSizeStr);
+
+      // Tìm dòng tương ứng trên ma trận Bảng Giá Khách Lẻ theo kích thước (hoặc fallback theo vị trí dòng nếu khớp cỡ)
+      let matchingRetailRow = retailRowBySize.get(sizeLookupKey);
+      if (!matchingRetailRow && Array.isArray(def.retailRows) && def.retailRows[rowIndex]) {
+        const candidate = def.retailRows[rowIndex];
+        if (candidate && normalizeSizeKey(candidate.size) === sizeLookupKey) {
+          matchingRetailRow = candidate;
+        }
+      }
 
       def.colKeys.forEach((rawColKey) => {
         const normKey = normalizeColKey(rawColKey);
-        const rawSku = getCellSKU(studioRow, normKey, def.tabId, 'studio');
-        const normalizedSku = String(rawSku || '')
-          .toLowerCase()
-          .trim()
-          .replace(/(\d+)\s*x\s*(\d+)/gi, '$1*$2');
+
+        const skuStudio = normalizeSkuFormat(
+          getCellSKU(studioRow, normKey, def.tabId, 'studio')
+        );
+        const skuRetail = normalizeSkuFormat(
+          getCellSKU(matchingRetailRow || { size: cleanSizeStr }, normKey, def.tabId, 'freelance')
+        );
 
         const frameKey = toStandardFrameKey(normKey);
         const frameName = toStandardFrameName(normKey, def.isAlbum);
         const productName = `${def.shortCategoryName} - ${frameName}`;
 
-        const priceStudio = extractCellPrice(studioRow, normKey, def.isAlbum);
-        const priceRetail = def.appliesToRetail
-          ? extractCellPrice(matchingRetailRow, normKey, def.isAlbum)
-          : 0;
+        const priceStudio = extractCellPrice(studioRow, normKey, rawColKey, def.isAlbum);
+        const priceRetail = extractCellPrice(matchingRetailRow, normKey, rawColKey, def.isAlbum);
 
         catalog.push({
-          sku: normalizedSku,
+          sku: skuStudio,
+          skuStudio,
+          skuRetail,
           name: productName,
           size: cleanSizeStr,
           categoryId: def.categoryId,
@@ -1663,7 +1701,15 @@ export async function publishStandardFlatCatalogToFirestore(
   retailPricing?: FullPricingState
 ): Promise<boolean> {
   try {
-    const standardItems = generateStandardFlatCatalog(studioPricing, retailPricing);
+    let resolvedRetail = retailPricing;
+    if (!resolvedRetail) {
+      const fetchedRetail = await fetchFreelancePricingFromFirestore();
+      if (fetchedRetail?.data) {
+        resolvedRetail = fetchedRetail.data;
+      }
+    }
+
+    const standardItems = generateStandardFlatCatalog(studioPricing, resolvedRetail);
     const cleanedItems = cleanUndefined(standardItems);
     const masterDocRef = doc(db, FIRESTORE_COLLECTION, CATALOG_MASTER_DOC);
 
