@@ -209,18 +209,22 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
       }
 
+      let resolvedFreelance: FullPricingState;
       if (freelanceResult && freelanceResult.data) {
-        let loadedFreelance = sanitizePricingState(freelanceResult.data, true);
+        resolvedFreelance = sanitizePricingState(freelanceResult.data, true);
         if (loadedStudio.materialColumnsMap) {
-          loadedFreelance.materialColumnsMap = loadedStudio.materialColumnsMap;
-          loadedFreelance.materialColumnKeys = loadedStudio.materialColumnsMap;
+          resolvedFreelance.materialColumnsMap = loadedStudio.materialColumnsMap;
+          resolvedFreelance.materialColumnKeys = loadedStudio.materialColumnsMap;
         }
-        setFreelancePricing(loadedFreelance);
+        setFreelancePricing(resolvedFreelance);
       } else {
-        const generatedFreelance = generateDefaultFreelancePricing(loadedStudio);
-        setFreelancePricing(generatedFreelance);
-        saveFreelancePricingToFirestore(generatedFreelance).catch(console.warn);
+        resolvedFreelance = generateDefaultFreelancePricing(loadedStudio);
+        setFreelancePricing(resolvedFreelance);
+        saveFreelancePricingToFirestore(resolvedFreelance).catch(console.warn);
       }
+
+      // Tự động xuất bản và đồng bộ danh mục phẳng chuẩn (catalog_master) chạy ngầm khi khởi chạy
+      saveCatalogToFirestore(loadedStudio, resolvedFreelance).catch(console.warn);
 
       // Proactively purge any legacy 194 frames from Firestore & localStorage
       purgeLegacy194FramesFromFirestoreAndStorage().catch(console.warn);

@@ -32,7 +32,9 @@ import {
   generateDefaultFreelancePricing,
   getDefaultSKU,
   getCellSKU,
-  compressImageFile
+  compressImageFile,
+  generateStandardFlatCatalog,
+  publishStandardFlatCatalogToFirestore
 } from '../../firebase/dataService';
 import { 
   Lock, 
@@ -905,6 +907,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const handleSaveAllPricing = async () => {
     try {
       await saveAllPricing(localStudioPricing, localFreelancePricing);
+      publishStandardFlatCatalogToFirestore(localStudioPricing, localFreelancePricing).catch(console.warn);
       showToast('Đã lưu toàn bộ cấu trúc & đơn giá lên Firestore thành công!');
     } catch (e) {
       showToast('Lỗi khi lưu bảng giá lên Firestore. Vui lòng thử lại!', 'error');
@@ -1345,6 +1348,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     onClick={async () => {
                       try {
                         await saveStudioPricing(localStudioPricing);
+                        publishStandardFlatCatalogToFirestore(localStudioPricing, localFreelancePricing).catch(console.warn);
                         showToast('Đã lưu Bảng Giá Sỉ Studio Gốc lên Firebase Firestore!');
                       } catch (e: any) {
                         showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
@@ -1362,6 +1366,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     onClick={async () => {
                       try {
                         await saveFreelancePricing(localFreelancePricing);
+                        publishStandardFlatCatalogToFirestore(localStudioPricing, localFreelancePricing).catch(console.warn);
                         showToast('Đã lưu Bảng Giá Khách Lẻ lên Firebase Firestore!');
                       } catch (e: any) {
                         showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
@@ -1380,6 +1385,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   onClick={async () => {
                     try {
                       await saveAllPricing(localStudioPricing, localFreelancePricing);
+                      publishStandardFlatCatalogToFirestore(localStudioPricing, localFreelancePricing).catch(console.warn);
                       showToast('Đã lưu toàn bộ Bảng Giá lên Firebase Firestore thành công!');
                     } catch (e: any) {
                       showToast(`LỖI LƯU FIRESTORE: ${e?.message || e}. Dữ liệu chưa được lưu lên đám mây!`, 'error');
