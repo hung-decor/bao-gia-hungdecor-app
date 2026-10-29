@@ -358,7 +358,7 @@ export function cleanUndefined<T>(obj: T): T {
 }
 
 export const PRICING_VERSION = '2026_HUNG_DECOR_TTM_TTC_V11';
-export const KHACH_LE_PRICING_VERSION = '2026_HUNG_DECOR_KHACH_LE_EMPTY_V2';
+export const KHACH_LE_PRICING_VERSION = '2026_HUNG_DECOR_KHACH_LE_CLONED_V3';
 
 export function sanitizePricingState(d: any, isRetail: boolean = false): FullPricingState {
   const sanitizeDongKhungRow = (r: any): DongKhungPriceRow => {
@@ -673,8 +673,43 @@ export function applyPercentageIncrease(targetPricing: FullPricingState, percent
 }
 
 // Generate default Khách Lẻ pricing:
-// Chỉ hiển thị 2 Tab (1. Ảnh Mika và 2. In Ép), toàn bộ ô giá ban đầu để trống (null) để tự điền sau
+// Chỉ hiển thị 2 Tab (1. Ảnh Mika và 2. In Ép), nhân bản toàn bộ giá của "Ảnh Mika" và "In Ép" từ Bảng Giá Sỉ Studio sang Bảng Giá Khách Lẻ
 export function generateDefaultFreelancePricing(basePricing: FullPricingState): FullPricingState {
+  const cloneDongKhungRow = (r: DongKhungPriceRow): DongKhungPriceRow => {
+    const cloned: DongKhungPriceRow = {
+      ...r,
+      size: r.size,
+      boVien: r.boVien ?? null,
+      kx: r.kx ?? null,
+      ht10: r.ht10 ?? null,
+      k12: r.k12 ?? null,
+      b25: r.b25 ?? null,
+      b4: r.b4 ?? null,
+      b8: r.b8 ?? null,
+      b10: r.b10 ?? null,
+      ttm: r.ttm ?? null,
+      ttc: r.ttc ?? null,
+      skus: {}
+    };
+    return cloned;
+  };
+
+  const cloneInEpRow = (r: InEpMikaPriceRow): InEpMikaPriceRow => {
+    const cloned: any = {
+      ...r,
+      stt: r.stt,
+      size: r.size,
+      inAnh: r.inAnh ?? null,
+      inEpLua: r.inEpLua ?? null,
+      inEpMika: (r as any).inEpMikaCol ?? r.inEpMika ?? null,
+      inEpMikaCol: (r as any).inEpMikaCol ?? r.inEpMika ?? null,
+      inEpPlastic: r.inEpPlastic ?? null,
+      khungGiaCo: r.khungGiaCo ?? null,
+      skus: {}
+    };
+    return cloned;
+  };
+
   const emptyDongKhungRow = (r: DongKhungPriceRow): DongKhungPriceRow => ({
     size: r.size,
     boVien: null,
@@ -690,17 +725,6 @@ export function generateDefaultFreelancePricing(basePricing: FullPricingState): 
     skus: {}
   });
 
-  const emptyInEpRow = (r: InEpMikaPriceRow): InEpMikaPriceRow => ({
-    stt: r.stt,
-    size: r.size,
-    inAnh: null,
-    inEpLua: null,
-    inEpMika: null,
-    inEpPlastic: null,
-    khungGiaCo: null,
-    skus: {}
-  });
-
   const emptyAlbumRow = (r: Anh4KPriceRow): Anh4KPriceRow => ({
     size: r.size,
     donGia: null,
@@ -710,8 +734,8 @@ export function generateDefaultFreelancePricing(basePricing: FullPricingState): 
   return {
     ...basePricing,
     lastPriceAdjustmentDate: undefined,
-    mikaPhoThong: (basePricing.mikaPhoThong || defaultMikaPhoThong).map(emptyDongKhungRow),
-    inEpMika: (basePricing.inEpMika || defaultInEpMika).map(emptyInEpRow),
+    mikaPhoThong: (basePricing.mikaPhoThong || defaultMikaPhoThong).map(cloneDongKhungRow),
+    inEpMika: (basePricing.inEpMika || defaultInEpMika).map(cloneInEpRow),
     hdGuong: (basePricing.hdGuong || defaultHdGuong).map(emptyDongKhungRow),
     goLua: (basePricing.goLua || defaultGoLua).map(emptyDongKhungRow),
     anh4K: (basePricing.anh4K || defaultAnh4K).map(emptyAlbumRow),

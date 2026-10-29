@@ -170,6 +170,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   // Active Pricing SubTab (Studio Base vs Freelance)
   const [activePricingSubTab, setActivePricingSubTab] = useState<'studio' | 'freelance'>('studio');
   const [percentInputValue, setPercentInputValue] = useState<number>(10);
+  const [bulkPasswordInput, setBulkPasswordInput] = useState<string>('');
+  const [bulkPasswordError, setBulkPasswordError] = useState<string>('');
 
   // Local editable copies of dual pricing data
   const [localStudioPricing, setLocalStudioPricing] = useState<FullPricingState>(studioPricing);
@@ -1256,7 +1258,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     </h3>
                   </div>
                   <p className="text-xs text-neutral-400 mt-1">
-                    Tự động nhân tỷ lệ % cho toàn bộ đơn giá và làm tròn đến hàng nghìn đồng. Cấu trúc kích thước & tên cột luôn được đồng bộ 100%.
+                    Yêu cầu nhập mật khẩu xác nhận trước khi áp dụng tăng giá toàn bảng để tránh thao tác nhầm. (Chỉnh giá thủ công từng ô bên dưới không cần mật khẩu).
                   </p>
                 </div>
 
@@ -1278,7 +1280,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   ))}
 
                   {/* Percentage Custom Input */}
-                  <div className="flex items-center bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-1 text-xs text-white">
+                  <div className="flex items-center bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-1.5 text-xs text-white">
                     <span className="text-neutral-400 mr-1 font-bold">+</span>
                     <input
                       type="number"
@@ -1289,14 +1291,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <span className="text-neutral-400 ml-1 font-bold">%</span>
                   </div>
 
+                  {/* Password Input for Bulk Price Increase */}
+                  <div className="flex items-center bg-neutral-950 border border-neutral-700 focus-within:border-amber-400 rounded-lg px-3 py-1.5 text-xs text-white">
+                    <Lock className="w-3.5 h-3.5 text-amber-400 mr-1.5 shrink-0" />
+                    <input
+                      type="password"
+                      value={bulkPasswordInput}
+                      onChange={(e) => {
+                        setBulkPasswordInput(e.target.value);
+                        setBulkPasswordError('');
+                      }}
+                      placeholder="Nhập mật khẩu tăng giá..."
+                      className="w-40 bg-transparent text-white text-xs focus:outline-none placeholder:text-neutral-500"
+                    />
+                  </div>
+
                   {/* Apply % Button */}
                   <button
                     type="button"
                     onClick={() => {
                       if (percentInputValue === 0) {
-                        alert('Vui lòng nhập số % lớn hơn 0!');
+                        showToast('Vui lòng nhập số % khác 0!', 'error');
                         return;
                       }
+                      const normalizedPwd = bulkPasswordInput.replace(/\s+/g, '');
+                      if (normalizedPwd !== 'hungdathieu123@@') {
+                        setBulkPasswordError('Mật khẩu xác nhận tăng giá hàng loạt không chính xác!');
+                        showToast('Sai mật khẩu xác nhận tăng giá hàng loạt!', 'error');
+                        return;
+                      }
+                      setBulkPasswordError('');
+                      setBulkPasswordInput('');
                       if (activePricingSubTab === 'studio') {
                         const boosted = applyPercentageIncrease(localStudioPricing, percentInputValue);
                         setLocalStudioPricing(boosted);
@@ -1315,6 +1340,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   </button>
                 </div>
               </div>
+
+              {bulkPasswordError && (
+                <div className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{bulkPasswordError}</span>
+                </div>
+              )}
 
               {/* Timestamp of last bulk adjustment */}
               <div className="pt-2 text-[11px] text-neutral-400 italic flex items-center gap-1.5 border-t border-neutral-800/60">
@@ -1342,6 +1374,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                {activePricingSubTab === 'freelance' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const clonedRetail = generateDefaultFreelancePricing(localStudioPricing);
+                      setLocalFreelancePricing(clonedRetail);
+                      try {
+                        await saveFreelancePricing(clonedRetail);
+                        await publishStandardFlatCatalogToFirestore(localStudioPricing, clonedRetail);
+                        showToast('Đã nhân bản toàn bộ giá Ảnh Mika & In Ép từ Bảng Studio sang Bảng Khách Lẻ và lưu Firestore!');
+                      } catch (e: any) {
+                        showToast('Đã nhân bản giá từ Bảng Studio sang Bảng Khách Lẻ!', 'success');
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-amber-300 border border-amber-500/40 font-bold text-xs transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Nhân Bản Giá Từ Studio</span>
+                  </button>
+                )}
+
                 {activePricingSubTab === 'studio' ? (
                   <button
                     type="button"
